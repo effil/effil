@@ -1,6 +1,7 @@
 #include "shared-table.h"
 
 #include <cassert>
+#include <mutex>
 
 namespace core {
 
