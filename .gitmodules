@@ -1,0 +1,3 @@
+[submodule "src/sol"]
+	path = src/sol
+	url = https://github.com/ThePhD/sol2.git

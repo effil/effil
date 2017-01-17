@@ -1,5 +1,6 @@
 --local thr = require('libbevy')
-require('libbevy')
+package.cpath = package.cpath .. ";./?.dylib"
+require('libwoofer')
 local thr = thread
 return {
     new = function(func)

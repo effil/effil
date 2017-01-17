@@ -77,7 +77,7 @@ static std::string ThreadId()
     return ss.str();
 }
 
-extern "C" int luaopen_libbevy(lua_State *L)
+extern "C" int luaopen_libwoofer(lua_State *L)
 {
     sol::state_view lua(L);
     lua.new_usertype<LuaThread>("thread",

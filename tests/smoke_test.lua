@@ -1,7 +1,7 @@
-local thr = require('bevy')
+local thr = require('woofer')
 t = thr.new(
     function()
-        local thr = require('bevy')
+        local thr = require('woofer')
         print(share['key1'])
         print(share['key2'])
         print(share['key3'])
