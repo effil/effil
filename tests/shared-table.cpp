@@ -1,17 +1,25 @@
-#include <boost/test/unit_test.hpp>
+#include <gtest/gtest.h>
 
 #include "shared-table.h"
-#include "lua-utils.h"
-
-#include <logging.h>
 
 using namespace core;
 
-BOOST_AUTO_TEST_CASE(singleThreadSet) {
+namespace {
+
+void bootstrapState(sol::state& lua) {
+    lua.open_libraries(
+            sol::lib::base,
+            sol::lib::string
+    );
+    SharedTable::bind(lua);
+}
+
+}
+
+TEST(sharedTable, singleThreadSet) {
+    SharedTable st;
     sol::state lua;
     bootstrapState(lua);
-
-    SharedTable st;
 
     lua["st"] = &st;
 
@@ -23,14 +31,14 @@ st.del = "secret"
 st.del = nil
 )");
     if (!res1.valid()) {
-        BOOST_FAIL("Set res1 failed");
+        FAIL() << "Set res1 failed";
     }
 
-    BOOST_CHECK(lua["st"]["fst"] == std::string("first"));
-    BOOST_CHECK(lua["st"]["snd"] == (double)2);
-    BOOST_CHECK(lua["st"]["thr"] == true);
-    BOOST_CHECK(lua["st"]["del"] == sol::nil);
-    BOOST_CHECK(lua["st"]["nex"] == sol::nil);
+    ASSERT_EQ(lua["st"]["fst"], std::string("first"));
+    ASSERT_EQ(lua["st"]["snd"], (double)2);
+    ASSERT_EQ(lua["st"]["thr"], true);
+    ASSERT_EQ(lua["st"]["del"], sol::nil);
+    ASSERT_EQ(lua["st"]["nex"], sol::nil);
 
     auto res2 = lua.script(R"(
 st[1] = 3
@@ -41,30 +49,30 @@ st[42] = nil
 st.deleted = st[42] == nil
 )");
     if (!res2.valid()) {
-        BOOST_FAIL("Set res2 failed");
+        FAIL() << "Set res2 failed";
     }
 
-    BOOST_CHECK(lua["st"][1] == 3);
-    BOOST_CHECK(lua["st"][2] == std::string("number"));
-    BOOST_CHECK(lua["st"][-1] == false);
-    BOOST_CHECK(lua["st"]["deleted"] == true);
+    ASSERT_EQ(lua["st"][1], 3);
+    ASSERT_EQ(lua["st"][2], std::string("number"));
+    ASSERT_EQ(lua["st"][-1], false);
+    ASSERT_EQ(lua["st"]["deleted"], true);
 
     auto res3 = lua.script(R"(
 st[true] = false
 st[false] = 9
 )");
     if (!res3.valid()) {
-        BOOST_FAIL("Set res3 failed");
+        FAIL() << "Set res3 failed";
     }
 
-    BOOST_CHECK(lua["st"][true]  == false);
-    BOOST_CHECK(lua["st"][false] == 9);
+    ASSERT_EQ(lua["st"][true], false);
+    ASSERT_EQ(lua["st"][false], 9);
 }
 
-BOOST_AUTO_TEST_CASE(asGlobalTable) {
+TEST(sharedTable, asGlobalTable) {
     sol::state lua;
     SharedTable st;
-    bootstrapState(lua);
+    SharedTable::bind(lua);
 
     lua["st"] = &st;
 
@@ -75,12 +83,12 @@ b = false
 s = "Oo"
 )");
 
-    BOOST_CHECK(lua["n"] == 1);
-    BOOST_CHECK(lua["b"] == false);
-    BOOST_CHECK(lua["s"] == std::string("Oo"));
+    ASSERT_EQ(lua["n"], 1);
+    ASSERT_EQ(lua["b"], false);
+    ASSERT_EQ(lua["s"], std::string("Oo"));
 }
 
-BOOST_AUTO_TEST_CASE(severalStates) {
+TEST(sharedTable, severalStates) {
     sol::state lua1, lua2;
     bootstrapState(lua1);
     bootstrapState(lua2);
@@ -96,19 +104,19 @@ cats.sparky = false
 cats.wow = 3
 )");
 
-    BOOST_CHECK(lua2["dogs"]["fluffy"] == std::string("gav"));
-    BOOST_CHECK(lua2["dogs"]["sparky"] == false);
-    BOOST_CHECK(lua2["dogs"]["wow"] == 3);
+    ASSERT_EQ(lua2["dogs"]["fluffy"], std::string("gav"));
+    ASSERT_EQ(lua2["dogs"]["sparky"], false);
+    ASSERT_EQ(lua2["dogs"]["wow"], 3);
 }
 
-BOOST_AUTO_TEST_CASE(multipleThreads) {
+TEST(sharedTable, multipleThreads) {
     SharedTable st;
 
     std::vector<std::thread> threads;
 
     threads.emplace_back([&](){
         sol::state lua;
-        bootstrapState(lua);
+        bootstrapState(lua);;
         lua["st"] = &st;
         lua.script(R"(
 while not st.ready do end
@@ -140,12 +148,12 @@ st.thr = true)");
 
     for(auto& thread : threads) { thread.join(); }
 
-    BOOST_CHECK(lua["st"]["fst"] == true);
-    BOOST_CHECK(lua["st"]["snd"] == true);
-    BOOST_CHECK(lua["st"]["thr"] == true);
+    ASSERT_EQ(lua["st"]["fst"], true);
+    ASSERT_EQ(lua["st"]["snd"], true);
+    ASSERT_EQ(lua["st"]["thr"], true);
 }
 
-BOOST_AUTO_TEST_CASE(nestedTables) {
+TEST(sharedTable, nestedTables) {
     SharedTable recursive, st1, st2;
     sol::state lua;
     bootstrapState(lua);
@@ -160,11 +168,11 @@ st1.proxy.value = true
 recursive.next = recursive
 recursive.val = "yes"
 )");
-    BOOST_CHECK(lua["st2"]["value"] == true);
-    BOOST_CHECK(lua["recursive"]["next"]["next"]["next"]["val"] == std::string("yes"));
+    ASSERT_EQ(lua["st2"]["value"], true);
+    ASSERT_EQ(lua["recursive"]["next"]["next"]["next"]["val"], std::string("yes"));
 }
 
-BOOST_AUTO_TEST_CASE(playingWithFunctions) {
+TEST(sharedTable, playingWithFunctions) {
     SharedTable st;
     sol::state lua;
     bootstrapState(lua);
@@ -180,7 +188,7 @@ st.fn()
 )");
 
     sol::function sf = lua["st"]["fn"];
-    BOOST_CHECK((bool)sf());
+    ASSERT_TRUE((bool)sf());
 
     sol::state lua2;
     bootstrapState(lua2);
@@ -194,5 +202,5 @@ end
 
     sol::function sf2 = lua["st"]["fn2"];
 
-    BOOST_CHECK(sf2(std::string("SUCCESS")).get<std::string>() == std::string("*SUCCESS*"));
+    ASSERT_EQ(sf2(std::string("SUCCESS")).get<std::string>(), std::string("*SUCCESS*"));
 }

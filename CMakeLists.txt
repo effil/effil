@@ -13,6 +13,11 @@ FILE(GLOB SOURCES src/*.cpp src/*.h)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 
+if(APPLE)
+    # Supress CMP0042
+    set(CMAKE_MACOSX_RPATH 1)
+endif()
+
 add_library(woofer SHARED ${SOURCES})
 target_link_libraries(woofer -lpthread ${LUA_LIBRARY})
 
@@ -22,9 +27,22 @@ set(BUILD_FLAVOR "-O3 -UNDEBUG")
 set_target_properties(woofer PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
 
 #----------
+# TESTS ---
+#----------
+
+FILE(GLOB TEST_SOURCES tests/*.cpp)
+set(GTEST_DIR tests/gtest/googletest)
+
+include_directories(${GTEST_DIR}/include ${GTEST_DIR})
+add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
+target_link_libraries(tests woofer)
+
+set_target_properties(tests PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
+
+#----------
 # INSTALL -
 #----------
 
-FILE(GLOB TESTS tests/*)
+FILE(GLOB TESTS tests/*.lua)
 FILE(GLOB LUA_SOURCES lua-api/*.lua)
 install(FILES ${TESTS} ${LUA_SOURCES} DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
