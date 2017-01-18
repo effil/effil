@@ -11,6 +11,8 @@
 
 namespace core {
 
+sol::table init_state(sol::state_view& lua);
+
 class SharedTable {
 public:
     SharedTable() = default;

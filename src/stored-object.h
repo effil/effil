@@ -3,8 +3,11 @@
 #include <sol.hpp>
 
 #include <utility>
+#include <iostream>
 
 namespace core {
+
+#define ERROR std::cerr
 
 class BaseHolder {
 public:
@@ -41,8 +44,10 @@ template<typename StoredType>
 class PrimitiveHolder : public BaseHolder {
 public:
     PrimitiveHolder(sol::stack_object luaObject) noexcept
-            : data_(luaObject.as<StoredType>()) {
-    }
+            : data_(luaObject.as<StoredType>()) {}
+
+    PrimitiveHolder(sol::object luaObject) noexcept
+            : data_(luaObject.as<StoredType>()) {}
 
     PrimitiveHolder(const StoredType& init) noexcept
             : data_(init) {}
@@ -71,7 +76,15 @@ private:
 
 class FunctionHolder : public BaseHolder {
 public:
-    FunctionHolder(sol::stack_object luaObject) noexcept;
+    template<typename SolObject>
+    FunctionHolder(SolObject luaObject) noexcept {
+        sol::state_view lua(luaObject.lua_state());
+        sol::function dumper = lua["string"]["dump"];
+
+        assert(dumper.valid());
+        function_ = dumper(luaObject);
+    }
+
     bool rawCompare(const BaseHolder* other) const noexcept final;
     bool rawLess(const BaseHolder* other) const noexcept final;
     std::size_t hash() const noexcept final;
@@ -87,9 +100,33 @@ class StoredObject {
 public:
     StoredObject() = default;
     StoredObject(StoredObject&& init) noexcept;
-    StoredObject(sol::stack_object luaObject) noexcept;
-    //StoredObject(sol::object luaObject) noexcept;
     StoredObject(SharedTable*) noexcept;
+
+    template<typename SolObject>
+    StoredObject(SolObject luaObject)
+    {
+        switch(luaObject.get_type()) {
+            case sol::type::nil:
+                break;
+            case sol::type::boolean:
+                data_.reset(new PrimitiveHolder<bool>(luaObject));
+                break;
+            case sol::type::number:
+                data_.reset(new PrimitiveHolder<double>(luaObject));
+                break;
+            case sol::type::string:
+                data_.reset(new PrimitiveHolder<std::string>(luaObject));
+                break;
+            case sol::type::userdata:
+                data_.reset(new PrimitiveHolder<SharedTable*>(luaObject));
+                break;
+            case sol::type::function:
+                data_.reset(new FunctionHolder(luaObject));
+                break;
+            default:
+                ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << std::endl;
+        }
+    }
 
     operator bool() const noexcept;
     std::size_t hash() const noexcept;

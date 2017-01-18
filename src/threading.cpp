@@ -1,92 +1,66 @@
-extern "C"
+#include "threading.h"
+
+LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& args) noexcept
 {
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
+    // 1. Dump function to string
+    sol::state_view lua(function.lua_state());
+    str_function_ = lua["string"]["dump"](function);
+
+    // 2. Create new state
+    p_state_.reset(new sol::state);
+    assert(p_state_.get() != NULL);
+    p_state_->open_libraries(
+        sol::lib::base, sol::lib::string,
+        sol::lib::package, sol::lib::io, sol::lib::os
+    );
+    auto thread_table = core::init_state(*p_state_);
+    (void)thread_table;
+
+    // 3. Save parameters
+    validate_args(args);
+
+    // 4. Run thread
+    p_thread_.reset(new std::thread(&LuaThread::work, this));
+    assert(p_thread_.get() != NULL);
 }
 
-#include <sol.hpp>
-#include <iostream>
-#include <sstream>
-#include <thread>
-
-#include "shared-table.h"
-
-core::SharedTable shareTable;
-
-class LuaThread
+LuaThread::~LuaThread()
 {
-public:
+    join();
+}
 
-    LuaThread(const std::string& rawFunction)
-        : m_strFunction(rawFunction)
+void LuaThread::validate_args(const sol::variadic_args& args) noexcept
+{
+    const auto end = --args.end();
+    for(auto iter = args.begin(); iter != end; iter++)
     {
-        std::cout << "LuaThread" << std::endl;
-        m_pState.reset(new sol::state);
-        core::SharedTable::bind(*m_pState);
-        (*m_pState)["share"] = &shareTable;
-        assert(m_pState.get() != NULL);
-        m_pState->open_libraries(
-            sol::lib::base, sol::lib::string,
-            sol::lib::package, sol::lib::io, sol::lib::os
-        );
-        m_pThread.reset(new std::thread(&LuaThread::Impl, this));
-        assert(m_pThread.get() != NULL);
-        std::cout << "LuaThread##" << std::endl;
+        core::StoredObject store(iter->get<sol::object>());
+        arguments_.push_back(store.unpack(sol::this_state{p_state_->lua_state()}));
     }
+}
 
-    virtual ~LuaThread()
+void LuaThread::join() noexcept
+{
+    if (p_thread_.get())
     {
-        std::cout << "~LuaThread" << std::endl;
-        Join();
+        p_thread_->join();
+        p_thread_.reset();
     }
+    arguments_.clear();
+    if (p_state_.get())
+        p_state_.reset();
+}
 
-    void Join()
-    {
-        std::cout << "Join started" << std::endl;
-        if (m_pThread.get())
-        {
-            m_pThread->join();
-            m_pThread.reset();
-        }
-        if (m_pState.get())
-        {
-            m_pState.reset();
-        }
-        std::cout << "Join finished" << std::endl;
-    }
+void LuaThread::work() noexcept
+{
+    sol::state& lua = *p_state_;
+    sol::function_result func = lua["loadstring"](str_function_);
+    func.get<sol::function>()(sol::as_args(arguments_));
+}
 
-private:
-    void Impl()
-    {
-        std::cout << "Impl" << std::endl;
-        std::stringstream script;
-        script << "loadstring(" << m_strFunction << ")()";
-        m_pState->script(script.str());
-    }
-
-    std::string m_strFunction;
-    std::shared_ptr<sol::state> m_pState;
-    std::shared_ptr<std::thread> m_pThread;
-};
-
-static std::string ThreadId()
+std::string LuaThread::thread_id() noexcept
 {
     std::stringstream ss;
-    ss << std::hash<std::thread::id>()(std::this_thread::get_id());
+    ss << std::this_thread::get_id();
     return ss.str();
-}
-
-extern "C" int luaopen_libwoofer(lua_State *L)
-{
-    sol::state_view lua(L);
-    lua.new_usertype<LuaThread>("thread",
-        sol::constructors<sol::types<std::string>>(),
-        "join", &LuaThread::Join
-    );
-    lua["thread"]["thread_id"] = ThreadId;
-
-    core::SharedTable::bind(lua);
-    lua["share"] = &shareTable;
-    return 0;
 }
