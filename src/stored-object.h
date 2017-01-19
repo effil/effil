@@ -5,7 +5,7 @@
 #include <utility>
 #include <iostream>
 
-namespace core {
+namespace share_data {
 
 #define ERROR std::cerr
 
@@ -148,8 +148,8 @@ private:
 namespace std {
 
 template<>
-struct hash<core::StoredObject> {
-    std::size_t operator()(const core::StoredObject &object) const noexcept {
+struct hash<share_data::StoredObject> {
+    std::size_t operator()(const share_data::StoredObject &object) const noexcept {
         return object.hash();
     }
 };

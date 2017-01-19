@@ -7,13 +7,17 @@
 
 #include "shared-table.h"
 
+namespace threading {
+
 class LuaThread
 {
 public:
     LuaThread(const sol::function& function, const sol::variadic_args& args) noexcept;
     virtual ~LuaThread() noexcept;
     void join() noexcept;
+
     static std::string thread_id() noexcept;
+    static sol::object get_user_type(sol::state_view& lua) noexcept;
 
 private:
     void work() noexcept;
@@ -24,3 +28,5 @@ private:
     std::shared_ptr<std::thread> p_thread_;
     std::vector<sol::object> arguments_;
 };
+
+}

@@ -7,7 +7,7 @@
 
 #include <cassert>
 
-namespace core {
+namespace share_data {
 
 bool FunctionHolder::rawCompare(const BaseHolder* other) const noexcept {
     return function_ == static_cast<const FunctionHolder*>(other)->function_;
@@ -79,4 +79,4 @@ bool StoredObject::operator<(const StoredObject& o) const noexcept {
         return data_.get() < o.data_.get();
 }
 
-} // core
+}
