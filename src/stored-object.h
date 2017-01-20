@@ -143,7 +143,7 @@ private:
     StoredObject& operator=(const StoredObject&) = delete;
 };
 
-} // core
+} // share_data
 
 namespace std {
 
