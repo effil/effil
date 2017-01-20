@@ -5,7 +5,7 @@
 
 namespace share_data {
 
-sol::object SharedTable::get_user_type(sol::state_view& lua) noexcept {
+sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
     static sol::usertype<share_data::SharedTable> type(
             sol::call_construction(), sol::default_constructor,
             sol::meta_function::new_index, &share_data::SharedTable::luaSet,

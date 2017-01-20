@@ -14,7 +14,7 @@ void bootstrapState(sol::state& lua) {
             sol::lib::string,
             sol::lib::table
     );
-    SharedTable::get_user_type(lua);
+    SharedTable::getUserType(lua);
 }
 
 } // namespace

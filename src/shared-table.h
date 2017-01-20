@@ -16,7 +16,7 @@ public:
     SharedTable() = default;
     virtual ~SharedTable() = default;
 
-    static sol::object get_user_type(sol::state_view &lua) noexcept;
+    static sol::object getUserType(sol::state_view &lua) noexcept;
     void set(StoredObject, StoredObject) noexcept;
     size_t size() const noexcept;
 
