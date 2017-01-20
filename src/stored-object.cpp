@@ -4,21 +4,10 @@
 
 #include <map>
 #include <vector>
-#include <iostream>
 
 #include <cassert>
 
-#define ERROR std::cerr
-
-namespace core {
-
-FunctionHolder::FunctionHolder(sol::stack_object luaObject) noexcept {
-    sol::state_view lua(luaObject.lua_state());
-    sol::function dumper = lua["string"]["dump"];
-
-    assert(dumper.valid());
-    function_ = dumper(luaObject);
-}
+namespace share_data {
 
 bool FunctionHolder::rawCompare(const BaseHolder* other) const noexcept {
     return function_ == static_cast<const FunctionHolder*>(other)->function_;
@@ -48,31 +37,6 @@ sol::object FunctionHolder::unpack(sol::this_state state) const noexcept {
 
 StoredObject::StoredObject(StoredObject&& init) noexcept
         : data_(std::move(init.data_)) {}
-
-StoredObject::StoredObject(sol::stack_object luaObject) noexcept
-        : data_(nullptr) {
-    switch(luaObject.get_type()) {
-        case sol::type::nil:
-            break;
-        case sol::type::boolean:
-            data_.reset(new PrimitiveHolder<bool>(luaObject));
-            break;
-        case sol::type::number:
-            data_.reset(new PrimitiveHolder<double>(luaObject));
-            break;
-        case sol::type::string:
-            data_.reset(new PrimitiveHolder<std::string>(luaObject));
-            break;
-        case sol::type::userdata:
-            data_.reset(new PrimitiveHolder<SharedTable*>(luaObject));
-            break;
-        case sol::type::function:
-            data_.reset(new FunctionHolder(luaObject));
-            break;
-        default:
-            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << std::endl;
-    }
-}
 
 StoredObject::operator bool() const noexcept {
     return (bool)data_;
@@ -115,4 +79,4 @@ bool StoredObject::operator<(const StoredObject& o) const noexcept {
         return data_.get() < o.data_.get();
 }
 
-} // core
+}

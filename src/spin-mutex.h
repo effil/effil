@@ -3,7 +3,7 @@
 #include <atomic>
 #include <thread>
 
-namespace core {
+namespace share_data {
 
 class SpinMutex {
 public:

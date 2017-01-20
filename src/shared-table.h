@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-namespace core {
+namespace share_data {
 
 class SharedTable {
 public:
@@ -18,8 +18,7 @@ public:
     void luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept;
     sol::object luaGet(sol::stack_object key, sol::this_state state) noexcept;
 
-    // Add usertype to state
-    static void bind(sol::state_view& lua) noexcept;
+    static sol::object get_user_type(sol::state_view& lua) noexcept;
 
 private: // lau bindings
     size_t size() noexcept;

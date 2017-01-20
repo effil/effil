@@ -1,95 +1,55 @@
-local thr = require('woofer')
-t = thr.new(
-    function()
-        local thr = require('woofer')
-        print(share['key1'])
-        print(share['key2'])
-        print(share['key3'])
-        print(thr.thread_id())
-        for i = 1, 100 do
-            io.write('2')
-            io.flush()
-            os.execute("sleep 0.1")
+function compare(o1, o2)
+    if o1 == o2 then return true end
+    local o1Type = type(o1)
+    local o2Type = type(o2)
+    if o1Type ~= o2Type then return false end
+    if o1Type ~= 'table' then return false end
+
+    local keySet = {}
+    for key1, value1 in pairs(o1) do
+        local value2 = o2[key1]
+        if value2 == nil or equals(value1, value2) == false then
+            return false
         end
-    end
-)
-
-share['key1'] = 'val'
-share['key2'] = 100500
-share['key3'] = true
-print(thr.thread_id())
-for i = 1, 100 do
-    io.write('1')
-    io.flush()
-    os.execute("sleep 0.1")
-end
-t:join()
-
---[[
-ppp("qwe")
-t = thr.new(
-    function()
-        local thr = require('bevy')
-        print(("0x%x"):format(thr.thread_id()))
-        for i = 1, 10 do
-            io.write('.')
-            io.flush()
-            os.execute("sleep " .. 1)
-        end
-    end
-)
-print(("0x%x"):format(thr.thread_id()))
-
-for i = 1, 10 do
-    io.write(',')
-    io.flush()
-    os.execute("sleep " .. 1)
-end
-
-t:join()
-
-print()
-]]
-
---[[
-str_foo = ""
-
-asd =10
-qwe = 20
-function bar()
-    local lala = { 40 }
-    function foo(a, b)
-        local d = asd
-        local l = lala[1]
-        lala = 10
-        return function() return a + asd + b + qwe + l end
+        keySet[key1] = true
     end
 
-    print(debug.getupvalue(foo, 1))
-    print(debug.getupvalue(foo, 2))
-    table_print(debug.getinfo(foo))
-    str_foo = string.dump(foo)
+    for key2, _ in pairs(o2) do
+        if not keySet[key2] then return false end
+    end
+    return true
 end
 
-bar()
+function check(left, right)
+    if not compare(left, right) then
+        print("ERROR")
+    end
+end
 
-foo2 = loadstring(str_foo)
+-----------
+-- TESTS --
+-----------
 
+do -- Simple smoke
+    package.cpath = package.cpath .. ";./?.dylib" -- MAC OS support
+    local woofer = require('libwoofer')
+    local share = woofer.share()
 
-local t = {}
-setmetatable(t,
-    {
-        __index = function(self, key)
-            print("Call ", key)
-            return _ENV[key]
+    share["number"] = 100500
+    share["string"] = "string value"
+    share["bool"] = true
+
+    local thread = woofer.thread(
+        function(share)
+            share["child.number"] = share["number"]
+            share["child.string"] = share["string"]
+            share["child.bool"]   = share["bool"]
         end,
-        __newindex = function(self, key, value)
-            print("Call ", key, value)
-            _ENV[key] = value
-        end
-    }
-)
-debug.setupvalue(foo2, 1, t)
-debug.setupvalue(foo2, 2, { 99 })
-print(foo2(10, 20)())
-]]
+        share
+    )
+    thread:join()
+
+    check(share["child.number"], share["number"])
+    check(share["child.string"], share["string"])
+    check(share["child.bool"], share["bool"])
+end

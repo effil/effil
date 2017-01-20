@@ -3,13 +3,17 @@
 #include <cassert>
 #include <mutex>
 
-namespace core {
+namespace share_data {
 
-void SharedTable::bind(sol::state_view& lua) noexcept {
-    lua.new_usertype<SharedTable>("shared_table",
-                                  sol::meta_function::new_index, &SharedTable::luaSet,
-                                  sol::meta_function::index, &SharedTable::luaGet,
-                                  sol::meta_function::length, &SharedTable::size);
+sol::object SharedTable::get_user_type(sol::state_view& lua) noexcept {
+    static sol::usertype<share_data::SharedTable> type(
+            sol::call_construction(), sol::default_constructor,
+            sol::meta_function::new_index, &share_data::SharedTable::luaSet,
+            sol::meta_function::index,     &share_data::SharedTable::luaGet,
+            sol::meta_function::length, &SharedTable::size
+    );
+    sol::stack::push(lua, type);
+    return sol::stack::pop<sol::object>(lua);
 }
 
 void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept {
@@ -65,4 +69,4 @@ TablePool& defaultPool() noexcept {
     return pool;
 }
 
-} // core
+} // share_data
