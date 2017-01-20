@@ -27,11 +27,11 @@ LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& ar
 
 void LuaThread::store_args(const sol::variadic_args& args) noexcept
 {
-    const auto end = --args.end();
-    for(auto iter = args.begin(); iter != end; iter++)
+    p_arguments_ = std::make_shared<std::vector<sol::object>>();
+    for(auto iter = args.begin(); iter != args.end(); iter++)
     {
         share_data::StoredObject store(iter->get<sol::object>());
-        arguments_.push_back(store.unpack(sol::this_state{p_state_->lua_state()}));
+        p_arguments_->push_back(store.unpack(sol::this_state{p_state_->lua_state()}));
     }
 }
 
@@ -42,16 +42,31 @@ void LuaThread::join() noexcept
         p_thread_->join();
         p_thread_.reset();
     }
-    arguments_.clear();
+    if (p_arguments_.get())
+        p_arguments_.reset();
     if (p_state_.get())
         p_state_.reset();
 }
 
+void LuaThread::detach() noexcept
+{
+    p_thread_->detach();
+}
+
 void LuaThread::work() noexcept
 {
-    sol::state& lua = *p_state_;
-    sol::function_result func = lua["loadstring"](str_function_);
-    func.get<sol::function>()(sol::as_args(arguments_));
+    if (p_state_.get() && p_arguments_.get())
+    {
+        std::string func_owner = std::move(str_function_);
+        std::shared_ptr<sol::state> state_owner = p_state_;
+        std::shared_ptr<std::vector<sol::object>> arguments_owner = p_arguments_;
+        sol::function_result func = (*state_owner)["loadstring"](func_owner);
+        func.get<sol::function>()(sol::as_args(*arguments_owner));
+    }
+    else
+    {
+        throw sol::error("Internal error: invalid thread Lua state");
+    }
 }
 
 std::string LuaThread::thread_id() noexcept
@@ -66,6 +81,7 @@ sol::object LuaThread::get_user_type(sol::state_view& lua) noexcept
     static sol::usertype<LuaThread> type(
         sol::call_construction(), sol::constructors<sol::types<sol::function, sol::variadic_args>>(),
         "join",      &LuaThread::join,
+        "detach",    &LuaThread::detach,
         "thread_id", &LuaThread::thread_id
     );
     sol::stack::push(lua, type);

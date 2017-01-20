@@ -16,6 +16,7 @@ public:
     LuaThread(const sol::function& function, const sol::variadic_args& args) noexcept;
     virtual ~LuaThread() noexcept = default;
     void join() noexcept;
+    void detach() noexcept;
 
     static std::string thread_id() noexcept;
     static sol::object get_user_type(sol::state_view& lua) noexcept;
@@ -27,7 +28,7 @@ private:
     std::string str_function_;
     std::shared_ptr<sol::state> p_state_;
     std::shared_ptr<std::thread> p_thread_;
-    std::vector<sol::object> arguments_;
+    std::shared_ptr<std::vector<sol::object>> p_arguments_;
 };
 
 }
