@@ -27,7 +27,7 @@ void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) n
     } else {
         StoredObject value(luaValue);
         std::lock_guard<SpinMutex> g(lock_);
-        data_.emplace(std::make_pair(std::move(key), std::move(value)));
+        data_[std::move(key)] = std::move(value);
     }
 }
 
