@@ -88,7 +88,7 @@ private:
 };
 
 // This class is used as a storage for visited sol::tables
-// TODO: try to use map or unordered map instead of linersearch in vectoers
+// TODO: try to use map or unordered map instead of linear search in vector
 // TODO: Trick is - sol::object has only operator==:/
 class VisitedTables {
 public:
