@@ -18,19 +18,14 @@ LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& ar
     share_data::SharedTable::get_user_type(*p_state_);
 
     // 3. Save parameters
-    validate_args(args);
+    store_args(args);
 
     // 4. Run thread
     p_thread_.reset(new std::thread(&LuaThread::work, this));
     assert(p_thread_.get() != NULL);
 }
 
-LuaThread::~LuaThread()
-{
-    join();
-}
-
-void LuaThread::validate_args(const sol::variadic_args& args) noexcept
+void LuaThread::store_args(const sol::variadic_args& args) noexcept
 {
     const auto end = --args.end();
     for(auto iter = args.begin(); iter != end; iter++)

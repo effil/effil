@@ -1,9 +1,4 @@
-extern "C"
-{
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
-}
+#include "lua.hpp"
 
 #include "threading.h"
 #include "shared-table.h"

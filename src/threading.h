@@ -1,11 +1,12 @@
 #pragma once
 
+#include "shared-table.h"
+
 #include <sol.hpp>
+
 #include <iostream>
 #include <sstream>
 #include <thread>
-
-#include "shared-table.h"
 
 namespace threading {
 
@@ -13,7 +14,7 @@ class LuaThread
 {
 public:
     LuaThread(const sol::function& function, const sol::variadic_args& args) noexcept;
-    virtual ~LuaThread() noexcept;
+    virtual ~LuaThread() noexcept = default;
     void join() noexcept;
 
     static std::string thread_id() noexcept;
@@ -21,7 +22,7 @@ public:
 
 private:
     void work() noexcept;
-    void validate_args(const sol::variadic_args& args) noexcept;
+    void store_args(const sol::variadic_args& args) noexcept;
 
     std::string str_function_;
     std::shared_ptr<sol::state> p_state_;
