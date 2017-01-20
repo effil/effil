@@ -88,4 +88,4 @@ sol::object LuaThread::get_user_type(sol::state_view& lua) noexcept
     return sol::stack::pop<sol::object>(lua);
 }
 
-}
+} // threading

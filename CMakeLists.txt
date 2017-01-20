@@ -14,7 +14,7 @@ FILE(GLOB SOURCES src/*.cpp src/*.h)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 
 if(APPLE)
-    # Supress CMP0042
+    # Supress warning CMP0042
     set(CMAKE_MACOSX_RPATH 1)
 endif()
 

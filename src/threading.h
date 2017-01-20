@@ -31,4 +31,4 @@ private:
     std::shared_ptr<std::vector<sol::object>> p_arguments_;
 };
 
-}
+} // threading
