@@ -1,6 +1,9 @@
 [submodule "src/sol"]
 	path = src/sol
 	url = https://github.com/ThePhD/sol2.git
+[submodule "tests/gtest"]
+	path = tests/gtest
+	url = https://github.com/google/googletest.git
 [submodule "lua-tests/luaunit"]
 	path = lua-tests/luaunit
 	url = https://github.com/bluebird75/luaunit
