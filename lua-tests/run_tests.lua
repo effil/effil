@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+#!/usr/bin/env lua
 
 package.cpath = package.cpath .. ";../build/?.so;;../build/?.dylib"
 test = require "luaunit.luaunit"
