@@ -5,7 +5,7 @@
 
 namespace share_data {
 
-sol::object SharedTable::get_user_type(sol::state_view& lua) noexcept {
+sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
     static sol::usertype<share_data::SharedTable> type(
             sol::call_construction(), sol::default_constructor,
             sol::meta_function::new_index, &share_data::SharedTable::luaSet,
@@ -14,6 +14,11 @@ sol::object SharedTable::get_user_type(sol::state_view& lua) noexcept {
     );
     sol::stack::push(lua, type);
     return sol::stack::pop<sol::object>(lua);
+}
+
+void SharedTable::set(StoredObject key, StoredObject value) noexcept {
+    std::lock_guard<SpinMutex> g(lock_);
+    data_[std::move(key)] = std::move(value);
 }
 
 void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept {
@@ -31,7 +36,7 @@ void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) n
     }
 }
 
-sol::object SharedTable::luaGet(sol::stack_object key, sol::this_state state) noexcept {
+sol::object SharedTable::luaGet(sol::stack_object key, sol::this_state state) const noexcept {
     assert(key.valid());
 
     StoredObject cppKey(key);
@@ -44,15 +49,16 @@ sol::object SharedTable::luaGet(sol::stack_object key, sol::this_state state) no
     }
 }
 
-size_t SharedTable::size() noexcept {
+size_t SharedTable::size() const noexcept {
     std::lock_guard<SpinMutex> g(lock_);
     return data_.size();
 }
 
 SharedTable* TablePool::getNew() noexcept {
+    SharedTable* ptr = new SharedTable();
     std::lock_guard<SpinMutex> g(lock_);
-    data_.push_back(std::make_unique<SharedTable>());
-    return (*data_.rend()).get();
+    data_.emplace_back(ptr);
+    return ptr;
 }
 std::size_t TablePool::size() const noexcept {
     std::lock_guard<SpinMutex> g(lock_);

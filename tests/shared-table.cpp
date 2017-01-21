@@ -2,21 +2,24 @@
 
 #include "shared-table.h"
 
-using namespace core;
+#include <thread>
+
+using namespace share_data;
 
 namespace {
 
 void bootstrapState(sol::state& lua) {
     lua.open_libraries(
             sol::lib::base,
-            sol::lib::string
+            sol::lib::string,
+            sol::lib::table
     );
-    SharedTable::bind(lua);
+    SharedTable::getUserType(lua);
 }
 
-}
+} // namespace
 
-TEST(sharedTable, singleThreadSet) {
+TEST(sharedTable, primitiveTypes) {
     SharedTable st;
     sol::state lua;
     bootstrapState(lua);
@@ -30,10 +33,8 @@ st.thr = true
 st.del = "secret"
 st.del = nil
 )");
-    if (!res1.valid()) {
-        FAIL() << "Set res1 failed";
-    }
 
+    ASSERT_TRUE(res1.valid()) << "Set res1 failed";
     ASSERT_EQ(lua["st"]["fst"], std::string("first"));
     ASSERT_EQ(lua["st"]["snd"], (double)2);
     ASSERT_EQ(lua["st"]["thr"], true);
@@ -48,10 +49,8 @@ st[42] = "answer"
 st[42] = nil
 st.deleted = st[42] == nil
 )");
-    if (!res2.valid()) {
-        FAIL() << "Set res2 failed";
-    }
 
+    ASSERT_TRUE(res2.valid()) << "Set res2 failed";
     ASSERT_EQ(lua["st"][1], 3);
     ASSERT_EQ(lua["st"][2], std::string("number"));
     ASSERT_EQ(lua["st"][-1], false);
@@ -61,34 +60,13 @@ st.deleted = st[42] == nil
 st[true] = false
 st[false] = 9
 )");
-    if (!res3.valid()) {
-        FAIL() << "Set res3 failed";
-    }
 
+    ASSERT_TRUE(res3.valid()) << "Set res3 failed";
     ASSERT_EQ(lua["st"][true], false);
     ASSERT_EQ(lua["st"][false], 9);
 }
 
-TEST(sharedTable, asGlobalTable) {
-    sol::state lua;
-    SharedTable st;
-    SharedTable::bind(lua);
-
-    lua["st"] = &st;
-
-    lua.script(R"(
-_G = st
-n = 1
-b = false
-s = "Oo"
-)");
-
-    ASSERT_EQ(lua["n"], 1);
-    ASSERT_EQ(lua["b"], false);
-    ASSERT_EQ(lua["s"], std::string("Oo"));
-}
-
-TEST(sharedTable, severalStates) {
+TEST(sharedTable, multipleStates) {
     sol::state lua1, lua2;
     bootstrapState(lua1);
     bootstrapState(lua2);
@@ -153,7 +131,7 @@ st.thr = true)");
     ASSERT_EQ(lua["st"]["thr"], true);
 }
 
-TEST(sharedTable, nestedTables) {
+TEST(sharedTable, playingWithSharedTables) {
     SharedTable recursive, st1, st2;
     sol::state lua;
     bootstrapState(lua);
@@ -203,4 +181,97 @@ end
     sol::function sf2 = lua["st"]["fn2"];
 
     ASSERT_EQ(sf2(std::string("SUCCESS")).get<std::string>(), std::string("*SUCCESS*"));
+}
+
+TEST(sharedTable, playingWithTables) {
+    SharedTable st;
+    sol::state lua;
+    bootstrapState(lua);
+
+    lua["st"] = &st;
+    auto res = lua.script(R"(
+st.works = "fine"
+st.person = {name = 'John Doe', age = 25}
+pet = {
+    type = "cat",
+    name = "Tomas",
+    real = "Яша",
+    owner = "Mama",
+    spec = { colour = "grey", legs = 4, eyes = 2 }
+}
+st.pet = pet
+recursive = {}
+recursive.next = recursive
+recursive.prev = recursive
+recursive.val = "recursive"
+st.recursive = recursive
+)");
+
+    ASSERT_TRUE(res.valid());
+    ASSERT_EQ(lua["st"]["person"]["name"], std::string("John Doe"));
+    ASSERT_EQ(lua["st"]["person"]["age"], 25);
+    ASSERT_EQ(lua["st"]["pet"]["type"], std::string("cat"));
+    ASSERT_EQ(lua["st"]["pet"]["name"], std::string("Tomas"));
+    ASSERT_EQ(lua["st"]["pet"]["real"], std::string("Яша"));
+    ASSERT_EQ(lua["st"]["pet"]["spec"]["colour"], std::string("grey"));
+    ASSERT_EQ(lua["st"]["pet"]["spec"]["legs"], 4);
+    ASSERT_EQ(lua["st"]["recursive"]["prev"]["next"]["next"]["val"], std::string("recursive"));
+
+    defaultPool().clear();
+}
+
+TEST(sharedTable, stress) {
+    sol::state lua;
+    bootstrapState(lua);
+    SharedTable st;
+
+    lua["st"] = &st;
+
+    auto res1 = lua.script(R"(
+for i = 1, 1000000 do
+    st[i] = tostring(i)
+end
+)");
+
+    ASSERT_TRUE(res1.valid());
+    ASSERT_TRUE(st.size() == 1'000'000);
+
+    auto res2 = lua.script(R"(
+for i = 1000000, 1, -1 do
+    st[i] = nil
+end
+)");
+    ASSERT_TRUE(res2.valid());
+    ASSERT_TRUE(st.size() == 0);
+}
+
+TEST(sharedTable, stressWithThreads) {
+    SharedTable st;
+
+    const size_t threadCount = 10;
+    std::vector<std::thread> threads;
+    for(size_t i = 0; i < threadCount; i++) {
+        threads.emplace_back([&st, thrId(i)] {
+            sol::state lua;
+            bootstrapState(lua);
+            lua["st"] = &st;
+            std::stringstream ss;
+            ss << "st[" << thrId << "] = 1" << std::endl;
+            ss << "for i = 1, 100000 do" << std::endl;
+            ss << "    st[" << thrId << "] = " << "st[" << thrId << "] + 1" << std::endl;
+            ss << "end" << std::endl;
+            lua.script(ss.str());
+        });
+    }
+
+    for(auto& thread : threads) {
+        thread.join();
+    }
+
+    sol::state lua;
+    bootstrapState(lua);
+    lua["st"] = &st;
+    for(size_t i = 0; i < threadCount; i++) {
+        ASSERT_TRUE(lua["st"][i] == 100'001) << (double)lua["st"][i] << std::endl;
+    }
 }
