@@ -1,0 +1,19 @@
+language: cpp
+sudo: required
+compiler:
+  - clang
+  - gcc
+
+os:
+- linux
+# - osx
+
+install:
+- git submodule update
+
+before_script:
+- clang --version
+- gcc --version
+- cmake --version
+
+script: ./build.sh
