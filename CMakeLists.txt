@@ -22,7 +22,7 @@ add_library(woofer SHARED ${SOURCES})
 target_link_libraries(woofer -lpthread ${LUA_LIBRARY})
 
 set(GENERAL "-std=c++14 -pthread")
-set(ENABLE_WARNINGS "-Wall -Wextra -pedantic")
+set(ENABLE_WARNINGS "-Wall -Wextra -pedantic -Werror")
 set(BUILD_FLAVOR "-O3 -UNDEBUG")
 set_target_properties(woofer PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
 

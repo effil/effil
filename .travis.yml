@@ -1,0 +1,8 @@
+language: cpp
+dist: trusty
+sudo: required
+compiler: clang
+os: osx
+osx_image: xcode8.2
+
+script: ./ci.sh
