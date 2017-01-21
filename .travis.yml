@@ -1,5 +1,7 @@
+language: cpp
 dist: trusty
 sudo: required
+compiler: clang
 
 os:
 - linux
@@ -8,16 +10,3 @@ install:
 - git submodule update
 
 script: ./ci.sh
-
-# This stuff is for C++ 14 support
-matrix:
-  include:
-    - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.7
-          packages:
-            - clang-3.7
-      env: COMPILER=clang++-3.7
