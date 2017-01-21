@@ -1,9 +1,6 @@
 language: cpp
 dist: trusty
 sudo: required
-compiler:
- - clang
- - gcc
 
 os:
 - linux
@@ -14,6 +11,7 @@ install:
 
 script: ./ci.sh
 
+# This stuff is for C++ 14 support
 matrix:
   include:
     - compiler: gcc

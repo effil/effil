@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 sudo apt-get update -qq
-sudo apt-get install -y cmake
+sudo apt-get install -y cmake liblua5.2-dev
 
 ROOT_DIR=$( cd $(dirname $0); pwd )
 WORK_DIR=$ROOT_DIR/build
