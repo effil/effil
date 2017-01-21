@@ -15,16 +15,17 @@ class SharedTable {
 public:
     SharedTable() = default;
     virtual ~SharedTable() = default;
+
+    static sol::object getUserType(sol::state_view &lua) noexcept;
+    void set(StoredObject, StoredObject) noexcept;
+    size_t size() const noexcept;
+
+public: // lua bindings
     void luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept;
-    sol::object luaGet(sol::stack_object key, sol::this_state state) noexcept;
-
-    static sol::object get_user_type(sol::state_view& lua) noexcept;
-
-private: // lau bindings
-    size_t size() noexcept;
+    sol::object luaGet(sol::stack_object key, sol::this_state state) const noexcept;
 
 protected:
-    SpinMutex lock_;
+    mutable SpinMutex lock_;
     std::unordered_map<StoredObject, StoredObject> data_;
 
 private:
@@ -49,4 +50,4 @@ private:
 
 TablePool& defaultPool() noexcept;
 
-} // core
+} // share_data
