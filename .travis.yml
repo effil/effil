@@ -2,11 +2,7 @@ language: cpp
 dist: trusty
 sudo: required
 compiler: clang
-
-os:
-- linux
-
-install:
-- git submodule update
+os: osx
+osx_image: xcode8.2
 
 script: ./ci.sh
