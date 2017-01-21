@@ -1,10 +1,8 @@
-language: cpp
 dist: trusty
 sudo: required
 
 os:
 - linux
-# - osx
 
 install:
 - git submodule update
@@ -14,31 +12,6 @@ script: ./ci.sh
 # This stuff is for C++ 14 support
 matrix:
   include:
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-      env: COMPILER=g++-4.9
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-      env: COMPILER=g++-5
-    - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.6
-          packages:
-            - clang-3.6
-      env: COMPILER=clang++-3.6
     - compiler: clang
       addons:
         apt:
