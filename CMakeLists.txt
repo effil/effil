@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(effil)
 
-find_package(Lua REQUIRED)
-
-if( "${LUA_VERSION_MAJOR}.${LUA_VERSION_MINOR}" LESS "5.2")
-    message(FATAL_ERROR "Wrong Lua version ${LUA_VERSION_MAJOR}.${LUA_VERSION_MINOR}, use 5.2 or higher")
+if (NOT LUA_INCLUDE_DIR OR NOT LUA_LIBRARY)
+    find_package(Lua REQUIRED)
+    if( "${LUA_VERSION_MAJOR}.${LUA_VERSION_MINOR}" LESS "5.2")
+        message(FATAL_ERROR "Wrong Lua version ${LUA_VERSION_MAJOR}.${LUA_VERSION_MINOR}, use 5.2 or higher")
+    endif()
 endif()
 
 include_directories(src src/sol/single/sol ${LUA_INCLUDE_DIR})

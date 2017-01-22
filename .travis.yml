@@ -1,7 +1,45 @@
 language: cpp
-dist: trusty
-sudo: required
-compiler: clang
-os: osx
-osx_image: xcode8.2
-script: ./ci.sh
+
+matrix:
+  # Linux / GCC 5.0
+  include:
+    - compiler: g++-5
+      sudo: required
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+            - lua5.2
+            - liblua5.2-dev
+      before_install:
+        - sudo apt-get autoremove lua lua5.1
+      install:
+        - sudo apt-get install -y gdb
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 30
+      after_failure:
+        - COREFILE=$(find . -maxdepth 1 -name "core*" | head -n 1) # find core file
+        - if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" ./tests -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
+      before_script:
+        - ulimit -c unlimited -S
+      script:
+        - mkdir build_dir && cd build_dir
+        - cmake -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so" ..
+        - make -j4 all && make install
+        - ./tests
+        - cd ../lua-tests/ && ./run_tests.lua
+    # Mac OS X / Clang 3.8
+    - compiler: clang
+      os: osx
+      osx_image: xcode8.2
+      before_install:
+        - brew update
+      install:
+        - brew install lua
+      script:
+        - mkdir build_dir && cd build_dir
+        - cmake .. && make -j4 all && make install
+        - ./tests
+        - cd ../lua-tests && ./run_tests.lua
