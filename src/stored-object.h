@@ -5,7 +5,7 @@
 #include <utility>
 #include <iostream>
 
-namespace share_data {
+namespace effil {
 
 class BaseHolder {
 public:
@@ -63,14 +63,14 @@ private:
     StoredObject& operator=(const StoredObject&) = delete;
 };
 
-} // share_data
+} // effil
 
 namespace std {
 
 // For storing as key in std::unordered_map
 template<>
-struct hash<share_data::StoredObject> {
-    std::size_t operator()(const share_data::StoredObject &object) const noexcept {
+struct hash<effil::StoredObject> {
+    std::size_t operator()(const effil::StoredObject &object) const noexcept {
         return object.hash();
     }
 };

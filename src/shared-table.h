@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-namespace share_data {
+namespace effil {
 
 class SharedTable {
 public:
@@ -50,4 +50,4 @@ private:
 
 TablePool& defaultPool() noexcept;
 
-} // share_data
+} // effil

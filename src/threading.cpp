@@ -1,6 +1,6 @@
 #include "threading.h"
 
-namespace threading {
+namespace effil {
 
 LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& args) noexcept {
     // 1. Dump function to string
@@ -15,7 +15,7 @@ LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& ar
         sol::lib::package, sol::lib::io, sol::lib::os
     );
     getUserType(*p_state_);
-    share_data::SharedTable::getUserType(*p_state_);
+    effil::SharedTable::getUserType(*p_state_);
 
     // 3. Save parameters
     storeArgs(args);
@@ -28,7 +28,7 @@ LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& ar
 void LuaThread::storeArgs(const sol::variadic_args &args) noexcept {
     p_arguments_ = std::make_shared<std::vector<sol::object>>();
     for(auto iter = args.begin(); iter != args.end(); iter++) {
-        share_data::StoredObject store(iter->get<sol::object>());
+        effil::StoredObject store(iter->get<sol::object>());
         p_arguments_->push_back(store.unpack(sol::this_state{p_state_->lua_state()}));
     }
 }
@@ -78,4 +78,4 @@ sol::object LuaThread::getUserType(sol::state_view &lua) noexcept
     return sol::stack::pop<sol::object>(lua);
 }
 
-} // threading
+} // effil

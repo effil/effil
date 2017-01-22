@@ -1,15 +1,15 @@
 TestSmoke = {}
 
 function TestSmoke:testGeneralWorkability()
-    local woofer = require('libwoofer')
-    local share = woofer.share()
+    local effil = require('libeffil')
+    local share = effil.share()
 
     share["number"] = 100500
     share["string"] = "string value"
     share["bool"] = true
 
     log "Start thread"
-    local thread = woofer.thread(
+    local thread = effil.thread(
         function(share)
             share["child.number"] = share["number"]
             share["child.string"] = share["string"]
@@ -30,12 +30,12 @@ function TestSmoke:testGeneralWorkability()
 end
 
 function TestSmoke:testDetach()
-    local woofer = require('libwoofer')
-    local share = woofer.share()
+    local effil = require('libeffil')
+    local share = effil.share()
 
     share["finished"] = false
     log "Start thread"
-    local thread = woofer.thread(
+    local thread = effil.thread(
         function(share)
             local startTime = os.time()
             while ( (os.time() - startTime) <= 3) do --[[ Like we are working 3sec ... ]] end

@@ -6,19 +6,19 @@
 namespace {
 
 static sol::object createThread(sol::this_state lua, sol::function func, const sol::variadic_args &args) noexcept {
-    return sol::make_object(lua, std::make_unique<threading::LuaThread>(func, args));
+    return sol::make_object(lua, std::make_unique<effil::LuaThread>(func, args));
 }
 
 static sol::object createShare(sol::this_state lua) noexcept {
-    return sol::make_object(lua, std::make_unique<share_data::SharedTable>());
+    return sol::make_object(lua, std::make_unique<effil::SharedTable>());
 }
 
 } // namespace
 
-extern "C" int luaopen_libwoofer(lua_State *L) {
+extern "C" int luaopen_libeffil(lua_State *L) {
     sol::state_view lua(L);
-    threading::LuaThread::getUserType(lua);
-    share_data::SharedTable::getUserType(lua);
+    effil::LuaThread::getUserType(lua);
+    effil::SharedTable::getUserType(lua);
     sol::table public_api = lua.create_table_with(
             "thread", createThread,
             "share", createShare

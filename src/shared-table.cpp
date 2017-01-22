@@ -3,13 +3,13 @@
 #include <cassert>
 #include <mutex>
 
-namespace share_data {
+namespace effil {
 
 sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
-    static sol::usertype<share_data::SharedTable> type(
+    static sol::usertype<SharedTable> type(
             sol::call_construction(), sol::default_constructor,
-            sol::meta_function::new_index, &share_data::SharedTable::luaSet,
-            sol::meta_function::index,     &share_data::SharedTable::luaGet,
+            sol::meta_function::new_index, &SharedTable::luaSet,
+            sol::meta_function::index,     &SharedTable::luaGet,
             sol::meta_function::length, &SharedTable::size
     );
     sol::stack::push(lua, type);
@@ -75,4 +75,4 @@ TablePool& defaultPool() noexcept {
     return pool;
 }
 
-} // share_data
+} // effil

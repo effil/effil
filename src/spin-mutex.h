@@ -3,7 +3,7 @@
 #include <atomic>
 #include <thread>
 
-namespace share_data {
+namespace effil {
 
 class SpinMutex {
 public:
@@ -21,4 +21,4 @@ private:
     std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
 };
 
-} // share_data
+} // effil

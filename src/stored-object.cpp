@@ -9,7 +9,7 @@
 
 #include <cassert>
 
-namespace share_data {
+namespace effil {
 
 namespace {
 
@@ -211,4 +211,4 @@ bool StoredObject::operator<(const StoredObject& o) const noexcept {
         return data_.get() < o.data_.get();
 }
 
-} // share_data
+} // effil

@@ -4,7 +4,7 @@
 
 #include <thread>
 
-using namespace share_data;
+using namespace effil;
 
 namespace {
 
