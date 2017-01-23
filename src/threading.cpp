@@ -9,7 +9,7 @@ LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& ar
 
     // 2. Create new state
     p_state_.reset(new sol::state);
-    assert(p_state_.get() != NULL);
+    ASSERT(p_state_.get() != NULL);
     p_state_->open_libraries(
         sol::lib::base, sol::lib::string,
         sol::lib::package, sol::lib::io, sol::lib::os
@@ -22,7 +22,7 @@ LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& ar
 
     // 4. Run thread
     p_thread_.reset(new std::thread(&LuaThread::work, this));
-    assert(p_thread_.get() != NULL);
+    ASSERT(p_thread_.get() != NULL);
 }
 
 void LuaThread::storeArgs(const sol::variadic_args &args) noexcept {
@@ -49,15 +49,13 @@ void LuaThread::detach() noexcept {
 }
 
 void LuaThread::work() noexcept  {
-    if (p_state_.get() && p_arguments_.get()) {
-        std::string func_owner = std::move(str_function_);
-        std::shared_ptr<sol::state> state_owner = p_state_;
-        std::shared_ptr<std::vector<sol::object>> arguments_owner = p_arguments_;
-        sol::function_result func = (*state_owner)["loadstring"](func_owner);
-        func.get<sol::function>()(sol::as_args(*arguments_owner));
-    } else {
-        throw sol::error("Internal error: invalid thread Lua state");
-    }
+    ASSERT(p_state_.get() && p_arguments_.get()) << "invalid thread Lua state" << std::endl;
+
+    std::string func_owner = std::move(str_function_);
+    std::shared_ptr<sol::state> state_owner = p_state_;
+    std::shared_ptr<std::vector<sol::object>> arguments_owner = p_arguments_;
+    sol::function_result func = (*state_owner)["loadstring"](func_owner);
+    func.get<sol::function>()(sol::as_args(*arguments_owner));
 }
 
 std::string LuaThread::threadId() noexcept {
