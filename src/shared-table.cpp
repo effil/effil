@@ -21,7 +21,7 @@ void SharedTable::set(StoredObject key, StoredObject value) noexcept {
     data_[std::move(key)] = std::move(value);
 }
 
-void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept {
+void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) {
     if (!luaKey.valid())
         throw sol::error("Invalid table index");
 
