@@ -21,7 +21,7 @@ public:
     size_t size() const noexcept;
 
 public: // lua bindings
-    void luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept;
+    void luaSet(sol::stack_object luaKey, sol::stack_object luaValue);
     sol::object luaGet(sol::stack_object key, sol::this_state state) const noexcept;
 
 protected:
