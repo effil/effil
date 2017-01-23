@@ -34,12 +34,12 @@ st.del = "secret"
 st.del = nil
 )");
 
-    ASSERT_TRUE(res1.valid()) << "Set res1 failed";
-    ASSERT_EQ(lua["st"]["fst"], std::string("first"));
-    ASSERT_EQ(lua["st"]["snd"], (double)2);
-    ASSERT_EQ(lua["st"]["thr"], true);
-    ASSERT_EQ(lua["st"]["del"], sol::nil);
-    ASSERT_EQ(lua["st"]["nex"], sol::nil);
+    EXPECT_TRUE(res1.valid()) << "Set res1 failed";
+    EXPECT_EQ(lua["st"]["fst"], std::string("first"));
+    EXPECT_EQ(lua["st"]["snd"], (double)2);
+    EXPECT_EQ(lua["st"]["thr"], true);
+    EXPECT_EQ(lua["st"]["del"], sol::nil);
+    EXPECT_EQ(lua["st"]["nex"], sol::nil);
 
     auto res2 = lua.script(R"(
 st[1] = 3
@@ -50,20 +50,20 @@ st[42] = nil
 st.deleted = st[42] == nil
 )");
 
-    ASSERT_TRUE(res2.valid()) << "Set res2 failed";
-    ASSERT_EQ(lua["st"][1], 3);
-    ASSERT_EQ(lua["st"][2], std::string("number"));
-    ASSERT_EQ(lua["st"][-1], false);
-    ASSERT_EQ(lua["st"]["deleted"], true);
+    EXPECT_TRUE(res2.valid()) << "Set res2 failed";
+    EXPECT_EQ(lua["st"][1], 3);
+    EXPECT_EQ(lua["st"][2], std::string("number"));
+    EXPECT_EQ(lua["st"][-1], false);
+    EXPECT_EQ(lua["st"]["deleted"], true);
 
     auto res3 = lua.script(R"(
 st[true] = false
 st[false] = 9
 )");
 
-    ASSERT_TRUE(res3.valid()) << "Set res3 failed";
-    ASSERT_EQ(lua["st"][true], false);
-    ASSERT_EQ(lua["st"][false], 9);
+    EXPECT_TRUE(res3.valid()) << "Set res3 failed";
+    EXPECT_EQ(lua["st"][true], false);
+    EXPECT_EQ(lua["st"][false], 9);
 }
 
 TEST(sharedTable, multipleStates) {
@@ -82,9 +82,9 @@ cats.sparky = false
 cats.wow = 3
 )");
 
-    ASSERT_EQ(lua2["dogs"]["fluffy"], std::string("gav"));
-    ASSERT_EQ(lua2["dogs"]["sparky"], false);
-    ASSERT_EQ(lua2["dogs"]["wow"], 3);
+    EXPECT_EQ(lua2["dogs"]["fluffy"], std::string("gav"));
+    EXPECT_EQ(lua2["dogs"]["sparky"], false);
+    EXPECT_EQ(lua2["dogs"]["wow"], 3);
 }
 
 TEST(sharedTable, multipleThreads) {
@@ -126,9 +126,9 @@ st.thr = true)");
 
     for(auto& thread : threads) { thread.join(); }
 
-    ASSERT_EQ(lua["st"]["fst"], true);
-    ASSERT_EQ(lua["st"]["snd"], true);
-    ASSERT_EQ(lua["st"]["thr"], true);
+    EXPECT_EQ(lua["st"]["fst"], true);
+    EXPECT_EQ(lua["st"]["snd"], true);
+    EXPECT_EQ(lua["st"]["thr"], true);
 }
 
 TEST(sharedTable, playingWithSharedTables) {
@@ -146,8 +146,8 @@ st1.proxy.value = true
 recursive.next = recursive
 recursive.val = "yes"
 )");
-    ASSERT_EQ(lua["st2"]["value"], true);
-    ASSERT_EQ(lua["recursive"]["next"]["next"]["next"]["val"], std::string("yes"));
+    EXPECT_EQ(lua["st2"]["value"], true);
+    EXPECT_EQ(lua["recursive"]["next"]["next"]["next"]["val"], std::string("yes"));
 }
 
 TEST(sharedTable, playingWithFunctions) {
@@ -166,7 +166,7 @@ st.fn()
 )");
 
     sol::function sf = lua["st"]["fn"];
-    ASSERT_TRUE((bool)sf());
+    EXPECT_TRUE((bool)sf());
 
     sol::state lua2;
     bootstrapState(lua2);
@@ -180,7 +180,7 @@ end
 
     sol::function sf2 = lua["st"]["fn2"];
 
-    ASSERT_EQ(sf2(std::string("SUCCESS")).get<std::string>(), std::string("*SUCCESS*"));
+    EXPECT_EQ(sf2(std::string("SUCCESS")).get<std::string>(), std::string("*SUCCESS*"));
 }
 
 TEST(sharedTable, playingWithTables) {
@@ -207,15 +207,15 @@ recursive.val = "recursive"
 st.recursive = recursive
 )");
 
-    ASSERT_TRUE(res.valid());
-    ASSERT_EQ(lua["st"]["person"]["name"], std::string("John Doe"));
-    ASSERT_EQ(lua["st"]["person"]["age"], 25);
-    ASSERT_EQ(lua["st"]["pet"]["type"], std::string("cat"));
-    ASSERT_EQ(lua["st"]["pet"]["name"], std::string("Tomas"));
-    ASSERT_EQ(lua["st"]["pet"]["real"], std::string("Яша"));
-    ASSERT_EQ(lua["st"]["pet"]["spec"]["colour"], std::string("grey"));
-    ASSERT_EQ(lua["st"]["pet"]["spec"]["legs"], 4);
-    ASSERT_EQ(lua["st"]["recursive"]["prev"]["next"]["next"]["val"], std::string("recursive"));
+    EXPECT_TRUE(res.valid());
+    EXPECT_EQ(lua["st"]["person"]["name"], std::string("John Doe"));
+    EXPECT_EQ(lua["st"]["person"]["age"], 25);
+    EXPECT_EQ(lua["st"]["pet"]["type"], std::string("cat"));
+    EXPECT_EQ(lua["st"]["pet"]["name"], std::string("Tomas"));
+    EXPECT_EQ(lua["st"]["pet"]["real"], std::string("Яша"));
+    EXPECT_EQ(lua["st"]["pet"]["spec"]["colour"], std::string("grey"));
+    EXPECT_EQ(lua["st"]["pet"]["spec"]["legs"], 4);
+    EXPECT_EQ(lua["st"]["recursive"]["prev"]["next"]["next"]["val"], std::string("recursive"));
 
     defaultPool().clear();
 }
@@ -233,16 +233,16 @@ for i = 1, 1000000 do
 end
 )");
 
-    ASSERT_TRUE(res1.valid());
-    ASSERT_TRUE(st.size() == 1'000'000);
+    EXPECT_TRUE(res1.valid());
+    EXPECT_TRUE(st.size() == 1'000'000);
 
     auto res2 = lua.script(R"(
 for i = 1000000, 1, -1 do
     st[i] = nil
 end
 )");
-    ASSERT_TRUE(res2.valid());
-    ASSERT_TRUE(st.size() == 0);
+    EXPECT_TRUE(res2.valid());
+    EXPECT_TRUE(st.size() == 0);
 }
 
 TEST(sharedTable, stressWithThreads) {
@@ -272,6 +272,6 @@ TEST(sharedTable, stressWithThreads) {
     bootstrapState(lua);
     lua["st"] = &st;
     for(size_t i = 0; i < threadCount; i++) {
-        ASSERT_TRUE(lua["st"][i] == 100'001) << (double)lua["st"][i] << std::endl;
+        EXPECT_TRUE(lua["st"][i] == 100'001) << (double)lua["st"][i] << std::endl;
     }
 }
