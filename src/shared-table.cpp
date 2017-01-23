@@ -22,7 +22,8 @@ void SharedTable::set(StoredObject key, StoredObject value) noexcept {
 }
 
 void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) noexcept {
-    assert(luaKey.valid());
+    if (!luaKey.valid())
+        throw sol::error("Invalid table index");
 
     StoredObject key(luaKey);
     if (luaValue.get_type() == sol::type::nil) {

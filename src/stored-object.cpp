@@ -17,22 +17,17 @@ template<typename StoredType>
 class PrimitiveHolder : public BaseHolder {
 public:
     PrimitiveHolder(sol::stack_object luaObject) noexcept
-            : data_(luaObject.as<StoredType>()) {}
+            : BaseHolder(luaObject.get_type()), data_(luaObject.as<StoredType>()) {}
 
     PrimitiveHolder(sol::object luaObject) noexcept
-            : data_(luaObject.as<StoredType>()) {}
+            : BaseHolder(luaObject.get_type()), data_(luaObject.as<StoredType>()) {}
 
-    PrimitiveHolder(const StoredType& init) noexcept
-            : data_(init) {}
+    PrimitiveHolder(sol::type type, const StoredType& init) noexcept
+            : BaseHolder(type), data_(init) {}
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
         assert(type_ == other->type());
         return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
-    }
-
-    bool rawLess(const BaseHolder* other) const noexcept final {
-        assert(type_ == other->type());
-        return data_ < static_cast<const PrimitiveHolder<StoredType>*>(other)->data_;
     }
 
     std::size_t hash() const noexcept final {
@@ -50,7 +45,8 @@ private:
 class FunctionHolder : public BaseHolder {
 public:
     template<typename SolObject>
-    FunctionHolder(SolObject luaObject) noexcept {
+    FunctionHolder(SolObject luaObject) noexcept
+            : BaseHolder(sol::type::function) {
         sol::state_view lua(luaObject.lua_state());
         sol::function dumper = lua["string"]["dump"];
 
@@ -60,10 +56,6 @@ public:
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
         return function_ == static_cast<const FunctionHolder*>(other)->function_;
-    }
-
-    bool rawLess(const BaseHolder* other) const noexcept final {
-        return function_ < static_cast<const FunctionHolder*>(other)->function_;
     }
 
     std::size_t hash() const noexcept final {
@@ -149,7 +141,7 @@ std::unique_ptr<BaseHolder> fromSolObject(SolObject luaObject) {
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
             dumpTable(table, luaTable, visited);
-            return std::make_unique<PrimitiveHolder<SharedTable*>>(table);
+            return std::make_unique<PrimitiveHolder<SharedTable*>>(sol::type::userdata, table);
         }
         default:
             ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << std::endl;
@@ -163,7 +155,7 @@ StoredObject::StoredObject(StoredObject&& init) noexcept
         : data_(std::move(init.data_)) {}
 
 StoredObject::StoredObject(SharedTable* table) noexcept
-        : data_(new PrimitiveHolder<SharedTable*>(table)) {
+        : data_(new PrimitiveHolder<SharedTable*>(sol::type::userdata, table)) {
 }
 
 StoredObject::StoredObject(sol::object object) noexcept
@@ -202,13 +194,6 @@ bool StoredObject::operator==(const StoredObject& o) const noexcept {
         return data_->compare(o.data_.get());
     else
         return data_.get() == o.data_.get();
-}
-
-bool StoredObject::operator<(const StoredObject& o) const noexcept {
-    if (data_)
-        return data_->less(o.data_.get());
-    else
-        return data_.get() < o.data_.get();
 }
 
 } // effil

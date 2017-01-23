@@ -9,7 +9,7 @@ namespace effil {
 
 class BaseHolder {
 public:
-    BaseHolder() noexcept : type_(sol::type::nil) {}
+    BaseHolder(sol::type t) noexcept : type_(t) {}
     virtual ~BaseHolder() = default;
 
     sol::type type() const noexcept {
@@ -20,13 +20,8 @@ public:
         assert(other != nullptr);
         return type_ == other->type_ && rawCompare(other);
     }
-    virtual bool less(const BaseHolder* other) const noexcept {
-        assert(other != nullptr);
-        return type_ < other->type_ && rawLess(other);
-    }
 
     virtual bool rawCompare(const BaseHolder* other) const noexcept = 0;
-    virtual bool rawLess(const BaseHolder* other) const noexcept = 0;
     virtual std::size_t hash() const noexcept = 0;
     virtual sol::object unpack(sol::this_state state) const noexcept = 0;
 
@@ -53,7 +48,6 @@ public:
     sol::object unpack(sol::this_state state) const noexcept;
     StoredObject& operator=(StoredObject&& o) noexcept;
     bool operator==(const StoredObject& o) const noexcept;
-    bool operator<(const StoredObject& o) const noexcept;
 
 private:
     std::unique_ptr<BaseHolder> data_;
