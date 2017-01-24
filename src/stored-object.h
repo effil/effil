@@ -9,24 +9,15 @@ namespace effil {
 
 class BaseHolder {
 public:
-    BaseHolder(sol::type t) noexcept : type_(t) {}
+    BaseHolder() = default;
     virtual ~BaseHolder() = default;
 
-    sol::type type() const noexcept {
-        return type_;
+    virtual bool compare(const BaseHolder* other) const noexcept {
+        return typeid(*this) == typeid(*other);
     }
 
-    bool compare(const BaseHolder* other) const noexcept {
-        ASSERT(other != nullptr);
-        return type_ == other->type_ && rawCompare(other);
-    }
-
-    virtual bool rawCompare(const BaseHolder* other) const noexcept = 0;
     virtual std::size_t hash() const noexcept = 0;
     virtual sol::object unpack(sol::this_state state) const noexcept = 0;
-
-protected:
-    sol::type type_;
 
 private:
     BaseHolder(const BaseHolder&) = delete;
