@@ -8,11 +8,10 @@ if (NOT LUA_INCLUDE_DIR OR NOT LUA_LIBRARY)
     endif()
 endif()
 
-include_directories(src src/sol/single/sol ${LUA_INCLUDE_DIR})
+include_directories(src/cpp libs/sol/single/sol ${LUA_INCLUDE_DIR})
 
-FILE(GLOB SOURCES src/*.cpp src/*.h)
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
+FILE(GLOB SOURCES src/cpp/*.cpp src/cpp/*.h)
+FILE(GLOB LUA_SOURCES src/lua/*.lua)
 
 if(APPLE)
     # Supress warning CMP0042
@@ -31,8 +30,9 @@ set_target_properties(effil PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENER
 # TESTS ---
 #----------
 
-FILE(GLOB TEST_SOURCES tests/*.cpp)
-set(GTEST_DIR tests/gtest/googletest)
+FILE(GLOB TEST_SOURCES tests/cpp/*.cpp tests/cpp/*.h)
+FILE(GLOB LUA_TEST_SOURCES tests/lua/*.lua)
+set(GTEST_DIR libs/gtest/googletest)
 
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})
 add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
@@ -43,5 +43,6 @@ set_target_properties(tests PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENER
 #----------
 # INSTALL -
 #----------
-
-install(FILES ${LUA_SOURCES} DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+install(FILES ${LUA_SOURCES} ${LUA_TEST_SOURCES}
+        DESTINATION ${CMAKE_BINARY_DIR}
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ)

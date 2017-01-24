@@ -1,7 +1,10 @@
 #!/usr/bin/env lua
 
-package.cpath = package.cpath .. ";../build/?.so;;../build/?.dylib"
-test = require "luaunit.luaunit"
+-- TODO: remove hardcode
+package.path  = package.path .. ";../libs/luaunit/?.lua"
+package.cpath = package.cpath .. ";./?.so;./?.dylib"
+
+test = require "luaunit"
 
 do
     -- Hack input arguments to make tests verbose by default
