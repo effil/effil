@@ -68,8 +68,8 @@ public:
         ASSERT(loader.valid());
 
         sol::function result = loader(function_);
-        ASSERT(result.valid()) << "Unable to restore function!" << std::endl
-            << "Content:" << std::endl << function_ << std::endl;
+        ASSERT(result.valid()) << "Unable to restore function!\n"
+            << "Content:\n" << function_;
         return sol::make_object(state, result);
     }
 
@@ -141,7 +141,7 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
             return std::make_unique<PrimitiveHolder<SharedTable*>>(sol::type::userdata, table);
         }
         default:
-            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << std::endl;
+            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
     }
     return nullptr;
 }

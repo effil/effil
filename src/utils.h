@@ -5,25 +5,31 @@
 
 #include <sol.hpp>
 
+namespace effil {
 namespace utils {
 
-class ExceptionThrower
-{
+class Exception : public sol::error {
 public:
-    void operator =(const std::ostream& os)
-    {
-        throw sol::error(static_cast<const std::stringstream&>(os).str());
+    Exception() noexcept : sol::error("") {}
+
+    template<typename T>
+    Exception& operator<<(const T& value) {
+        std::stringstream ss;
+        ss << value;
+        message_ += ss.str();
+        return *this;
     }
 
-    operator bool()
-    {
-        return true;
+    virtual const char* what() const noexcept override {
+        return message_.c_str();
     }
 
+private:
+    std::string message_;
 };
 
-}
+} // utils
+} // effil
 
-#define ERROR if (auto thr = utils::ExceptionThrower()) thr = std::stringstream() << __FILE__ << ":" << __LINE__ << std::endl
+#define ERROR throw effil::utils::Exception() << __FILE__ << ":" << __LINE__
 #define ASSERT(cond) if (!(cond)) ERROR << "In condition '" << #cond << "': "
-

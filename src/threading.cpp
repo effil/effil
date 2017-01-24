@@ -49,7 +49,7 @@ void LuaThread::detach() noexcept {
 }
 
 void LuaThread::work() noexcept  {
-    ASSERT(p_state_.get() && p_arguments_.get()) << "invalid thread Lua state" << std::endl;
+    ASSERT(p_state_.get() && p_arguments_.get()) << "invalid thread Lua state\n";
 
     std::string func_owner = std::move(str_function_);
     std::shared_ptr<sol::state> state_owner = p_state_;
