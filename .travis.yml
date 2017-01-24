@@ -29,7 +29,7 @@ matrix:
         - cmake -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so" ..
         - make -j4 all && make install
         - ./tests
-        - cd ../lua-tests/ && ./run_tests.lua
+        - ./run_tests.lua
     # Mac OS X / Clang 3.8
     - compiler: clang
       os: osx
@@ -42,4 +42,4 @@ matrix:
         - mkdir build_dir && cd build_dir
         - cmake .. && make -j4 all && make install
         - ./tests
-        - cd ../lua-tests && ./run_tests.lua
+        - ./run_tests.lua
