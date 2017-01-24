@@ -16,17 +16,17 @@ namespace {
 template<typename StoredType>
 class PrimitiveHolder : public BaseHolder {
 public:
-    PrimitiveHolder(sol::stack_object luaObject) noexcept
+    PrimitiveHolder(const sol::stack_object& luaObject) noexcept
             : BaseHolder(luaObject.get_type()), data_(luaObject.as<StoredType>()) {}
 
-    PrimitiveHolder(sol::object luaObject) noexcept
+    PrimitiveHolder(const sol::object& luaObject) noexcept
             : BaseHolder(luaObject.get_type()), data_(luaObject.as<StoredType>()) {}
 
     PrimitiveHolder(sol::type type, const StoredType& init) noexcept
             : BaseHolder(type), data_(init) {}
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        assert(type_ == other->type());
+        ASSERT(type_ == other->type());
         return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
     }
 
@@ -50,7 +50,7 @@ public:
         sol::state_view lua(luaObject.lua_state());
         sol::function dumper = lua["string"]["dump"];
 
-        assert(dumper.valid());
+        ASSERT(dumper.valid());
         function_ = dumper(luaObject);
     }
 
@@ -65,14 +65,11 @@ public:
     sol::object unpack(sol::this_state state) const noexcept final {
         sol::state_view lua((lua_State*)state);
         sol::function loader = lua["loadstring"];
-        assert(loader.valid());
+        ASSERT(loader.valid());
 
         sol::function result = loader(function_);
-        if (!result.valid()) {
-            ERROR << "Unable to restore function!" << std::endl;
-            ERROR << "Content:" << std::endl;
-            ERROR << function_ << std::endl;
-        }
+        ASSERT(result.valid()) << "Unable to restore function!\n"
+            << "Content:\n" << function_;
         return sol::make_object(state, result);
     }
 
@@ -115,7 +112,7 @@ void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visit
 }
 
 template<typename SolObject>
-std::unique_ptr<BaseHolder> fromSolObject(SolObject luaObject) {
+std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
     switch(luaObject.get_type()) {
         case sol::type::nil:
             break;
@@ -144,7 +141,7 @@ std::unique_ptr<BaseHolder> fromSolObject(SolObject luaObject) {
             return std::make_unique<PrimitiveHolder<SharedTable*>>(sol::type::userdata, table);
         }
         default:
-            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << std::endl;
+            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
     }
     return nullptr;
 }
@@ -158,11 +155,11 @@ StoredObject::StoredObject(SharedTable* table) noexcept
         : data_(new PrimitiveHolder<SharedTable*>(sol::type::userdata, table)) {
 }
 
-StoredObject::StoredObject(sol::object object) noexcept
+StoredObject::StoredObject(const sol::object& object) noexcept
         : data_(fromSolObject(object)) {
 }
 
-StoredObject::StoredObject(sol::stack_object object) noexcept
+StoredObject::StoredObject(const sol::stack_object& object) noexcept
         : data_(fromSolObject(object)) {
 }
 

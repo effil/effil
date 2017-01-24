@@ -16,14 +16,13 @@ sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
     return sol::stack::pop<sol::object>(lua);
 }
 
-void SharedTable::set(StoredObject key, StoredObject value) noexcept {
+void SharedTable::set(StoredObject&& key, StoredObject&& value) noexcept {
     std::lock_guard<SpinMutex> g(lock_);
     data_[std::move(key)] = std::move(value);
 }
 
-void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) {
-    if (!luaKey.valid())
-        throw sol::error("Invalid table index");
+void SharedTable::luaSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue) {
+    ASSERT(luaKey.valid()) << "Invalid table index";
 
     StoredObject key(luaKey);
     if (luaValue.get_type() == sol::type::nil) {
@@ -31,13 +30,11 @@ void SharedTable::luaSet(sol::stack_object luaKey, sol::stack_object luaValue) {
         // in this case object is not obligatory to own data
         data_.erase(key);
     } else {
-        StoredObject value(luaValue);
-        std::lock_guard<SpinMutex> g(lock_);
-        data_[std::move(key)] = std::move(value);
+        set(std::move(key), StoredObject(luaValue));
     }
 }
 
-sol::object SharedTable::luaGet(sol::stack_object key, sol::this_state state) const noexcept {
+sol::object SharedTable::luaGet(const sol::stack_object& key, const sol::this_state& state) const noexcept {
     assert(key.valid());
 
     StoredObject cppKey(key);

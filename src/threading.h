@@ -2,8 +2,6 @@
 
 #include "shared-table.h"
 
-#include <sol.hpp>
-
 #include <iostream>
 #include <sstream>
 #include <thread>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sol.hpp>
+#include <utils.h>
 
 #include <utility>
 #include <iostream>
@@ -17,7 +17,7 @@ public:
     }
 
     bool compare(const BaseHolder* other) const noexcept {
-        assert(other != nullptr);
+        ASSERT(other != nullptr);
         return type_ == other->type_ && rawCompare(other);
     }
 
@@ -40,8 +40,8 @@ public:
     StoredObject() = default;
     StoredObject(StoredObject&& init) noexcept;
     StoredObject(SharedTable*) noexcept;
-    StoredObject(sol::object) noexcept;
-    StoredObject(sol::stack_object) noexcept;
+    StoredObject(const sol::object&) noexcept;
+    StoredObject(const sol::stack_object&) noexcept;
 
     operator bool() const noexcept;
     std::size_t hash() const noexcept;
