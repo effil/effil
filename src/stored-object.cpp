@@ -17,17 +17,16 @@ template<typename StoredType>
 class PrimitiveHolder : public BaseHolder {
 public:
     PrimitiveHolder(const sol::stack_object& luaObject) noexcept
-            : BaseHolder(luaObject.get_type()), data_(luaObject.as<StoredType>()) {}
+            : data_(luaObject.as<StoredType>()) {}
 
     PrimitiveHolder(const sol::object& luaObject) noexcept
-            : BaseHolder(luaObject.get_type()), data_(luaObject.as<StoredType>()) {}
+            : data_(luaObject.as<StoredType>()) {}
 
-    PrimitiveHolder(sol::type type, const StoredType& init) noexcept
-            : BaseHolder(type), data_(init) {}
+    PrimitiveHolder(const StoredType& init) noexcept
+            : data_(init) {}
 
-    bool rawCompare(const BaseHolder* other) const noexcept final {
-        ASSERT(type_ == other->type());
-        return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
+    bool compare(const BaseHolder* other) const noexcept final {
+        return BaseHolder::compare(other) && static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
     }
 
     std::size_t hash() const noexcept final {
@@ -45,17 +44,15 @@ private:
 class FunctionHolder : public BaseHolder {
 public:
     template<typename SolObject>
-    FunctionHolder(SolObject luaObject) noexcept
-            : BaseHolder(sol::type::function) {
+    FunctionHolder(SolObject luaObject) noexcept {
         sol::state_view lua(luaObject.lua_state());
         sol::function dumper = lua["string"]["dump"];
-
         ASSERT(dumper.valid());
         function_ = dumper(luaObject);
     }
 
-    bool rawCompare(const BaseHolder* other) const noexcept final {
-        return function_ == static_cast<const FunctionHolder*>(other)->function_;
+    bool compare(const BaseHolder* other) const noexcept final {
+        return BaseHolder::compare(other) && static_cast<const FunctionHolder*>(other)->function_ == function_;
     }
 
     std::size_t hash() const noexcept final {
@@ -66,10 +63,8 @@ public:
         sol::state_view lua((lua_State*)state);
         sol::function loader = lua["loadstring"];
         ASSERT(loader.valid());
-
         sol::function result = loader(function_);
-        ASSERT(result.valid()) << "Unable to restore function!\n"
-            << "Content:\n" << function_;
+        ASSERT(result.valid()) << "Unable to restore function!\n" << "Content:\n" << function_;
         return sol::make_object(state, result);
     }
 
@@ -138,7 +133,7 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
             dumpTable(table, luaTable, visited);
-            return std::make_unique<PrimitiveHolder<SharedTable*>>(sol::type::userdata, table);
+            return std::make_unique<PrimitiveHolder<SharedTable*>>(table);
         }
         default:
             ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
@@ -152,7 +147,7 @@ StoredObject::StoredObject(StoredObject&& init) noexcept
         : data_(std::move(init.data_)) {}
 
 StoredObject::StoredObject(SharedTable* table) noexcept
-        : data_(new PrimitiveHolder<SharedTable*>(sol::type::userdata, table)) {
+        : data_(new PrimitiveHolder<SharedTable*>(table)) {
 }
 
 StoredObject::StoredObject(const sol::object& object) noexcept
@@ -187,7 +182,7 @@ StoredObject& StoredObject::operator=(StoredObject&& o) noexcept {
 }
 
 bool StoredObject::operator==(const StoredObject& o) const noexcept {
-    if (data_)
+    if (data_ && o.data_)
         return data_->compare(o.data_.get());
     else
         return data_.get() == o.data_.get();
