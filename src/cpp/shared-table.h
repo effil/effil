@@ -22,7 +22,7 @@ public:
 
 public: // lua bindings
     void luaSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
-    sol::object luaGet(const sol::stack_object& key, const sol::this_state& state) const noexcept;
+    sol::object luaGet(const sol::stack_object& key, const sol::this_state& state) const;
 
 protected:
     mutable SpinMutex lock_;
