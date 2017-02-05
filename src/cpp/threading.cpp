@@ -1,5 +1,7 @@
 #include "threading.h"
 
+#include "utils.h"
+
 namespace effil {
 
 LuaThread::LuaThread(const sol::function& function, const sol::variadic_args& args) noexcept {
