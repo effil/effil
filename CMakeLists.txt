@@ -18,7 +18,7 @@ if(APPLE)
     set(CMAKE_MACOSX_RPATH 1)
 endif()
 
-add_library(effil SHARED ${SOURCES} src/cpp/garbage-collector.cpp)
+add_library(effil SHARED ${SOURCES})
 target_link_libraries(effil -lpthread ${LUA_LIBRARY})
 
 set(GENERAL "-std=c++14 -pthread")
@@ -35,7 +35,7 @@ FILE(GLOB LUA_TEST_SOURCES tests/lua/*.lua)
 set(GTEST_DIR libs/gtest/googletest)
 
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})
-add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc tests/cpp/garbage-collector.cpp)
+add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
 target_link_libraries(tests effil)
 
 set_target_properties(tests PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
