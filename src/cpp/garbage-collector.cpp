@@ -3,11 +3,9 @@
 #include "utils.h"
 
 #include <vector>
-
 #include <cassert>
 
 namespace effil {
-
 
 GarbageCollector::GarbageCollector() noexcept
         : state_(GCState::Idle),
