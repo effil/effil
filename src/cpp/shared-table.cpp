@@ -1,5 +1,6 @@
 #include "shared-table.h"
 
+#include <mutex>
 #include <cassert>
 
 namespace effil {
