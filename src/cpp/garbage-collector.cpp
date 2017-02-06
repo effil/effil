@@ -37,35 +37,28 @@ void GarbageCollector::cleanup() {
     state_ = GCState::Running;
 
     std::vector<GCObjectHandle> grey;
-    std::set<GCObjectHandle> black;
+    std::map<GCObjectHandle, std::shared_ptr<GCObject>> black;
 
     for(const auto& handleAndObject : objects_)
         if (handleAndObject.second->instances() > 1)
             grey.push_back(handleAndObject.first);
 
     while(!grey.empty()) {
-        GCObjectHandle handle = grey[grey.size() - 1];
+        GCObjectHandle handle = grey.back();
         grey.pop_back();
 
-        black.insert(handle);
-        for(GCObjectHandle refHandle : objects_[handle]->refers())
+        auto object = objects_[handle];
+        black[handle] = object;
+        for(GCObjectHandle refHandle : object->refers())
             if (black.find(refHandle) == black.end())
                 grey.push_back(refHandle);
     }
 
+    DEBUG << "Removing " << (objects_.size() - black.size())
+          << " out of " << objects_.size() << std::endl;
     // Sweep phase
-    std::vector<GCObjectHandle> handles;
-    for(const auto& e : objects_) handles.push_back(e.first);
+    objects_ = std::move(black);
 
-    // TODO: optimize me
-    size_t deletedObjects = 0;
-    for(auto handle : handles)
-        if (black.find(handle) == black.end()) {
-            objects_.erase(handle);
-            deletedObjects++;
-        }
-
-    DEBUG << "Cleaned " << handles.size() << " - " << deletedObjects << std::endl;
     state_ = GCState::Idle;
     lastCleanup_.store(0);
 }

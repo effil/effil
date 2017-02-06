@@ -25,7 +25,6 @@ TEST(gc, GCObject) {
 }
 
 TEST(gc, collect) {
-
     getGC().cleanup();
     ASSERT_EQ(getGC().size(), (size_t)0);
 
@@ -47,7 +46,6 @@ struct Dummy : public GCObject {
 }
 
 TEST(gc, withRefs) {
-
     getGC().cleanup();
     {
         Dummy root = getGC().create<Dummy>();
@@ -126,4 +124,39 @@ st[5] = { flag = true }
     }
     getGC().cleanup();
     EXPECT_EQ(getGC().size(), (size_t)0);
+}
+
+TEST(gc, multipleStates) {
+    sol::state lua1;
+    sol::state lua2;
+    bootstrapState(lua1);
+    bootstrapState(lua2);
+
+    {
+        SharedTable st = getGC().create<SharedTable>();
+        lua1["st"] = st;
+        lua2["st"] = st;
+    }
+    getGC().cleanup();
+    EXPECT_EQ(getGC().size(), (size_t)1);
+
+    lua1.script(R"(
+st.men = { name = "John", age = 22 }
+st.car = { name = "Lada", model = 12 }
+st.cat = { name = "Tomas" }
+st.fish = { name = "Herbert" }
+
+st.men.car = st.car
+st.men.cat = st.cat
+st.men.fish = st.fish
+)");
+    getGC().cleanup();
+    EXPECT_EQ(getGC().size(), (size_t)5);
+
+    lua2.script("copy = { st.men } st = nil");
+    lua1.script("st = nil");
+    lua1.collect_garbage();
+    lua2.collect_garbage();
+    getGC().cleanup();
+    EXPECT_EQ(getGC().size(), (size_t)4);
 }

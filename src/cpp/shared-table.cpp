@@ -1,5 +1,7 @@
 #include "shared-table.h"
 
+#include "utils.h"
+
 #include <mutex>
 #include <cassert>
 
@@ -38,7 +40,7 @@ void SharedTable::set(StoredObject&& key, StoredObject&& value) noexcept {
 }
 
 void SharedTable::luaSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue) {
-    assert(luaKey.valid());
+    ASSERT(luaKey.valid()) << "Invalid table index";
 
     StoredObject key(luaKey);
     if (luaValue.get_type() == sol::type::nil) {

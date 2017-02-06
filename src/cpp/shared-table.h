@@ -21,7 +21,7 @@ public:
     static sol::object getUserType(sol::state_view &lua) noexcept;
     void set(StoredObject&&, StoredObject&&) noexcept;
 
-    // These functions could are invoked from lua scripts
+    // These functions could be invoked from lua scripts
     void luaSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
     sol::object luaGet(const sol::stack_object& key, const sol::this_state& state) const noexcept;
     size_t size() const noexcept;
