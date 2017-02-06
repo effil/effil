@@ -1,5 +1,6 @@
 #pragma once
 
+#include "garbage-collector.h"
 #include "stored-object.h"
 #include "spin-mutex.h"
 
@@ -7,47 +8,28 @@
 
 #include <unordered_map>
 #include <memory>
-#include <vector>
 
 namespace effil {
 
-class SharedTable {
+class SharedTable : public GCObject {
 public:
-    SharedTable() = default;
+    SharedTable() noexcept;
+    SharedTable(SharedTable&&) = default;
+    SharedTable(const SharedTable& init) noexcept;
     virtual ~SharedTable() = default;
 
     static sol::object getUserType(sol::state_view &lua) noexcept;
     void set(StoredObject&&, StoredObject&&) noexcept;
-    size_t size() const noexcept;
 
-public: // lua bindings
+    // These functions could be invoked from lua scripts
     void luaSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
     sol::object luaGet(const sol::stack_object& key, const sol::this_state& state) const noexcept;
-
-protected:
-    mutable SpinMutex lock_;
-    std::unordered_map<StoredObject, StoredObject> data_;
+    size_t size() const noexcept;
 
 private:
-    SharedTable(const SharedTable&) = delete;
-    SharedTable& operator=(const SharedTable&) = delete;
+    mutable std::shared_ptr<SpinMutex> lock_;
+    std::shared_ptr<std::unordered_map<StoredObject, StoredObject>> data_;
 };
-
-class TablePool {
-public:
-    TablePool() = default;
-    SharedTable* getNew() noexcept;
-    std::size_t size() const noexcept;
-    void clear() noexcept;
-
-private:
-    mutable SpinMutex lock_;
-    std::vector<std::unique_ptr<SharedTable>> data_;
-
-private:
-    TablePool(const TablePool&) = delete;
-};
-
-TablePool& defaultPool() noexcept;
 
 } // effil
+

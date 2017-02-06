@@ -72,26 +72,55 @@ private:
     std::string function_;
 };
 
+class TableHolder : public BaseHolder {
+public:
+    template<typename SolType>
+    TableHolder(const SolType& luaObject) noexcept {
+        assert(luaObject.template is<SharedTable>());
+        handle_ = luaObject.template as<SharedTable>().handle();
+        assert(getGC().has(handle_));
+    }
+
+    TableHolder(GCObjectHandle handle) noexcept
+            : handle_(handle) {}
+
+    bool compare(const BaseHolder *other) const noexcept final {
+        return BaseHolder::compare(other) && static_cast<const TableHolder*>(other)->handle_ == handle_;
+    }
+
+    std::size_t hash() const noexcept final {
+        return std::hash<GCObjectHandle>()(handle_);
+    }
+
+    sol::object unpack(sol::this_state state) const noexcept final {
+        return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
+    }
+
+    GCObjectHandle handle() const noexcept { return  handle_; }
+private:
+    GCObjectHandle handle_;
+};
+
 // This class is used as a storage for visited sol::tables
 // TODO: try to use map or unordered map instead of linear search in vector
 // TODO: Trick is - sol::object has only operator==:/
-typedef std::vector<std::pair<sol::object, SharedTable*>> SolTableToShared;
+typedef std::vector<std::pair<sol::object, GCObjectHandle>> SolTableToShared;
 
 void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) noexcept;
 
 StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) noexcept {
     if (luaObject.get_type() == sol::type::table) {
         sol::table luaTable = luaObject;
-        auto comparator = [&luaTable](const std::pair<sol::table, SharedTable*>& element){
+        auto comparator = [&luaTable](const std::pair<sol::table, GCObjectHandle>& element){
             return element.first == luaTable;
         };
         auto st = std::find_if(visited.begin(), visited.end(), comparator);
 
         if (st == std::end(visited)) {
-            SharedTable* table = defaultPool().getNew();
-            visited.emplace_back(std::make_pair(luaTable, table));
-            dumpTable(table, luaTable, visited);
-            return StoredObject(table);
+            SharedTable table = getGC().create<SharedTable>();
+            visited.emplace_back(std::make_pair(luaTable, table.handle()));
+            dumpTable(&table, luaTable, visited);
+            return StoredObject(table.handle());
         } else {
             return StoredObject(st->second);
         }
@@ -118,7 +147,7 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
         case sol::type::string:
             return std::make_unique<PrimitiveHolder<std::string>>(luaObject);
         case sol::type::userdata:
-            return std::make_unique<PrimitiveHolder<SharedTable*>>(luaObject);
+            return std::make_unique<TableHolder>(luaObject);
         case sol::type::function:
             return std::make_unique<FunctionHolder>(luaObject);
         case sol::type::table:
@@ -126,14 +155,14 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
             sol::table luaTable = luaObject;
             // Tables pool is used to store tables.
             // Right now not defiantly clear how ownership between states works.
-            SharedTable* table = defaultPool().getNew();
-            SolTableToShared visited{{luaTable, table}};
+            SharedTable table = getGC().create<SharedTable>();
+            SolTableToShared visited{{luaTable, table.handle()}};
 
             // Let's dump table and all subtables
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
-            dumpTable(table, luaTable, visited);
-            return std::make_unique<PrimitiveHolder<SharedTable*>>(table);
+            dumpTable(&table, luaTable, visited);
+            return std::make_unique<TableHolder>(table.handle());
         }
         default:
             ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
@@ -146,8 +175,8 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
 StoredObject::StoredObject(StoredObject&& init) noexcept
         : data_(std::move(init.data_)) {}
 
-StoredObject::StoredObject(SharedTable* table) noexcept
-        : data_(new PrimitiveHolder<SharedTable*>(table)) {
+StoredObject::StoredObject(GCObjectHandle handle) noexcept
+        : data_(new TableHolder(handle)) {
 }
 
 StoredObject::StoredObject(const sol::object& object) noexcept
@@ -174,6 +203,14 @@ sol::object StoredObject::unpack(sol::this_state state) const noexcept {
         return data_->unpack(state);
     else
         return sol::nil;
+}
+
+bool StoredObject::isGCObject() const noexcept {
+    return data_->type() == typeid(TableHolder);
+}
+
+GCObjectHandle StoredObject::gcHandle() const noexcept {
+    return ((TableHolder*)data_.get())->handle();
 }
 
 StoredObject& StoredObject::operator=(StoredObject&& o) noexcept {
