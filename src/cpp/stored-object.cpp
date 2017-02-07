@@ -33,7 +33,7 @@ public:
         return std::hash<StoredType>()(data_);
     }
 
-    sol::object unpack(sol::this_state state) const noexcept final {
+    sol::object unpack(sol::this_state state) const final {
         return sol::make_object(state, data_);
     }
 
@@ -59,7 +59,7 @@ public:
         return std::hash<std::string>()(function_);
     }
 
-    sol::object unpack(sol::this_state state) const noexcept final {
+    sol::object unpack(sol::this_state state) const final {
         sol::state_view lua((lua_State*)state);
         sol::function loader = lua["loadstring"];
         ASSERT(loader.valid());
@@ -77,9 +77,9 @@ private:
 // TODO: Trick is - sol::object has only operator==:/
 typedef std::vector<std::pair<sol::object, SharedTable*>> SolTableToShared;
 
-void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) noexcept;
+void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited);
 
-StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) noexcept {
+StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) {
     if (luaObject.get_type() == sol::type::table) {
         sol::table luaTable = luaObject;
         auto comparator = [&luaTable](const std::pair<sol::table, SharedTable*>& element){
@@ -100,7 +100,7 @@ StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) 
     }
 }
 
-void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) noexcept {
+void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) {
     for(auto& row : luaTable) {
         target->set(makeStoredObject(row.first, visited), makeStoredObject(row.second, visited));
     }
@@ -150,11 +150,11 @@ StoredObject::StoredObject(SharedTable* table) noexcept
         : data_(new PrimitiveHolder<SharedTable*>(table)) {
 }
 
-StoredObject::StoredObject(const sol::object& object) noexcept
+StoredObject::StoredObject(const sol::object& object)
         : data_(fromSolObject(object)) {
 }
 
-StoredObject::StoredObject(const sol::stack_object& object) noexcept
+StoredObject::StoredObject(const sol::stack_object& object)
         : data_(fromSolObject(object)) {
 }
 
@@ -169,7 +169,7 @@ std::size_t StoredObject::hash() const noexcept {
         return 0;
 }
 
-sol::object StoredObject::unpack(sol::this_state state) const noexcept {
+sol::object StoredObject::unpack(sol::this_state state) const {
     if (data_)
         return data_->unpack(state);
     else

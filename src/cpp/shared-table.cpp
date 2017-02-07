@@ -7,7 +7,7 @@ namespace effil {
 
 sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
     static sol::usertype<SharedTable> type(
-            sol::call_construction(), sol::default_constructor,
+            "new", sol::no_constructor,
             sol::meta_function::new_index, &SharedTable::luaSet,
             sol::meta_function::index,     &SharedTable::luaGet,
             sol::meta_function::length, &SharedTable::size
@@ -34,8 +34,8 @@ void SharedTable::luaSet(const sol::stack_object& luaKey, const sol::stack_objec
     }
 }
 
-sol::object SharedTable::luaGet(const sol::stack_object& key, const sol::this_state& state) const noexcept {
-    assert(key.valid());
+sol::object SharedTable::luaGet(const sol::stack_object& key, const sol::this_state& state) const {
+    ASSERT(key.valid());
 
     StoredObject cppKey(key);
     std::lock_guard<SpinMutex> g(lock_);
