@@ -1,9 +1,8 @@
 #pragma once
 
-#include <utils.h>
+#include "garbage-collector.h"
 
-#include <utility>
-#include <iostream>
+#include <sol.hpp>
 
 namespace effil {
 
@@ -12,9 +11,8 @@ public:
     BaseHolder() = default;
     virtual ~BaseHolder() = default;
 
-    virtual bool compare(const BaseHolder* other) const noexcept {
-        return typeid(*this) == typeid(*other);
-    }
+    virtual bool compare(const BaseHolder* other) const noexcept { return typeid(*this) == typeid(*other); }
+    virtual const std::type_info& type() { return typeid(*this); }
 
     virtual std::size_t hash() const noexcept = 0;
     virtual sol::object unpack(sol::this_state state) const = 0;
@@ -24,19 +22,22 @@ private:
     BaseHolder(BaseHolder&) = delete;
 };
 
-class SharedTable;
-
 class StoredObject {
 public:
     StoredObject() = default;
     StoredObject(StoredObject&& init) noexcept;
-    StoredObject(SharedTable*) noexcept;
+    StoredObject(GCObjectHandle) noexcept;
     StoredObject(const sol::object&);
     StoredObject(const sol::stack_object&);
+
 
     operator bool() const noexcept;
     std::size_t hash() const noexcept;
     sol::object unpack(sol::this_state state) const;
+
+    bool isGCObject() const noexcept;
+    GCObjectHandle gcHandle() const noexcept;
+
     StoredObject& operator=(StoredObject&& o) noexcept;
     bool operator==(const StoredObject& o) const noexcept;
 

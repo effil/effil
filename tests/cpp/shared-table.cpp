@@ -1,30 +1,18 @@
 #include <gtest/gtest.h>
 
+#include "test-utils.h"
 #include "shared-table.h"
+#include "garbage-collector.h"
 
 #include <thread>
 
 using namespace effil;
 
-namespace {
-
-void bootstrapState(sol::state& lua) {
-    lua.open_libraries(
-            sol::lib::base,
-            sol::lib::string,
-            sol::lib::table
-    );
-    SharedTable::getUserType(lua);
-}
-
-} // namespace
-
 TEST(sharedTable, primitiveTypes) {
-    SharedTable st;
     sol::state lua;
     bootstrapState(lua);
 
-    lua["st"] = &st;
+    lua["st"] = SharedTable();
 
     auto res1 = lua.script(R"(
 st.fst = "first"
@@ -92,28 +80,28 @@ TEST(sharedTable, multipleThreads) {
 
     std::vector<std::thread> threads;
 
-    threads.emplace_back([&](){
+    threads.emplace_back([=](){
         sol::state lua;
         bootstrapState(lua);;
-        lua["st"] = &st;
+        lua["st"] = st;
         lua.script(R"(
 while not st.ready do end
 st.fst = true)");
     });
 
-    threads.emplace_back([&](){
+    threads.emplace_back([=](){
         sol::state lua;
         bootstrapState(lua);
-        lua["st"] = &st;
+        lua["st"] = st;
         lua.script(R"(
 while not st.ready do end
 st.snd = true)");
     });
 
-    threads.emplace_back([&](){
+    threads.emplace_back([=](){
         sol::state lua;
         bootstrapState(lua);
-        lua["st"] = &st;
+        lua["st"] = st;
         lua.script(R"(
 while not st.ready do end
 st.thr = true)");
@@ -121,7 +109,7 @@ st.thr = true)");
 
     sol::state lua;
     bootstrapState(lua);
-    lua["st"] = &st;
+    lua["st"] = st;
     lua.script("st.ready = true");
 
     for(auto& thread : threads) { thread.join(); }
@@ -132,13 +120,12 @@ st.thr = true)");
 }
 
 TEST(sharedTable, playingWithSharedTables) {
-    SharedTable recursive, st1, st2;
     sol::state lua;
     bootstrapState(lua);
 
-    lua["recursive"] = &recursive;
-    lua["st1"] = &st1;
-    lua["st2"] = &st2;
+    lua["recursive"] = getGC().create<SharedTable>();
+    lua["st1"] = getGC().create<SharedTable>();
+    lua["st2"] = getGC().create<SharedTable>();
 
     lua.script(R"(
 st1.proxy = st2
@@ -155,7 +142,7 @@ TEST(sharedTable, playingWithFunctions) {
     sol::state lua;
     bootstrapState(lua);
 
-    lua["st"] = &st;
+    lua["st"] = st;
 
     lua.script(R"(
 st.fn = function ()
@@ -171,7 +158,7 @@ st.fn()
     sol::state lua2;
     bootstrapState(lua2);
 
-    lua2["st2"] = &st;
+    lua2["st2"] = st;
     lua2.script(R"(
 st2.fn2 = function(str)
     return "*" .. str .. "*"
@@ -188,7 +175,7 @@ TEST(sharedTable, playingWithTables) {
     sol::state lua;
     bootstrapState(lua);
 
-    lua["st"] = &st;
+    lua["st"] = st;
     auto res = lua.script(R"(
 st.works = "fine"
 st.person = {name = 'John Doe', age = 25}
@@ -216,8 +203,6 @@ st.recursive = recursive
     EXPECT_EQ(lua["st"]["pet"]["spec"]["colour"], std::string("grey"));
     EXPECT_EQ(lua["st"]["pet"]["spec"]["legs"], 4);
     EXPECT_EQ(lua["st"]["recursive"]["prev"]["next"]["next"]["val"], std::string("recursive"));
-
-    defaultPool().clear();
 }
 
 TEST(sharedTable, stress) {
@@ -225,7 +210,7 @@ TEST(sharedTable, stress) {
     bootstrapState(lua);
     SharedTable st;
 
-    lua["st"] = &st;
+    lua["st"] = st;
 
     auto res1 = lua.script(R"(
 for i = 1, 1000000 do
@@ -251,14 +236,14 @@ TEST(sharedTable, stressWithThreads) {
     const size_t threadCount = 10;
     std::vector<std::thread> threads;
     for(size_t i = 0; i < threadCount; i++) {
-        threads.emplace_back([&st, thrId(i)] {
+        threads.emplace_back([=] {
             sol::state lua;
             bootstrapState(lua);
-            lua["st"] = &st;
+            lua["st"] = st;
             std::stringstream ss;
-            ss << "st[" << thrId << "] = 1" << std::endl;
+            ss << "st[" << i << "] = 1" << std::endl;
             ss << "for i = 1, 100000 do" << std::endl;
-            ss << "    st[" << thrId << "] = " << "st[" << thrId << "] + 1" << std::endl;
+            ss << "    st[" << i << "] = " << "st[" << i << "] + 1" << std::endl;
             ss << "end" << std::endl;
             lua.script(ss.str());
         });
@@ -270,7 +255,7 @@ TEST(sharedTable, stressWithThreads) {
 
     sol::state lua;
     bootstrapState(lua);
-    lua["st"] = &st;
+    lua["st"] = st;
     for(size_t i = 0; i < threadCount; i++) {
         EXPECT_TRUE(lua["st"][i] == 100'001) << (double)lua["st"][i] << std::endl;
     }

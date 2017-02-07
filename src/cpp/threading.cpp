@@ -1,6 +1,8 @@
 #include "threading.h"
 #include "stored-object.h"
 
+#include "utils.h"
+
 namespace effil {
 
 class LuaHookStopException : public std::exception {};

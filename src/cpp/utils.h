@@ -6,7 +6,6 @@
 #include <sol.hpp>
 
 namespace effil {
-namespace utils {
 
 class Exception : public sol::error {
 public:
@@ -28,8 +27,13 @@ private:
     std::string message_;
 };
 
-} // utils
 } // effil
 
-#define ERROR throw effil::utils::Exception() << __FILE__ << ":" << __LINE__
+#define ERROR throw effil::Exception() << __FILE__ << ":" << __LINE__
 #define ASSERT(cond) if (!(cond)) ERROR << "In condition '" << #cond << "': "
+
+#ifdef NDEBUG
+#    define DEBUG if (false) std::cout
+#else
+#    define DEBUG std::cout
+#endif
