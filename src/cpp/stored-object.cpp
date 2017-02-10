@@ -47,7 +47,7 @@ public:
     FunctionHolder(SolObject luaObject) noexcept {
         sol::state_view lua(luaObject.lua_state());
         sol::function dumper = lua["string"]["dump"];
-        ASSERT(dumper.valid());
+        if (!dumper.valid()) throw Exception() << "Invalid string.dump()";
         function_ = dumper(luaObject);
     }
 
@@ -62,9 +62,10 @@ public:
     sol::object unpack(sol::this_state state) const final {
         sol::state_view lua((lua_State*)state);
         sol::function loader = lua["loadstring"];
-        ASSERT(loader.valid());
+        if (!loader.valid()) throw Exception() << "Invalid loadstring()";
         sol::function result = loader(function_);
-        ASSERT(result.valid()) << "Unable to restore function!\n" << "Content:\n" << function_;
+        // The result of restaring always is valid function.
+        assert(result.valid());
         return sol::make_object(state, result);
     }
 
@@ -75,28 +76,28 @@ private:
 class TableHolder : public BaseHolder {
 public:
     template<typename SolType>
-    TableHolder(const SolType& luaObject) noexcept {
+    TableHolder(const SolType& luaObject) {
         assert(luaObject.template is<SharedTable>());
         handle_ = luaObject.template as<SharedTable>().handle();
         assert(getGC().has(handle_));
     }
 
-    TableHolder(GCObjectHandle handle) noexcept
+    TableHolder(GCObjectHandle handle)
             : handle_(handle) {}
 
-    bool compare(const BaseHolder *other) const noexcept final {
+    bool compare(const BaseHolder *other) const final {
         return BaseHolder::compare(other) && static_cast<const TableHolder*>(other)->handle_ == handle_;
     }
 
-    std::size_t hash() const noexcept final {
+    std::size_t hash() const final {
         return std::hash<GCObjectHandle>()(handle_);
     }
 
-    sol::object unpack(sol::this_state state) const noexcept final {
+    sol::object unpack(sol::this_state state) const final {
         return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
     }
 
-    GCObjectHandle handle() const noexcept { return  handle_; }
+    GCObjectHandle handle() const { return  handle_; }
 private:
     GCObjectHandle handle_;
 };
@@ -165,17 +166,17 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
             return std::make_unique<TableHolder>(table.handle());
         }
         default:
-            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
+            throw Exception() << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
     }
     return nullptr;
 }
 
 } // namespace
 
-StoredObject::StoredObject(StoredObject&& init) noexcept
+StoredObject::StoredObject(StoredObject&& init)
         : data_(std::move(init.data_)) {}
 
-StoredObject::StoredObject(GCObjectHandle handle) noexcept
+StoredObject::StoredObject(GCObjectHandle handle)
         : data_(new TableHolder(handle)) {
 }
 
@@ -187,11 +188,11 @@ StoredObject::StoredObject(const sol::stack_object& object)
         : data_(fromSolObject(object)) {
 }
 
-StoredObject::operator bool() const noexcept {
+StoredObject::operator bool() const {
     return (bool)data_;
 }
 
-std::size_t StoredObject::hash() const noexcept {
+std::size_t StoredObject::hash() const {
     if (data_)
         return data_->hash();
     else
@@ -205,20 +206,20 @@ sol::object StoredObject::unpack(sol::this_state state) const {
         return sol::nil;
 }
 
-bool StoredObject::isGCObject() const noexcept {
+bool StoredObject::isGCObject() const {
     return data_->type() == typeid(TableHolder);
 }
 
-GCObjectHandle StoredObject::gcHandle() const noexcept {
+GCObjectHandle StoredObject::gcHandle() const {
     return ((TableHolder*)data_.get())->handle();
 }
 
-StoredObject& StoredObject::operator=(StoredObject&& o) noexcept {
+StoredObject& StoredObject::operator=(StoredObject&& o) {
     data_ = std::move(o.data_);
     return *this;
 }
 
-bool StoredObject::operator==(const StoredObject& o) const noexcept {
+bool StoredObject::operator==(const StoredObject& o) const {
     if (data_ && o.data_)
         return data_->compare(o.data_.get());
     else

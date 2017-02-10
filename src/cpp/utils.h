@@ -29,8 +29,7 @@ private:
 
 } // effil
 
-#define ERROR throw effil::Exception() << __FILE__ << ":" << __LINE__
-#define ASSERT(cond) if (!(cond)) ERROR << "In condition '" << #cond << "': "
+#define REQUIRE(cond) if (cond) throw effil::Exception()
 
 #ifdef NDEBUG
 #    define DEBUG if (false) std::cout

@@ -9,9 +9,9 @@
 namespace effil {
 
 // Lua this thread API
-std::string threadId() noexcept;
-void yield() noexcept;
-void sleep(int64_t, sol::optional<std::string>) noexcept;
+std::string threadId();
+void yield();
+void sleep(int64_t, sol::optional<std::string>);
 
 class LuaThread {
 public:
@@ -39,22 +39,22 @@ public:
     };
 
     LuaThread(std::shared_ptr<ThreadData> threadData, const std::string& function, const sol::variadic_args& args);
-    static sol::object getUserType(sol::state_view &lua) noexcept;
+    static sol::object getUserType(sol::state_view &lua);
     static void luaHook(lua_State*, lua_Debug*);
 
     /* Public lua methods*/
-    void cancel() noexcept;
-    void pause() noexcept;
-    void resume() noexcept;
-    std::string status() const noexcept;
-    std::tuple<sol::object, sol::table> wait(sol::this_state state) const noexcept;
+    void cancel();
+    void pause();
+    void resume();
+    std::string status() const;
+    std::tuple<sol::object, sol::table> wait(sol::this_state state) const;
 
 private:
     LuaThread(const LuaThread&) = delete;
     LuaThread& operator=(const LuaThread&) = delete;
 
-    std::string threadStatusToString(ThreadStatus stat) const noexcept;
-    static void work(std::shared_ptr<ThreadData> threadData, const std::string strFunction, std::vector<sol::object>&& arguments) noexcept;
+    std::string threadStatusToString(ThreadStatus stat) const;
+    static void work(std::shared_ptr<ThreadData> threadData, const std::string strFunction, std::vector<sol::object>&& arguments);
 
     std::shared_ptr<ThreadData> pThreadData_;
     std::shared_ptr<std::thread> pThread_;
@@ -65,7 +65,7 @@ private:
 class ThreadFactory {
 public:
     ThreadFactory(const sol::function& func);
-    static sol::object getUserType(sol::state_view &lua) noexcept;
+    static sol::object getUserType(sol::state_view &lua);
 
     /* Public lua methods*/
     std::unique_ptr<LuaThread> runThread(const sol::variadic_args& args);
