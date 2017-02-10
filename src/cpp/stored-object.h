@@ -11,54 +11,41 @@ public:
     BaseHolder() = default;
     virtual ~BaseHolder() = default;
 
-    virtual bool compare(const BaseHolder* other) const noexcept { return typeid(*this) == typeid(*other); }
+    bool compare(const BaseHolder* other) const noexcept {
+        return typeid(*this) == typeid(*other) && rawCompare(other);
+    }
+    virtual bool rawCompare(const BaseHolder* other) const = 0;
     virtual const std::type_info& type() { return typeid(*this); }
 
     virtual std::size_t hash() const noexcept = 0;
     virtual sol::object unpack(sol::this_state state) const = 0;
+
+    virtual GCObjectHandle gcHandle() const noexcept { return GCNull; }
 
 private:
     BaseHolder(const BaseHolder&) = delete;
     BaseHolder(BaseHolder&) = delete;
 };
 
-class StoredObject {
-public:
-    StoredObject() = default;
-    StoredObject(StoredObject&& init) noexcept;
-    StoredObject(GCObjectHandle) noexcept;
-    StoredObject(const sol::object&);
-    StoredObject(const sol::stack_object&);
+typedef std::unique_ptr<BaseHolder> StoredObject;
 
-
-    operator bool() const noexcept;
-    std::size_t hash() const noexcept;
-    sol::object unpack(sol::this_state state) const;
-
-    bool isGCObject() const noexcept;
-    GCObjectHandle gcHandle() const noexcept;
-
-    StoredObject& operator=(StoredObject&& o) noexcept;
-    bool operator==(const StoredObject& o) const noexcept;
-
-private:
-    std::unique_ptr<BaseHolder> data_;
-
-private:
-    StoredObject(const StoredObject&) = delete;
-    StoredObject& operator=(const StoredObject&) = delete;
-};
-
-} // effil
-
-namespace std {
-
-// For storing as key in std::unordered_map
-template<>
-struct hash<effil::StoredObject> {
-    std::size_t operator()(const effil::StoredObject &object) const noexcept {
-        return object.hash();
+struct StoredObjectHash {
+    size_t operator()(const StoredObject& o) const {
+        return o->hash();
     }
 };
 
-} // std
+struct StoredObjectEqual {
+    bool operator()(const StoredObject& lhs, const StoredObject& rhs) const {
+        return lhs->compare(rhs.get());
+    }
+};
+
+StoredObject createStoredObject(bool);
+StoredObject createStoredObject(double);
+StoredObject createStoredObject(const std::string&);
+StoredObject createStoredObject(GCObjectHandle);
+StoredObject createStoredObject(const sol::object &);
+StoredObject createStoredObject(const sol::stack_object &);
+
+} // effil

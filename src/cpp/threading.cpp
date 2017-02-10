@@ -44,8 +44,8 @@ LuaThread::LuaThread(std::shared_ptr<ThreadData> threadData, const std::string& 
 
     std::vector<sol::object> arguments;
     for(const auto& iter: args) {
-        StoredObject store(iter.get<sol::object>());
-        arguments.push_back(store.unpack(sol::this_state{pThreadData_->luaState}));
+        StoredObject store = createStoredObject(iter.get<sol::object>());
+        arguments.push_back(store->unpack(sol::this_state{pThreadData_->luaState}));
     }
 
     pThread_.reset(new std::thread(&LuaThread::work, pThreadData_, function, std::move(arguments)));
@@ -95,7 +95,7 @@ void LuaThread::work(std::shared_ptr<ThreadData> threadData, const std::string s
         (void)results; // TODO: try to avoid use of useless sol::function_result here
         sol::variadic_args args(threadData->luaState, -lua_gettop(threadData->luaState));
         for(const auto& iter: args) {
-            StoredObject store(iter.get<sol::object>());
+            StoredObject store = createStoredObject(iter.get<sol::object>());
             threadData->results.emplace_back(std::move(store));
         }
         threadData->status = ThreadStatus::Completed;
@@ -106,7 +106,7 @@ void LuaThread::work(std::shared_ptr<ThreadData> threadData, const std::string s
     catch (const sol::error& err) {
         threadData->status = ThreadStatus::Failed;
         sol::stack::push(threadData->luaState, err.what());
-        StoredObject store(sol::stack::pop<sol::object>(threadData->luaState));
+        StoredObject store = createStoredObject(sol::stack::pop<sol::object>(threadData->luaState));
         threadData->results.emplace_back(std::move(store));
     }
 }
@@ -139,7 +139,7 @@ std::tuple<sol::object, sol::table> LuaThread::wait(sol::this_state state) const
     {
         for (const StoredObject& obj: pThreadData_->results)
         {
-            returns.add(obj.unpack(state));
+            returns.add(obj->unpack(state));
         }
     }
     return std::make_tuple(sol::make_object(state, threadStatusToString(stat)), std::move(returns));

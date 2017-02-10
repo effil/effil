@@ -27,8 +27,14 @@ public:
     size_t size() const noexcept;
 
 private:
-    mutable std::shared_ptr<SpinMutex> lock_;
-    std::shared_ptr<std::unordered_map<StoredObject, StoredObject>> data_;
+    typedef std::unique_ptr<BaseHolder> StoredObject;
+    struct SharedData {
+        SpinMutex lock;
+        std::unordered_map<StoredObject, StoredObject, StoredObjectHash, StoredObjectEqual> entries;
+    };
+
+private:
+    std::shared_ptr<SharedData> data_;
 };
 
 } // effil
