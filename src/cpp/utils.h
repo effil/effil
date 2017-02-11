@@ -29,7 +29,7 @@ private:
 
 } // effil
 
-#define REQUIRE(cond) if (cond) throw effil::Exception()
+#define REQUIRE(cond) if (!cond) throw effil::Exception()
 
 #ifdef NDEBUG
 #    define DEBUG if (false) std::cout

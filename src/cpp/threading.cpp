@@ -183,7 +183,7 @@ sol::object LuaThread::getUserType(sol::state_view &lua)
 ThreadFactory::ThreadFactory(const sol::function& func) : stepwise_(false), step_(100U) {
     sol::state_view lua(func.lua_state());
     const sol::object& dumper = lua["string"]["dump"];
-    REQUIRE(dumper.valid() && dumper.get_type() == sol::type::function)<< "Unable to get string.dump()";
+    REQUIRE(dumper.valid() && dumper.get_type() == sol::type::function) << "Unable to get string.dump()";
     strFunction_ = static_cast<const sol::function&>(dumper)(func);
 
     // Inherit all pathes from parent state by default
