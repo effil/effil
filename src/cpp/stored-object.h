@@ -11,10 +11,10 @@ public:
     BaseHolder() = default;
     virtual ~BaseHolder() = default;
 
-    virtual bool compare(const BaseHolder* other) const noexcept { return typeid(*this) == typeid(*other); }
+    virtual bool compare(const BaseHolder* other) const { return typeid(*this) == typeid(*other); }
     virtual const std::type_info& type() { return typeid(*this); }
 
-    virtual std::size_t hash() const noexcept = 0;
+    virtual std::size_t hash() const = 0;
     virtual sol::object unpack(sol::this_state state) const = 0;
 
 private:
@@ -25,21 +25,21 @@ private:
 class StoredObject {
 public:
     StoredObject() = default;
-    StoredObject(StoredObject&& init) noexcept;
-    StoredObject(GCObjectHandle) noexcept;
+    StoredObject(StoredObject&& init);
+    StoredObject(GCObjectHandle);
     StoredObject(const sol::object&);
     StoredObject(const sol::stack_object&);
 
 
-    operator bool() const noexcept;
-    std::size_t hash() const noexcept;
+    operator bool() const;
+    std::size_t hash() const;
     sol::object unpack(sol::this_state state) const;
 
-    bool isGCObject() const noexcept;
-    GCObjectHandle gcHandle() const noexcept;
+    bool isGCObject() const;
+    GCObjectHandle gcHandle() const;
 
-    StoredObject& operator=(StoredObject&& o) noexcept;
-    bool operator==(const StoredObject& o) const noexcept;
+    StoredObject& operator=(StoredObject&& o);
+    bool operator==(const StoredObject& o) const;
 
 private:
     std::unique_ptr<BaseHolder> data_;
