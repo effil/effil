@@ -11,16 +11,16 @@ public:
     BaseHolder() = default;
     virtual ~BaseHolder() = default;
 
-    bool compare(const BaseHolder* other) const noexcept {
+    bool compare(const BaseHolder* other) const {
         return typeid(*this) == typeid(*other) && rawCompare(other);
     }
     virtual bool rawCompare(const BaseHolder* other) const = 0;
     virtual const std::type_info& type() { return typeid(*this); }
 
-    virtual std::size_t hash() const noexcept = 0;
+    virtual std::size_t hash() const = 0;
     virtual sol::object unpack(sol::this_state state) const = 0;
 
-    virtual GCObjectHandle gcHandle() const noexcept { return GCNull; }
+    virtual GCObjectHandle gcHandle() const { return GCNull; }
 
 private:
     BaseHolder(const BaseHolder&) = delete;

@@ -7,17 +7,17 @@
 
 namespace effil {
 
-SharedTable::SharedTable() noexcept
+SharedTable::SharedTable()
         : GCObject(),
           data_(std::make_shared<SharedData>()) {
 }
 
-SharedTable::SharedTable(const SharedTable& init) noexcept
+SharedTable::SharedTable(const SharedTable& init)
         : GCObject(init),
           data_(init.data_) {
 }
 
-sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
+sol::object SharedTable::getUserType(sol::state_view &lua) {
     static sol::usertype<SharedTable> type(
             "new", sol::no_constructor,
             sol::meta_function::new_index, &SharedTable::luaSet,
@@ -28,7 +28,7 @@ sol::object SharedTable::getUserType(sol::state_view &lua) noexcept {
     return sol::stack::pop<sol::object>(lua);
 }
 
-void SharedTable::set(StoredObject&& key, StoredObject&& value) noexcept {
+void SharedTable::set(StoredObject&& key, StoredObject&& value) {
     std::lock_guard<SpinMutex> g(data_->lock);
 
     if (key->gcHandle()) refs_->insert(key->gcHandle());
@@ -38,7 +38,7 @@ void SharedTable::set(StoredObject&& key, StoredObject&& value) noexcept {
 }
 
 void SharedTable::luaSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue) {
-    ASSERT(luaKey.valid()) << "Invalid table index";
+    REQUIRE(luaKey.valid()) << "Indexing by nil";
 
     StoredObject key = createStoredObject(luaKey);
     if (luaValue.get_type() == sol::type::nil) {
@@ -57,12 +57,12 @@ void SharedTable::luaSet(const sol::stack_object& luaKey, const sol::stack_objec
     }
 }
 
-sol::object SharedTable::luaGet(const sol::stack_object& key, const sol::this_state& state) const {
-    ASSERT(key.valid());
+sol::object SharedTable::luaGet(const sol::stack_object& luaKey, const sol::this_state& state) const {
+    REQUIRE(luaKey.valid()) << "Indexing by nil";
 
-    StoredObject cppKey = createStoredObject(key);
+    StoredObject key = createStoredObject(luaKey);
     std::lock_guard<SpinMutex> g(data_->lock);
-    auto val = data_->entries.find(cppKey);
+    auto val = data_->entries.find(key);
     if (val == data_->entries.end()) {
         return sol::nil;
     } else {
@@ -70,7 +70,7 @@ sol::object SharedTable::luaGet(const sol::stack_object& key, const sol::this_st
     }
 }
 
-size_t SharedTable::size() const noexcept {
+size_t SharedTable::size() const {
     std::lock_guard<SpinMutex> g(data_->lock);
     return data_->entries.size();
 }

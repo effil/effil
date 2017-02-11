@@ -39,7 +39,7 @@ enum class GCState {
 
 class GarbageCollector {
 public:
-    GarbageCollector() noexcept;
+    GarbageCollector();
     ~GarbageCollector() = default;
 
     // This method is used to create all managed objects.
@@ -53,15 +53,15 @@ public:
         return *object;
     }
 
-    GCObject* get(GCObjectHandle handle) noexcept;
-    bool has(GCObjectHandle handle) const noexcept;
+    GCObject* get(GCObjectHandle handle);
+    bool has(GCObjectHandle handle) const;
     void cleanup();
-    size_t size() const noexcept;
-    void stop() noexcept;
-    void resume() noexcept;
-    size_t step() const noexcept { return step_; }
-    void step(size_t newStep) noexcept { step_ = newStep; }
-    GCState state() const noexcept { return state_; }
+    size_t size() const;
+    void stop();
+    void resume();
+    size_t step() const { return step_; }
+    void step(size_t newStep) { step_ = newStep; }
+    GCState state() const { return state_; }
 
 private:
     mutable std::mutex lock_;
@@ -76,6 +76,6 @@ private:
 };
 
 
-GarbageCollector& getGC() noexcept;
+GarbageCollector& getGC();
 
 } // effil

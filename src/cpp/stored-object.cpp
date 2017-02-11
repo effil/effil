@@ -47,7 +47,7 @@ public:
     FunctionHolder(SolObject luaObject) noexcept {
         sol::state_view lua(luaObject.lua_state());
         sol::function dumper = lua["string"]["dump"];
-        ASSERT(dumper.valid());
+        if (!dumper.valid()) throw Exception() << "Invalid string.dump()";
         function_ = dumper(luaObject);
     }
 
@@ -62,9 +62,10 @@ public:
     sol::object unpack(sol::this_state state) const final {
         sol::state_view lua((lua_State*)state);
         sol::function loader = lua["loadstring"];
-        ASSERT(loader.valid());
+        REQUIRE(loader.valid()) << "Invalid loadstring()";
         sol::function result = loader(function_);
-        ASSERT(result.valid()) << "Unable to restore function!\n" << "Content:\n" << function_;
+        // The result of restaring always is valid function.
+        assert(result.valid());
         return sol::make_object(state, result);
     }
 
@@ -75,28 +76,28 @@ private:
 class TableHolder : public BaseHolder {
 public:
     template<typename SolType>
-    TableHolder(const SolType& luaObject) noexcept {
+    TableHolder(const SolType& luaObject) {
         assert(luaObject.template is<SharedTable>());
         handle_ = luaObject.template as<SharedTable>().handle();
         assert(getGC().has(handle_));
     }
 
-    TableHolder(GCObjectHandle handle) noexcept
+    TableHolder(GCObjectHandle handle)
             : handle_(handle) {}
 
-    bool rawCompare(const BaseHolder *other) const noexcept final {
+    bool rawCompare(const BaseHolder *other) const final {
         return static_cast<const TableHolder*>(other)->handle_ == handle_;
     }
 
-    std::size_t hash() const noexcept final {
+    std::size_t hash() const final {
         return std::hash<GCObjectHandle>()(handle_);
     }
 
-    sol::object unpack(sol::this_state state) const noexcept final {
+    sol::object unpack(sol::this_state state) const final {
         return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
     }
 
-    GCObjectHandle gcHandle() const noexcept override { return  handle_; }
+    GCObjectHandle gcHandle() const override { return  handle_; }
 private:
     GCObjectHandle handle_;
 };
@@ -165,7 +166,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<TableHolder>(table.handle());
         }
         default:
-            ERROR << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
+            throw Exception() << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
     }
     return nullptr;
 }

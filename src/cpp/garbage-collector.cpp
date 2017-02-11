@@ -7,12 +7,12 @@
 
 namespace effil {
 
-GarbageCollector::GarbageCollector() noexcept
+GarbageCollector::GarbageCollector()
         : state_(GCState::Idle),
           lastCleanup_(0),
           step_(200) {}
 
-GCObject* GarbageCollector::get(GCObjectHandle handle) noexcept {
+GCObject* GarbageCollector::get(GCObjectHandle handle) {
     std::lock_guard<std::mutex> g(lock_);
     auto it = objects_.find(handle);
     if (it == objects_.end()) {
@@ -22,7 +22,7 @@ GCObject* GarbageCollector::get(GCObjectHandle handle) noexcept {
     return it->second.get();
 }
 
-bool GarbageCollector::has(GCObjectHandle handle) const noexcept {
+bool GarbageCollector::has(GCObjectHandle handle) const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.find(handle) != objects_.end();
 }
@@ -63,25 +63,25 @@ void GarbageCollector::cleanup() {
     lastCleanup_.store(0);
 }
 
-size_t GarbageCollector::size() const noexcept {
+size_t GarbageCollector::size() const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.size();
 }
 
-void GarbageCollector::stop() noexcept {
+void GarbageCollector::stop() {
     std::lock_guard<std::mutex> g(lock_);
     assert(state_ == GCState::Idle || state_ == GCState::Stopped);
     state_ = GCState::Stopped;
 }
 
-void GarbageCollector::resume() noexcept {
+void GarbageCollector::resume() {
     std::lock_guard<std::mutex> g(lock_);
     assert(state_ == GCState::Idle || state_ == GCState::Stopped);
     state_ = GCState::Idle;
 }
 
 
-GarbageCollector& getGC() noexcept {
+GarbageCollector& getGC() {
     static GarbageCollector pool;
     return pool;
 }
