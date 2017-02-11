@@ -1,8 +1,8 @@
 #!/usr/bin/env lua
 
 -- TODO: remove hardcode
-package.path  = package.path .. ";../libs/luaunit/?.lua;../tests/lua/?.lua"
-package.cpath = package.cpath .. ";./?.so;./?.dylib"
+package.path  = package.path .. ";../libs/luaunit/?.lua;../src/lua/?.lua;../tests/lua/?.lua"
+package.cpath = package.cpath .. "../../build/*.dylib;./?.so;./?.dylib"
 
 test = require "luaunit"
 

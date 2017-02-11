@@ -6,7 +6,7 @@ function TestSmoke:tearDown()
 end
 
 function TestSmoke:testSharedTableTypes()
-    local effil = require('libeffil')
+    local effil = require('effil')
     local share = effil.share()
 
     share["number"] = 100500
@@ -187,7 +187,7 @@ function TestSmoke:testThisThreadFunctions()
 end
 
 function TestSmoke:testCheckThreadReturns()
-    local effil = require('libeffil')
+    local effil = require('effil')
     local share = effil.share()
     share.value = "some value"
 

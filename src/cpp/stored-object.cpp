@@ -25,8 +25,8 @@ public:
     PrimitiveHolder(const StoredType& init) noexcept
             : data_(init) {}
 
-    bool compare(const BaseHolder* other) const noexcept final {
-        return BaseHolder::compare(other) && static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
+    bool rawCompare(const BaseHolder* other) const noexcept final {
+        return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
     }
 
     std::size_t hash() const noexcept final {
@@ -51,8 +51,8 @@ public:
         function_ = dumper(luaObject);
     }
 
-    bool compare(const BaseHolder* other) const noexcept final {
-        return BaseHolder::compare(other) && static_cast<const FunctionHolder*>(other)->function_ == function_;
+    bool rawCompare(const BaseHolder* other) const noexcept final {
+        return static_cast<const FunctionHolder*>(other)->function_ == function_;
     }
 
     std::size_t hash() const noexcept final {
@@ -84,8 +84,8 @@ public:
     TableHolder(GCObjectHandle handle) noexcept
             : handle_(handle) {}
 
-    bool compare(const BaseHolder *other) const noexcept final {
-        return BaseHolder::compare(other) && static_cast<const TableHolder*>(other)->handle_ == handle_;
+    bool rawCompare(const BaseHolder *other) const noexcept final {
+        return static_cast<const TableHolder*>(other)->handle_ == handle_;
     }
 
     std::size_t hash() const noexcept final {
@@ -96,7 +96,7 @@ public:
         return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
     }
 
-    GCObjectHandle handle() const noexcept { return  handle_; }
+    GCObjectHandle gcHandle() const noexcept override { return  handle_; }
 private:
     GCObjectHandle handle_;
 };
@@ -120,12 +120,12 @@ StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) 
             SharedTable table = getGC().create<SharedTable>();
             visited.emplace_back(std::make_pair(luaTable, table.handle()));
             dumpTable(&table, luaTable, visited);
-            return StoredObject(table.handle());
+            return createStoredObject(table.handle());
         } else {
-            return StoredObject(st->second);
+            return createStoredObject(st->second);
         }
     } else {
-        return StoredObject(luaObject);
+        return createStoredObject(luaObject);
     }
 }
 
@@ -136,7 +136,7 @@ void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visit
 }
 
 template<typename SolObject>
-std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
+StoredObject fromSolObject(const SolObject& luaObject) {
     switch(luaObject.get_type()) {
         case sol::type::nil:
             break;
@@ -172,57 +172,28 @@ std::unique_ptr<BaseHolder> fromSolObject(const SolObject& luaObject) {
 
 } // namespace
 
-StoredObject::StoredObject(StoredObject&& init) noexcept
-        : data_(std::move(init.data_)) {}
-
-StoredObject::StoredObject(GCObjectHandle handle) noexcept
-        : data_(new TableHolder(handle)) {
+StoredObject createStoredObject(bool value) {
+    return std::make_unique<PrimitiveHolder<bool>>(value);
 }
 
-StoredObject::StoredObject(const sol::object& object)
-        : data_(fromSolObject(object)) {
+StoredObject createStoredObject(double value) {
+    return std::make_unique<PrimitiveHolder<double>>(value);
 }
 
-StoredObject::StoredObject(const sol::stack_object& object)
-        : data_(fromSolObject(object)) {
+StoredObject createStoredObject(const std::string& value) {
+    return std::make_unique<PrimitiveHolder<std::string>>(value);
 }
 
-StoredObject::operator bool() const noexcept {
-    return (bool)data_;
+StoredObject createStoredObject(const sol::object &object) {
+    return fromSolObject(object);
 }
 
-std::size_t StoredObject::hash() const noexcept {
-    if (data_)
-        return data_->hash();
-    else
-        return 0;
+StoredObject createStoredObject(const sol::stack_object &object) {
+    return fromSolObject(object);
 }
 
-sol::object StoredObject::unpack(sol::this_state state) const {
-    if (data_)
-        return data_->unpack(state);
-    else
-        return sol::nil;
-}
-
-bool StoredObject::isGCObject() const noexcept {
-    return data_->type() == typeid(TableHolder);
-}
-
-GCObjectHandle StoredObject::gcHandle() const noexcept {
-    return ((TableHolder*)data_.get())->handle();
-}
-
-StoredObject& StoredObject::operator=(StoredObject&& o) noexcept {
-    data_ = std::move(o.data_);
-    return *this;
-}
-
-bool StoredObject::operator==(const StoredObject& o) const noexcept {
-    if (data_ && o.data_)
-        return data_->compare(o.data_.get());
-    else
-        return data_.get() == o.data_.get();
+StoredObject createStoredObject(GCObjectHandle handle) {
+    return std::make_unique<TableHolder>(handle);
 }
 
 } // effil
