@@ -26,11 +26,7 @@ public:
             : data_(init) {}
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
-    }
-
-    std::size_t hash() const noexcept final {
-        return std::hash<StoredType>()(data_);
+        return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ < data_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -52,11 +48,7 @@ public:
     }
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        return static_cast<const FunctionHolder*>(other)->function_ == function_;
-    }
-
-    std::size_t hash() const noexcept final {
-        return std::hash<std::string>()(function_);
+        return static_cast<const FunctionHolder*>(other)->function_ < function_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -86,11 +78,7 @@ public:
             : handle_(handle) {}
 
     bool rawCompare(const BaseHolder *other) const final {
-        return static_cast<const TableHolder*>(other)->handle_ == handle_;
-    }
-
-    std::size_t hash() const final {
-        return std::hash<GCObjectHandle>()(handle_);
+        return static_cast<const TableHolder*>(other)->handle_ < handle_;
     }
 
     sol::object unpack(sol::this_state state) const final {
