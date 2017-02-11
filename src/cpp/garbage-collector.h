@@ -11,6 +11,8 @@ namespace effil {
 // Unique handle for all objects spawned from one object.
 typedef void* GCObjectHandle;
 
+static const GCObjectHandle GCNull = nullptr;
+
 // All effil objects that owned in lua code have to inherit this class.
 // This type o object can persist in multiple threads and in multiple lua states.
 // Child has to care about storing data and concurrent access.
