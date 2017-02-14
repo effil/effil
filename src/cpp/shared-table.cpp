@@ -19,10 +19,10 @@ SharedTable::SharedTable(const SharedTable& init)
 
 sol::object SharedTable::getUserType(sol::state_view &lua) {
     static sol::usertype<SharedTable> type(
-            "new", sol::no_constructor,
-            sol::meta_function::new_index, &SharedTable::luaSet,
-            sol::meta_function::index,     &SharedTable::luaGet,
-            sol::meta_function::length, &SharedTable::size
+            "new", sol::no_constructor,                         //
+            sol::meta_function::new_index, &SharedTable::luaSet,//
+            sol::meta_function::index,     &SharedTable::luaGet,//
+            sol::meta_function::length, &SharedTable::size      //
     );
     sol::stack::push(lua, type);
     return sol::stack::pop<sol::object>(lua);
