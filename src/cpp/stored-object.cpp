@@ -26,12 +26,14 @@ public:
             : data_(init) {}
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ < data_;
+        return data_ < static_cast<const PrimitiveHolder<StoredType>*>(other)->data_;
     }
 
     sol::object unpack(sol::this_state state) const final {
         return sol::make_object(state, data_);
     }
+
+    StoredType getData() { return data_; }
 
 private:
     StoredType data_;
@@ -48,7 +50,7 @@ public:
     }
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        return static_cast<const FunctionHolder*>(other)->function_ < function_;
+        return function_ < static_cast<const FunctionHolder*>(other)->function_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -78,7 +80,7 @@ public:
             : handle_(handle) {}
 
     bool rawCompare(const BaseHolder *other) const final {
-        return static_cast<const TableHolder*>(other)->handle_ < handle_;
+        return handle_ < static_cast<const TableHolder*>(other)->handle_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -86,6 +88,7 @@ public:
     }
 
     GCObjectHandle gcHandle() const override { return  handle_; }
+
 private:
     GCObjectHandle handle_;
 };
@@ -183,6 +186,27 @@ StoredObject createStoredObject(const sol::stack_object &object) {
 
 StoredObject createStoredObject(GCObjectHandle handle) {
     return std::make_unique<TableHolder>(handle);
+}
+
+sol::optional<bool> storedObjectToBool(const StoredObject& sobj) {
+    auto ptr = dynamic_cast<PrimitiveHolder<bool>*>(sobj.get());
+    if (ptr)
+        return ptr->getData();
+    return sol::optional<bool>();
+}
+
+sol::optional<double> storedObjectToDouble(const StoredObject& sobj) {
+    auto ptr = dynamic_cast<PrimitiveHolder<double>*>(sobj.get());
+    if (ptr)
+        return ptr->getData();
+    return sol::optional<double>();
+}
+
+sol::optional<std::string> storedObjectToString(const StoredObject& sobj) {
+    auto ptr = dynamic_cast<PrimitiveHolder<std::string>*>(sobj.get());
+    if (ptr)
+        return ptr->getData();
+    return sol::optional<std::string>();
 }
 
 } // effil

@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include <cassert>
+#include <limits.h>
 
 namespace effil {
 
@@ -82,29 +83,31 @@ size_t SharedTable::size() const {
 
 size_t SharedTable::length() const {
     std::lock_guard<SpinMutex> g(data_->lock);
-
-    DataEntries::const_iterator iter;
-    size_t l = 0u;
-    while((iter = data_->entries.find(createStoredObject(static_cast<double>(l + 1)))) != data_->entries.end()) {
-        l++;
-    };
-    return l;
+    size_t len = 0u;
+    sol::optional<double> value;
+    auto iter = data_->entries.find(createStoredObject(static_cast<double>(1)));
+    if (iter != data_->entries.end())
+    {
+        do
+        {
+            ++len;
+            ++iter;
+        }
+        while ((iter != data_->entries.end()) && (value = storedObjectToDouble(iter->first)) && (static_cast<size_t>(value.value()) == len + 1));
+    }
+    return len;
 }
 
-SharedTable::PairsIterator SharedTable::getNext(const sol::object& key, sol::this_state lua)
-{
+SharedTable::PairsIterator SharedTable::getNext(const sol::object& key, sol::this_state lua) {
     std::lock_guard<SpinMutex> g(data_->lock);
-    if (key)
-    {
+    if (key) {
         auto obj = createStoredObject(key);
         auto upper = data_->entries.upper_bound(obj);
         if (upper != data_->entries.end())
             return std::tuple<sol::object, sol::object>(upper->first->unpack(lua), upper->second->unpack(lua));
     }
-    else
-    {
-        if (!data_->entries.empty())
-        {
+    else {
+        if (!data_->entries.empty()) {
             const auto& begin = data_->entries.begin();
             return std::tuple<sol::object, sol::object>(begin->first->unpack(lua), begin->second->unpack(lua));
         }
@@ -120,9 +123,8 @@ SharedTable::PairsIterator SharedTable::pairs(sol::this_state lua) const {
     );
 }
 
-std::tuple<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable table, sol::optional<unsigned long> key)
-{
-    unsigned long index = key ? key.value() + 1 : 1ul;
+std::tuple<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable table, sol::optional<unsigned long> key) {
+    size_t index = key ? key.value() + 1 : 1;
     auto objKey = createStoredObject(static_cast<double>(index));
     sol::object value = table.get(objKey, lua);
     if (!value.valid())

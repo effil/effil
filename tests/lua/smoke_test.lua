@@ -257,6 +257,7 @@ function TestSmoke:testCheckLengthOperator()
     share[2] = 20
     share[3] = 30
     share[4] = 40
+    share["str"] = 50
     log "Check values"
     test.assertEquals(#share, 4)
     share[3] = nil

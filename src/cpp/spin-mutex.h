@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <thread>
-#include <mutex>
 
 namespace effil {
 
@@ -16,7 +15,6 @@ public:
 
     void unlock() noexcept {
         lock_.clear(std::memory_order_release);
-
     }
 
 private:

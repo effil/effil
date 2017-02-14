@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils.h"
+
 #include "garbage-collector.h"
 
 #include <sol.hpp>
@@ -41,5 +43,9 @@ StoredObject createStoredObject(const std::string&);
 StoredObject createStoredObject(GCObjectHandle);
 StoredObject createStoredObject(const sol::object &);
 StoredObject createStoredObject(const sol::stack_object &);
+
+sol::optional<bool> storedObjectToBool(const StoredObject&);
+sol::optional<double> storedObjectToDouble(const StoredObject&);
+sol::optional<std::string> storedObjectToString(const StoredObject&);
 
 } // effil
