@@ -50,7 +50,6 @@ install(FILES ${LUA_SOURCES} ${LUA_TEST_SOURCES}
 #----------
 # FORMAT  -
 #----------
-add_custom_target(
-    format
+add_custom_target( format
         COMMAND clang-format -i ${TEST_SOURCES} ${SOURCES}
 )
