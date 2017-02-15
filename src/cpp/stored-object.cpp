@@ -26,16 +26,14 @@ public:
             : data_(init) {}
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        return static_cast<const PrimitiveHolder<StoredType>*>(other)->data_ == data_;
-    }
-
-    std::size_t hash() const noexcept final {
-        return std::hash<StoredType>()(data_);
+        return data_ < static_cast<const PrimitiveHolder<StoredType>*>(other)->data_;
     }
 
     sol::object unpack(sol::this_state state) const final {
         return sol::make_object(state, data_);
     }
+
+    StoredType getData() { return data_; }
 
 private:
     StoredType data_;
@@ -52,11 +50,7 @@ public:
     }
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
-        return static_cast<const FunctionHolder*>(other)->function_ == function_;
-    }
-
-    std::size_t hash() const noexcept final {
-        return std::hash<std::string>()(function_);
+        return function_ < static_cast<const FunctionHolder*>(other)->function_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -86,11 +80,7 @@ public:
             : handle_(handle) {}
 
     bool rawCompare(const BaseHolder *other) const final {
-        return static_cast<const TableHolder*>(other)->handle_ == handle_;
-    }
-
-    std::size_t hash() const final {
-        return std::hash<GCObjectHandle>()(handle_);
+        return handle_ < static_cast<const TableHolder*>(other)->handle_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -98,6 +88,7 @@ public:
     }
 
     GCObjectHandle gcHandle() const override { return  handle_; }
+
 private:
     GCObjectHandle handle_;
 };
@@ -195,6 +186,26 @@ StoredObject createStoredObject(const sol::stack_object &object) {
 
 StoredObject createStoredObject(GCObjectHandle handle) {
     return std::make_unique<TableHolder>(handle);
+}
+
+template<typename DataType>
+sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
+    auto ptr = dynamic_cast<PrimitiveHolder<DataType>*>(sobj.get());
+    if (ptr)
+        return ptr->getData();
+    return sol::optional<DataType>();
+}
+
+sol::optional<bool> storedObjectToBool(const StoredObject& sobj) {
+    return getPrimitiveHolderData<bool>(sobj);
+}
+
+sol::optional<double> storedObjectToDouble(const StoredObject& sobj) {
+    return getPrimitiveHolderData<double>(sobj);
+}
+
+sol::optional<std::string> storedObjectToString(const StoredObject& sobj) {
+    return getPrimitiveHolderData<std::string>(sobj);
 }
 
 } // effil
