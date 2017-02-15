@@ -4,7 +4,6 @@
 
 #include <mutex>
 #include <cassert>
-#include <limits.h>
 
 namespace effil {
 

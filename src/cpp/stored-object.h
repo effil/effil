@@ -1,7 +1,5 @@
 #pragma once
 
-#include "utils.h"
-
 #include "garbage-collector.h"
 
 #include <sol.hpp>

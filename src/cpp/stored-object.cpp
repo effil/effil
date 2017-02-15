@@ -188,25 +188,24 @@ StoredObject createStoredObject(GCObjectHandle handle) {
     return std::make_unique<TableHolder>(handle);
 }
 
-sol::optional<bool> storedObjectToBool(const StoredObject& sobj) {
-    auto ptr = dynamic_cast<PrimitiveHolder<bool>*>(sobj.get());
+template<typename DataType>
+sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
+    auto ptr = dynamic_cast<PrimitiveHolder<DataType>*>(sobj.get());
     if (ptr)
         return ptr->getData();
-    return sol::optional<bool>();
+    return sol::optional<DataType>();
+}
+
+sol::optional<bool> storedObjectToBool(const StoredObject& sobj) {
+    return getPrimitiveHolderData<bool>(sobj);
 }
 
 sol::optional<double> storedObjectToDouble(const StoredObject& sobj) {
-    auto ptr = dynamic_cast<PrimitiveHolder<double>*>(sobj.get());
-    if (ptr)
-        return ptr->getData();
-    return sol::optional<double>();
+    return getPrimitiveHolderData<double>(sobj);
 }
 
 sol::optional<std::string> storedObjectToString(const StoredObject& sobj) {
-    auto ptr = dynamic_cast<PrimitiveHolder<std::string>*>(sobj.get());
-    if (ptr)
-        return ptr->getData();
-    return sol::optional<std::string>();
+    return getPrimitiveHolderData<std::string>(sobj);
 }
 
 } // effil
