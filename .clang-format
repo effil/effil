@@ -36,7 +36,6 @@ BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: true
-BreakStringLiterals: true
 ColumnLimit:     120
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ConstructorInitializerIndentWidth: 8
@@ -53,12 +52,9 @@ IncludeCategories:
     Priority:        3
   - Regex:           '.*'
     Priority:        1
-IncludeIsMainRegex: '$'
 IndentCaseLabels: true
 IndentWidth:     4
 IndentWrappedFunctionNames: false
-JavaScriptQuotes: Leave
-JavaScriptWrapImports: true
 KeepEmptyLinesAtTheStartOfBlocks: true
 MacroBlockBegin: ''
 MacroBlockEnd:   ''
@@ -77,7 +73,6 @@ PointerAlignment: Left
 ReflowComments:  true
 SortIncludes:    false
 SpaceAfterCStyleCast: false
-SpaceAfterTemplateKeyword: false
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
