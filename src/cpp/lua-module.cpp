@@ -24,11 +24,11 @@ extern "C" int luaopen_libeffil(lua_State *L) {
     SharedTable::getUserType(lua);
     ThreadFactory::getUserType(lua);
     sol::table public_api = lua.create_table_with(
-            "thread", createThreadFactory,
-            "thread_id", threadId,
-            "sleep", sleep,
-            "yield", yield,
-            "share", createShare
+            "thread", createThreadFactory,  //
+            "thread_id", threadId,          //
+            "sleep", sleep,                 //
+            "yield", yield,                 //
+            "share", createShare            //
     );
     sol::stack::push(lua, public_api);
     return 1;

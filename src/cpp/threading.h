@@ -16,7 +16,7 @@ void sleep(int64_t, sol::optional<std::string>);
 class LuaThread {
 public:
     enum class ThreadStatus {
-        Running,
+        Running = 1,
         Paused,
         Canceled,
         Completed,

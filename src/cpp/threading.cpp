@@ -167,11 +167,11 @@ std::string LuaThread::status() const
 sol::object LuaThread::getUserType(sol::state_view &lua)
 {
     static sol::usertype<LuaThread> type(
-        "new", sol::no_constructor,
-        "cancel", &LuaThread::cancel,
-        "pause", &LuaThread::pause,
-        "resume", &LuaThread::resume,
-        "status", &LuaThread::status,
+        "new", sol::no_constructor,     //
+        "cancel", &LuaThread::cancel,   //
+        "pause", &LuaThread::pause,     //
+        "resume", &LuaThread::resume,   //
+        "status", &LuaThread::status,   //
         "wait", &LuaThread::wait
     );
     sol::stack::push(lua, type);
@@ -248,12 +248,12 @@ std::string ThreadFactory::packageCPath(const sol::optional<std::string>& value)
 sol::object ThreadFactory::getUserType(sol::state_view &lua)
 {
     static sol::usertype<ThreadFactory> type(
-        "new", sol::no_constructor,
-        sol::meta_function::call, &ThreadFactory::runThread,
-        "stepwise", &ThreadFactory::stepwise,
-        "step", &ThreadFactory::step,
-        "package_path", &ThreadFactory::packagePath,
-        "package_cpath", &ThreadFactory::packageCPath
+        "new", sol::no_constructor,                         //
+        sol::meta_function::call, &ThreadFactory::runThread,//
+        "stepwise", &ThreadFactory::stepwise,               //
+        "step", &ThreadFactory::step,                       //
+        "package_path", &ThreadFactory::packagePath,        //
+        "package_cpath", &ThreadFactory::packageCPath       //
     );
     sol::stack::push(lua, type);
     return sol::stack::pop<sol::object>(lua);

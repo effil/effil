@@ -46,3 +46,10 @@ set_target_properties(tests PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENER
 install(FILES ${LUA_SOURCES} ${LUA_TEST_SOURCES}
         DESTINATION ${CMAKE_BINARY_DIR}
         PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ)
+
+#----------
+# FORMAT  -
+#----------
+add_custom_target( format
+        COMMAND clang-format -i ${TEST_SOURCES} ${SOURCES}
+)
