@@ -8,9 +8,9 @@
 namespace effil {
 
 GarbageCollector::GarbageCollector()
-        : state_(GCState::Idle),
-          lastCleanup_(0),
-          step_(200) {}
+        : state_(GCState::Idle)
+        , lastCleanup_(0)
+        , step_(200) {}
 
 GCObject* GarbageCollector::get(GCObjectHandle handle) {
     std::lock_guard<std::mutex> g(lock_);
@@ -32,30 +32,30 @@ bool GarbageCollector::has(GCObjectHandle handle) const {
 void GarbageCollector::cleanup() {
     std::lock_guard<std::mutex> g(lock_);
 
-    if (state_ == GCState::Stopped) return;
+    if (state_ == GCState::Stopped)
+        return;
     assert(state_ != GCState::Running);
     state_ = GCState::Running;
 
     std::vector<GCObjectHandle> grey;
     std::map<GCObjectHandle, std::shared_ptr<GCObject>> black;
 
-    for(const auto& handleAndObject : objects_)
+    for (const auto& handleAndObject : objects_)
         if (handleAndObject.second->instances() > 1)
             grey.push_back(handleAndObject.first);
 
-    while(!grey.empty()) {
+    while (!grey.empty()) {
         GCObjectHandle handle = grey.back();
         grey.pop_back();
 
         auto object = objects_[handle];
         black[handle] = object;
-        for(GCObjectHandle refHandle : object->refers())
+        for (GCObjectHandle refHandle : object->refers())
             if (black.find(refHandle) == black.end())
                 grey.push_back(refHandle);
     }
 
-    DEBUG << "Removing " << (objects_.size() - black.size())
-          << " out of " << objects_.size() << std::endl;
+    DEBUG << "Removing " << (objects_.size() - black.size()) << " out of " << objects_.size() << std::endl;
     // Sweep phase
     objects_ = std::move(black);
 
@@ -79,7 +79,6 @@ void GarbageCollector::resume() {
     assert(state_ == GCState::Idle || state_ == GCState::Stopped);
     state_ = GCState::Idle;
 }
-
 
 GarbageCollector& getGC() {
     static GarbageCollector pool;

@@ -80,16 +80,17 @@ TEST(sharedTable, multipleThreads) {
 
     std::vector<std::thread> threads;
 
-    threads.emplace_back([=](){
+    threads.emplace_back([=]() {
         sol::state lua;
-        bootstrapState(lua);;
+        bootstrapState(lua);
+        ;
         lua["st"] = st;
         lua.script(R"(
 while not st.ready do end
 st.fst = true)");
     });
 
-    threads.emplace_back([=](){
+    threads.emplace_back([=]() {
         sol::state lua;
         bootstrapState(lua);
         lua["st"] = st;
@@ -98,7 +99,7 @@ while not st.ready do end
 st.snd = true)");
     });
 
-    threads.emplace_back([=](){
+    threads.emplace_back([=]() {
         sol::state lua;
         bootstrapState(lua);
         lua["st"] = st;
@@ -112,7 +113,9 @@ st.thr = true)");
     lua["st"] = st;
     lua.script("st.ready = true");
 
-    for(auto& thread : threads) { thread.join(); }
+    for (auto& thread : threads) {
+        thread.join();
+    }
 
     EXPECT_EQ(lua["st"]["fst"], true);
     EXPECT_EQ(lua["st"]["snd"], true);
@@ -235,7 +238,7 @@ TEST(sharedTable, stressWithThreads) {
 
     const size_t threadCount = 10;
     std::vector<std::thread> threads;
-    for(size_t i = 0; i < threadCount; i++) {
+    for (size_t i = 0; i < threadCount; i++) {
         threads.emplace_back([=] {
             sol::state lua;
             bootstrapState(lua);
@@ -243,20 +246,21 @@ TEST(sharedTable, stressWithThreads) {
             std::stringstream ss;
             ss << "st[" << i << "] = 1" << std::endl;
             ss << "for i = 1, 100000 do" << std::endl;
-            ss << "    st[" << i << "] = " << "st[" << i << "] + 1" << std::endl;
+            ss << "    st[" << i << "] = "
+               << "st[" << i << "] + 1" << std::endl;
             ss << "end" << std::endl;
             lua.script(ss.str());
         });
     }
 
-    for(auto& thread : threads) {
+    for (auto& thread : threads) {
         thread.join();
     }
 
     sol::state lua;
     bootstrapState(lua);
     lua["st"] = st;
-    for(size_t i = 0; i < threadCount; i++) {
+    for (size_t i = 0; i < threadCount; i++) {
         EXPECT_TRUE(lua["st"][i] == 100'001) << (double)lua["st"][i] << std::endl;
     }
 }

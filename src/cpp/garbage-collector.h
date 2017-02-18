@@ -18,7 +18,8 @@ static const GCObjectHandle GCNull = nullptr;
 // Child has to care about storing data and concurrent access.
 class GCObject {
 public:
-    GCObject() noexcept : refs_(new std::set<GCObjectHandle>) {}
+    GCObject() noexcept
+            : refs_(new std::set<GCObjectHandle>) {}
     GCObject(const GCObject& init) = default;
     GCObject(GCObject&& init) = default;
     virtual ~GCObject() = default;
@@ -31,11 +32,7 @@ protected:
     std::shared_ptr<std::set<GCObjectHandle>> refs_;
 };
 
-enum class GCState {
-    Idle,
-    Running,
-    Stopped
-};
+enum class GCState { Idle, Running, Stopped };
 
 class GarbageCollector {
 public:
@@ -43,9 +40,10 @@ public:
     ~GarbageCollector() = default;
 
     // This method is used to create all managed objects.
-    template<typename ObjectType,typename... Args>
+    template <typename ObjectType, typename... Args>
     ObjectType create(Args&&... args) {
-        if (lastCleanup_.fetch_add(1) == step_) cleanup();
+        if (lastCleanup_.fetch_add(1) == step_)
+            cleanup();
         auto object = std::make_shared<ObjectType>(std::forward<Args>(args)...);
 
         std::lock_guard<std::mutex> g(lock_);
@@ -74,7 +72,6 @@ private:
     GarbageCollector(GarbageCollector&&) = delete;
     GarbageCollector(const GarbageCollector&) = delete;
 };
-
 
 GarbageCollector& getGC();
 

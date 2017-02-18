@@ -29,8 +29,10 @@ TEST(gc, collect) {
     ASSERT_EQ(getGC().size(), (size_t)0);
 
     {
-        GCObject o1 = getGC().create<GCObject>();;
-        GCObject o2 = getGC().create<GCObject>();;
+        GCObject o1 = getGC().create<GCObject>();
+        ;
+        GCObject o2 = getGC().create<GCObject>();
+        ;
     }
     EXPECT_EQ(getGC().size(), (size_t)2);
     getGC().cleanup();
@@ -42,7 +44,6 @@ namespace {
 struct Dummy : public GCObject {
     void add(GCObjectHandle ref) { refs_->insert(ref); }
 };
-
 }
 
 TEST(gc, withRefs) {
@@ -52,14 +53,14 @@ TEST(gc, withRefs) {
 
         {
             Dummy orphan = getGC().create<Dummy>();
-            for(size_t i = 0; i < 3; i++) {
+            for (size_t i = 0; i < 3; i++) {
                 Dummy child = getGC().create<Dummy>();
                 root.add(child.handle());
             }
         }
-        EXPECT_EQ(getGC().size(), (size_t) 5);
+        EXPECT_EQ(getGC().size(), (size_t)5);
         getGC().cleanup();
-        EXPECT_EQ(getGC().size(), (size_t) 4);
+        EXPECT_EQ(getGC().size(), (size_t)4);
     }
     getGC().cleanup();
     EXPECT_EQ(getGC().size(), (size_t)0);
@@ -69,13 +70,14 @@ TEST(gc, autoCleanup) {
     std::vector<std::thread> threads;
     size_t objectsPerThread = 1000;
 
-    for(size_t i = 0; i < 5; i++)
-        threads.emplace_back([=]{
-           for(size_t i = 0; i < objectsPerThread; i++)
-               getGC().create<GCObject>();
+    for (size_t i = 0; i < 5; i++)
+        threads.emplace_back([=] {
+            for (size_t i = 0; i < objectsPerThread; i++)
+                getGC().create<GCObject>();
         });
 
-    for(auto& thread : threads) thread.join();
+    for (auto& thread : threads)
+        thread.join();
 
     EXPECT_LT(getGC().size(), getGC().step());
 }
@@ -92,7 +94,7 @@ end
 )");
     EXPECT_EQ(getGC().size(), (size_t)1001);
 
-lua.script(R"(
+    lua.script(R"(
 for i=1,1000 do
 st[i] = nil
 end

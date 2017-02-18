@@ -13,7 +13,7 @@ public:
 
     bool compare(const BaseHolder* other) const {
         if (typeid(*this) == typeid(*other))
-            return  rawCompare(other);
+            return rawCompare(other);
         return typeid(*this).before(typeid(*other));
     }
 
@@ -30,17 +30,15 @@ private:
 typedef std::unique_ptr<BaseHolder> StoredObject;
 
 struct StoredObjectLess {
-    bool operator()(const StoredObject& lhs, const StoredObject& rhs) const {
-        return lhs->compare(rhs.get());
-    }
+    bool operator()(const StoredObject& lhs, const StoredObject& rhs) const { return lhs->compare(rhs.get()); }
 };
 
 StoredObject createStoredObject(bool);
 StoredObject createStoredObject(double);
 StoredObject createStoredObject(const std::string&);
 StoredObject createStoredObject(GCObjectHandle);
-StoredObject createStoredObject(const sol::object &);
-StoredObject createStoredObject(const sol::stack_object &);
+StoredObject createStoredObject(const sol::object&);
+StoredObject createStoredObject(const sol::stack_object&);
 
 sol::optional<bool> storedObjectToBool(const StoredObject&);
 sol::optional<double> storedObjectToDouble(const StoredObject&);

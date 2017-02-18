@@ -23,15 +23,14 @@ public:
         Failed,
     };
 
-    enum class ThreadCommand
-    {
+    enum class ThreadCommand {
         Nothing = 1,
         Cancel,
         Pause,
         Resume,
     };
 
-    struct ThreadData{
+    struct ThreadData {
         sol::state luaState;
         std::atomic<ThreadStatus> status;
         std::atomic<ThreadCommand> command;
@@ -39,7 +38,7 @@ public:
     };
 
     LuaThread(std::shared_ptr<ThreadData> threadData, const std::string& function, const sol::variadic_args& args);
-    static sol::object getUserType(sol::state_view &lua);
+    static sol::object getUserType(sol::state_view& lua);
     static void luaHook(lua_State*, lua_Debug*);
 
     /* Public lua methods*/
@@ -54,7 +53,8 @@ private:
     LuaThread& operator=(const LuaThread&) = delete;
 
     std::string threadStatusToString(ThreadStatus stat) const;
-    static void work(std::shared_ptr<ThreadData> threadData, const std::string strFunction, std::vector<sol::object>&& arguments);
+    static void work(std::shared_ptr<ThreadData> threadData, const std::string strFunction,
+                     std::vector<sol::object>&& arguments);
 
     std::shared_ptr<ThreadData> pThreadData_;
     std::shared_ptr<std::thread> pThread_;
@@ -65,7 +65,7 @@ private:
 class ThreadFactory {
 public:
     ThreadFactory(const sol::function& func);
-    static sol::object getUserType(sol::state_view &lua);
+    static sol::object getUserType(sol::state_view& lua);
 
     /* Public lua methods*/
     std::unique_ptr<LuaThread> runThread(const sol::variadic_args& args);

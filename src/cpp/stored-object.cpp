@@ -13,7 +13,7 @@ namespace effil {
 
 namespace {
 
-template<typename StoredType>
+template <typename StoredType>
 class PrimitiveHolder : public BaseHolder {
 public:
     PrimitiveHolder(const sol::stack_object& luaObject) noexcept
@@ -29,9 +29,7 @@ public:
         return data_ < static_cast<const PrimitiveHolder<StoredType>*>(other)->data_;
     }
 
-    sol::object unpack(sol::this_state state) const final {
-        return sol::make_object(state, data_);
-    }
+    sol::object unpack(sol::this_state state) const final { return sol::make_object(state, data_); }
 
     StoredType getData() { return data_; }
 
@@ -41,11 +39,12 @@ private:
 
 class FunctionHolder : public BaseHolder {
 public:
-    template<typename SolObject>
+    template <typename SolObject>
     FunctionHolder(SolObject luaObject) noexcept {
         sol::state_view lua(luaObject.lua_state());
         sol::function dumper = lua["string"]["dump"];
-        if (!dumper.valid()) throw Exception() << "Invalid string.dump()";
+        if (!dumper.valid())
+            throw Exception() << "Invalid string.dump()";
         function_ = dumper(luaObject);
     }
 
@@ -69,7 +68,7 @@ private:
 
 class TableHolder : public BaseHolder {
 public:
-    template<typename SolType>
+    template <typename SolType>
     TableHolder(const SolType& luaObject) {
         assert(luaObject.template is<SharedTable>());
         handle_ = luaObject.template as<SharedTable>().handle();
@@ -79,7 +78,7 @@ public:
     TableHolder(GCObjectHandle handle)
             : handle_(handle) {}
 
-    bool rawCompare(const BaseHolder *other) const final {
+    bool rawCompare(const BaseHolder* other) const final {
         return handle_ < static_cast<const TableHolder*>(other)->handle_;
     }
 
@@ -87,7 +86,7 @@ public:
         return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
     }
 
-    GCObjectHandle gcHandle() const override { return  handle_; }
+    GCObjectHandle gcHandle() const override { return handle_; }
 
 private:
     GCObjectHandle handle_;
@@ -103,7 +102,7 @@ void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visit
 StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) {
     if (luaObject.get_type() == sol::type::table) {
         sol::table luaTable = luaObject;
-        auto comparator = [&luaTable](const std::pair<sol::table, GCObjectHandle>& element){
+        auto comparator = [&luaTable](const std::pair<sol::table, GCObjectHandle>& element) {
             return element.first == luaTable;
         };
         auto st = std::find_if(visited.begin(), visited.end(), comparator);
@@ -122,14 +121,14 @@ StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) 
 }
 
 void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) {
-    for(auto& row : luaTable) {
+    for (auto& row : luaTable) {
         target->set(makeStoredObject(row.first, visited), makeStoredObject(row.second, visited));
     }
 }
 
-template<typename SolObject>
+template <typename SolObject>
 StoredObject fromSolObject(const SolObject& luaObject) {
-    switch(luaObject.get_type()) {
+    switch (luaObject.get_type()) {
         case sol::type::nil:
             break;
         case sol::type::boolean:
@@ -142,8 +141,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<TableHolder>(luaObject);
         case sol::type::function:
             return std::make_unique<FunctionHolder>(luaObject);
-        case sol::type::table:
-        {
+        case sol::type::table: {
             sol::table luaTable = luaObject;
             // Tables pool is used to store tables.
             // Right now not defiantly clear how ownership between states works.
@@ -164,31 +162,21 @@ StoredObject fromSolObject(const SolObject& luaObject) {
 
 } // namespace
 
-StoredObject createStoredObject(bool value) {
-    return std::make_unique<PrimitiveHolder<bool>>(value);
-}
+StoredObject createStoredObject(bool value) { return std::make_unique<PrimitiveHolder<bool>>(value); }
 
-StoredObject createStoredObject(double value) {
-    return std::make_unique<PrimitiveHolder<double>>(value);
-}
+StoredObject createStoredObject(double value) { return std::make_unique<PrimitiveHolder<double>>(value); }
 
 StoredObject createStoredObject(const std::string& value) {
     return std::make_unique<PrimitiveHolder<std::string>>(value);
 }
 
-StoredObject createStoredObject(const sol::object &object) {
-    return fromSolObject(object);
-}
+StoredObject createStoredObject(const sol::object& object) { return fromSolObject(object); }
 
-StoredObject createStoredObject(const sol::stack_object &object) {
-    return fromSolObject(object);
-}
+StoredObject createStoredObject(const sol::stack_object& object) { return fromSolObject(object); }
 
-StoredObject createStoredObject(GCObjectHandle handle) {
-    return std::make_unique<TableHolder>(handle);
-}
+StoredObject createStoredObject(GCObjectHandle handle) { return std::make_unique<TableHolder>(handle); }
 
-template<typename DataType>
+template <typename DataType>
 sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
     auto ptr = dynamic_cast<PrimitiveHolder<DataType>*>(sobj.get());
     if (ptr)
@@ -196,13 +184,9 @@ sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
     return sol::optional<DataType>();
 }
 
-sol::optional<bool> storedObjectToBool(const StoredObject& sobj) {
-    return getPrimitiveHolderData<bool>(sobj);
-}
+sol::optional<bool> storedObjectToBool(const StoredObject& sobj) { return getPrimitiveHolderData<bool>(sobj); }
 
-sol::optional<double> storedObjectToDouble(const StoredObject& sobj) {
-    return getPrimitiveHolderData<double>(sobj);
-}
+sol::optional<double> storedObjectToDouble(const StoredObject& sobj) { return getPrimitiveHolderData<double>(sobj); }
 
 sol::optional<std::string> storedObjectToString(const StoredObject& sobj) {
     return getPrimitiveHolderData<std::string>(sobj);

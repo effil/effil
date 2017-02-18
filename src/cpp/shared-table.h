@@ -22,7 +22,7 @@ public:
     SharedTable(const SharedTable& init);
     virtual ~SharedTable() = default;
 
-    static sol::object getUserType(sol::state_view &lua);
+    static sol::object getUserType(sol::state_view& lua);
     void set(StoredObject&&, StoredObject&&);
     sol::object get(const StoredObject& key, const sol::this_state& state) const;
     PairsIterator getNext(const sol::object& key, sol::this_state lua);
@@ -36,7 +36,6 @@ public:
     PairsIterator ipairs(sol::this_state) const;
 
 private:
-
     struct SharedData {
         SpinMutex lock;
         DataEntries entries;
@@ -46,4 +45,3 @@ private:
 };
 
 } // effil
-
