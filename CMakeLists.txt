@@ -23,7 +23,7 @@ target_link_libraries(effil -lpthread ${LUA_LIBRARY})
 
 set(GENERAL "-std=c++14 -pthread")
 set(ENABLE_WARNINGS "-Wall -Wextra -pedantic -Werror")
-set(BUILD_FLAVOR "-O3 -UNDEBUG")
+set(BUILD_FLAVOR "-O3 -DNDEBUG")
 set_target_properties(effil PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
 
 #----------

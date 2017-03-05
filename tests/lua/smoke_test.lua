@@ -7,7 +7,7 @@ end
 
 function TestSmoke:testSharedTableTypes()
     local effil = require('libeffil')
-    local share = effil.share()
+    local share = effil.table()
 
     share["number"] = 100500
     share["string"] = "string value"
@@ -51,7 +51,7 @@ end
 
 function TestSmoke:testThreadPauseAndResume()
     local effil = require('libeffil')
-    local data = effil.share()
+    local data = effil.table()
     data.value = 0
     local thread_runner = effil.thread(
         function(data)
@@ -79,7 +79,7 @@ end
 function TestSmoke:testThreadPauseAndStop()
     local effil = require('libeffil')
     log "Create thread"
-    local data = effil.share()
+    local data = effil.table()
     data.value = 0
     local thread_runner = effil.thread(
         function(data)
@@ -106,7 +106,7 @@ end
 function TestSmoke:testThreadPauseAndStop()
     local effil = require('libeffil')
     log "Create thread"
-    local data = effil.share()
+    local data = effil.table()
     data.value = 0
     local thread_runner = effil.thread(
         function(data)
@@ -132,11 +132,11 @@ end
 
 function TestSmoke:testRecursiveTables()
     local effil = require('libeffil')
-    local share = effil.share()
+    local share = effil.table()
 
     local magic_number = 42
-    share["subtable1"] = effil.share()
-    share["subtable1"]["subtable1"] = effil.share()
+    share["subtable1"] = effil.table()
+    share["subtable1"]["subtable1"] = effil.table()
     share["subtable1"]["subtable2"] = share["subtable1"]["subtable1"]
     share["subtable2"] = share["subtable1"]["subtable1"]
     share["magic_number"] = magic_number
@@ -159,7 +159,7 @@ end
 
 function TestSmoke:testThisThreadFunctions()
     local effil = require('libeffil')
-    local share = effil.share()
+    local share = effil.table()
 
     local thread_factory = effil.thread(
         function(share)
@@ -188,7 +188,7 @@ end
 
 function TestSmoke:testCheckThreadReturns()
     local effil = require('libeffil')
-    local share = effil.share()
+    local share = effil.table()
     share.value = "some value"
 
     local thread_factory = effil.thread(
@@ -220,7 +220,7 @@ end
 
 function TestSmoke:testCheckPairsInterating()
     local effil = require('libeffil')
-    local share = effil.share()
+    local share = effil.table()
     local data = { 0, 0, 0, ["key1"] = 0, ["key2"] = 0, ["key3"] = 0 }
 
     for k, _ in pairs(data) do
@@ -252,7 +252,7 @@ end
 
 function TestSmoke:testCheckLengthOperator()
     local effil = require('libeffil')
-    local share = effil.share()
+    local share = effil.table()
     share[1] = 10
     share[2] = 20
     share[3] = 30
