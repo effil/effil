@@ -1,67 +1,65 @@
 #include "threading.h"
-#include "stored-object.h"
 
+#include "shared-table.h"
+#include "stored-object.h"
 #include "utils.h"
+
+#include <sstream>
 
 namespace effil {
 
-class LuaHookStopException : public std::exception {};
+namespace {
 
-std::string threadId() {
-    std::stringstream ss;
-    ss << std::this_thread::get_id();
-    return ss.str();
-}
+// Doesn't inherit std::exception
+// to prevent from catching this exception third party lua C++ libs
+class LuaHookStopException {};
 
-void yield() { std::this_thread::yield(); }
+enum class Status {
+    Running,
+    Paused,
+    Canceled,
+    Completed,
+    Failed,
+    Detached,
+};
 
-void sleep(int64_t time, sol::optional<std::string> period) {
-    std::string metric = period ? period.value() : "s";
-    if (metric == "ms")
-        std::this_thread::sleep_for(std::chrono::milliseconds(time));
-    else if (metric == "s")
-        std::this_thread::sleep_for(std::chrono::seconds(time));
-    else if (metric == "m")
-        std::this_thread::sleep_for(std::chrono::minutes(time));
-    else
-        throw sol::error("invalid time identificator: " + metric);
-}
+enum class ThreadCommand {
+    Nothing,
+    Cancel,
+    Pause,
+    Resume,
+};
 
-thread_local LuaThread::ThreadData* LuaThread::pThreadLocalData = NULL;
+} // namespace
 
-// class LuaThread
+struct ThreadHandle {
+    sol::state luaState;
+    std::atomic<Status> status;
+    std::atomic<ThreadCommand> command;
+    std::vector<StoredObject> results;
 
-LuaThread::LuaThread(std::shared_ptr<ThreadData> threadData, const std::string& function,
-                     const sol::variadic_args& args) {
-    pThreadData_ = threadData;
-    assert(pThreadData_);
-    pThreadData_->command = ThreadCommand::Nothing;
-    pThreadData_->status = ThreadStatus::Running;
-
-    std::vector<sol::object> arguments;
-    for (const auto& iter : args) {
-        StoredObject store = createStoredObject(iter.get<sol::object>());
-        arguments.push_back(store->unpack(sol::this_state{pThreadData_->luaState}));
+    bool isThreadAlive() const {
+        return status == Status::Running || status == Status::Paused;
     }
+};
 
-    pThread_.reset(new std::thread(&LuaThread::work, pThreadData_, function, std::move(arguments)));
-    assert(pThread_);
-    pThread_->detach();
-}
+namespace  {
 
-void LuaThread::luaHook(lua_State*, lua_Debug*) {
-    if (pThreadLocalData) {
-        switch (pThreadLocalData->command) {
+static thread_local ThreadHandle* thisThreadHandle = nullptr;
+
+void luaHook(lua_State*, lua_Debug*) {
+    if (thisThreadHandle) {
+        switch (thisThreadHandle->command) {
             case ThreadCommand::Pause: {
-                pThreadLocalData->status = ThreadStatus::Paused;
-                ThreadCommand cmd = pThreadLocalData->command;
+                thisThreadHandle->status = Status::Paused;
+                ThreadCommand cmd = thisThreadHandle->command;
                 while (cmd == ThreadCommand::Pause) {
                     std::this_thread::yield();
-                    cmd = pThreadLocalData->command;
+                    cmd = thisThreadHandle->command;
                 }
                 assert(cmd != ThreadCommand::Nothing);
                 if (cmd == ThreadCommand::Resume) {
-                    pThreadLocalData->status = ThreadStatus::Running;
+                    thisThreadHandle->status = Status::Running;
                     break; // Just go out of the function
                 } else {   /* HOOK_STOP - do nothing and go to the next case */
                 }
@@ -75,158 +73,178 @@ void LuaThread::luaHook(lua_State*, lua_Debug*) {
     }
 }
 
-void LuaThread::work(std::shared_ptr<ThreadData> threadData, const std::string strFunction,
-                     std::vector<sol::object>&& arguments) {
+void runThread(std::shared_ptr<ThreadHandle> handle, const std::string &strFunction,
+               std::vector<sol::object> &&arguments) {
     try {
-        pThreadLocalData = threadData.get();
-        assert(threadData);
-        const sol::object& stringLoader = threadData->luaState["loadstring"];
+        thisThreadHandle = handle.get();
+        const sol::object &stringLoader = handle->luaState["loadstring"];
         REQUIRE(stringLoader.valid() && stringLoader.get_type() == sol::type::function)
-            << "Invalid loadstring function";
-        sol::function userFuncObj = static_cast<const sol::function&>(stringLoader)(strFunction);
+                    << "Invalid loadstring function";
+        sol::function userFuncObj = static_cast<const sol::function &>(stringLoader)(strFunction);
         sol::function_result results = userFuncObj(sol::as_args(arguments));
-        (void)results; // TODO: try to avoid use of useless sol::function_result here
-        sol::variadic_args args(threadData->luaState, -lua_gettop(threadData->luaState));
-        for (const auto& iter : args) {
+        (void) results; // TODO: try to avoid use of useless sol::function_result here
+        sol::variadic_args args(handle->luaState, -lua_gettop(handle->luaState));
+        for (const auto &iter : args) {
             StoredObject store = createStoredObject(iter.get<sol::object>());
-            threadData->results.emplace_back(std::move(store));
+            handle->results.emplace_back(std::move(store));
         }
-        threadData->status = ThreadStatus::Completed;
-    } catch (const LuaHookStopException&) {
-        threadData->status = ThreadStatus::Canceled;
-    } catch (const sol::error& err) {
-        threadData->status = ThreadStatus::Failed;
-        sol::stack::push(threadData->luaState, err.what());
-        StoredObject store = createStoredObject(sol::stack::pop<sol::object>(threadData->luaState));
-        threadData->results.emplace_back(std::move(store));
+        handle->status = Status::Completed;
+    } catch (const LuaHookStopException &) {
+        handle->status = Status::Canceled;
+    } catch (const sol::error &err) {
+        handle->status = Status::Failed;
+        sol::stack::push(handle->luaState, err.what());
+        StoredObject store = createStoredObject(sol::stack::pop<sol::object>(handle->luaState));
+        handle->results.emplace_back(std::move(store));
     }
 }
 
-void LuaThread::cancel() { pThreadData_->command = ThreadCommand::Cancel; }
+} // namespace
 
-void LuaThread::pause() { pThreadData_->command = ThreadCommand::Pause; }
 
-void LuaThread::resume() { pThreadData_->command = ThreadCommand::Resume; }
+std::string threadId() {
+    return (std::stringstream() << std::this_thread::get_id()).str();
+}
 
-std::tuple<sol::object, sol::table> LuaThread::wait(sol::this_state state) const {
+void yield() { std::this_thread::yield(); }
 
-    ThreadStatus stat = pThreadData_->status;
-    while (stat == ThreadStatus::Running) {
-        std::this_thread::yield();
-        stat = pThreadData_->status;
+void sleep(int64_t time, sol::optional<std::string> period) {
+    std::string metric = period ? period.value() : "s";
+    if (metric == "ms")
+        std::this_thread::sleep_for(std::chrono::milliseconds(time));
+    else if (metric == "s")
+        std::this_thread::sleep_for(std::chrono::seconds(time));
+    else if (metric == "m")
+        std::this_thread::sleep_for(std::chrono::minutes(time));
+    else
+        throw sol::error("invalid time identification: " + metric);
+}
+
+Thread::Thread(const std::string& path,
+       const std::string& cpath,
+       bool stepwise,
+       unsigned int step,
+       const sol::function& function,
+       const sol::variadic_args& variadicArgs)
+        : handle_(std::make_shared<ThreadHandle>()) {
+    openAllLibs(handle_->luaState);
+    handle_->command = ThreadCommand::Nothing;
+    handle_->status = Status::Running;
+    handle_->luaState["package"]["path"] = path;
+    handle_->luaState["package"]["cpath"] = cpath;
+    handle_->luaState.script("require 'effil'");
+
+    if (stepwise)
+        lua_sethook(handle_->luaState, luaHook, LUA_MASKCOUNT, step);
+
+    sol::state_view lua(function.lua_state());
+    const sol::object& dumper = lua["string"]["dump"];
+    std::string strFunction = static_cast<const sol::function&>(dumper)(function);
+
+    std::vector<sol::object> arguments;
+    for (const auto& arg : variadicArgs) {
+        StoredObject store = createStoredObject(arg.get<sol::object>());
+        arguments.push_back(store->unpack(sol::this_state{handle_->luaState}));
     }
+    nativeThread_.reset(new std::thread(&runThread, handle_, strFunction, std::move(arguments)));
+    DEBUG << "Started thread " << nativeThread_->get_id() << std::endl;
+}
+
+Thread::~Thread() {
+    // FIXME: may be assert? or join?
+    REQUIRE(!nativeThread_->joinable())
+         << "Delete not detached thread " << nativeThread_->get_id();
+}
+
+sol::object Thread::getUserType(sol::state_view& lua) {
+    static sol::usertype<Thread> type(
+            "new", sol::no_constructor,
+            "get", &Thread::get,
+            "wait", &Thread::wait,
+            "join", &Thread::join,
+            "detach", &Thread::detach,
+            "joinable", &Thread::joinable,
+            "cancel", &Thread::cancel,
+            "pause", &Thread::pause,
+            "resume", &Thread::resume,
+            "status", &Thread::status);
+
+    sol::stack::push(lua, type);
+    return sol::stack::pop<sol::object>(lua);
+}
+
+std::tuple<sol::object, sol::table> Thread::get(sol::this_state state) {
+    REQUIRE(nativeThread_->joinable()) << "Thread " << nativeThread_->get_id() << " not joinable";
+    nativeThread_->join();
+
     sol::table returns = sol::state_view(state).create_table();
-    if (stat == ThreadStatus::Completed) {
-        for (const StoredObject& obj : pThreadData_->results) {
+
+    if (handle_->status == Status::Completed)
+        for (const StoredObject& obj : handle_->results)
             returns.add(obj->unpack(state));
-        }
-    }
-    return std::make_tuple(sol::make_object(state, threadStatusToString(stat)), std::move(returns));
+
+    return std::make_tuple(sol::make_object(state, status()), std::move(returns));
 }
 
-std::string LuaThread::threadStatusToString(ThreadStatus stat) const {
-    switch (stat) {
-        case ThreadStatus::Running:
+std::string Thread::wait() {
+    DEBUG << "Wait " << nativeThread_->get_id() << std::endl;
+    nativeThread_->join();
+    return status();
+}
+
+void Thread::detach()
+{
+    REQUIRE(handle_->status == Status::Running);
+    handle_->status = Status::Detached;
+    nativeThread_->detach();
+}
+
+bool Thread::joinable() { return nativeThread_->joinable(); };
+
+void Thread::join() {
+    DEBUG << "Join " << nativeThread_->get_id() << std::endl;
+    nativeThread_->join();
+}
+
+void Thread::cancel() {
+    REQUIRE(handle_->isThreadAlive())
+        << "Thread " <<  nativeThread_->get_id() << " already canceled";
+
+    DEBUG << "Cancel " << nativeThread_->get_id() << std::endl;
+    handle_->command = ThreadCommand::Cancel;
+    nativeThread_->join();
+}
+
+void Thread::pause() {
+    REQUIRE(handle_->isThreadAlive())
+                << "Unable not pause thread " << nativeThread_->get_id();
+    handle_->command = ThreadCommand::Pause;
+}
+
+void Thread::resume() {
+    REQUIRE(handle_->isThreadAlive())
+        << "Unable not resume thread " << nativeThread_->get_id();
+    handle_->command = ThreadCommand::Resume;
+}
+
+std::string Thread::status() const {
+    switch (handle_->status) {
+        case Status::Running:
             return "running";
-        case ThreadStatus::Paused:
+        case Status::Paused:
             return "paused";
-        case ThreadStatus::Canceled:
+        case Status::Canceled:
             return "canceled";
-        case ThreadStatus::Completed:
+        case Status::Completed:
             return "completed";
-        case ThreadStatus::Failed:
+        case Status::Failed:
             return "failed";
+        case Status::Detached:
+            return "detached";
     }
     assert(false);
     return "unknown";
 }
 
-std::string LuaThread::status() const { return threadStatusToString(pThreadData_->status); }
-
-sol::object LuaThread::getUserType(sol::state_view& lua) {
-    static sol::usertype<LuaThread> type("new", sol::no_constructor,   //
-                                         "cancel", &LuaThread::cancel, //
-                                         "pause", &LuaThread::pause,   //
-                                         "resume", &LuaThread::resume, //
-                                         "status", &LuaThread::status, //
-                                         "wait", &LuaThread::wait);
-    sol::stack::push(lua, type);
-    return sol::stack::pop<sol::object>(lua);
-}
-
-// class ThreadFactory
-
-ThreadFactory::ThreadFactory(const sol::function& func)
-        : stepwise_(false)
-        , step_(100U) {
-    sol::state_view lua(func.lua_state());
-    const sol::object& dumper = lua["string"]["dump"];
-    REQUIRE(dumper.valid() && dumper.get_type() == sol::type::function) << "Unable to get string.dump()";
-    strFunction_ = static_cast<const sol::function&>(dumper)(func);
-
-    // Inherit all pathes from parent state by default
-    packagePath_ = lua["package"]["path"].get<std::string>();
-    packageCPath_ = lua["package"]["cpath"].get<std::string>();
-}
-
-std::unique_ptr<LuaThread> ThreadFactory::runThread(const sol::variadic_args& args) {
-    std::shared_ptr<LuaThread::ThreadData> threadData = std::make_shared<LuaThread::ThreadData>();
-    assert(threadData.get());
-    threadData->luaState.open_libraries(sol::lib::base, sol::lib::string, sol::lib::package, sol::lib::io,
-                                        sol::lib::os);
-
-    if (stepwise_)
-        lua_sethook(threadData->luaState, LuaThread::luaHook, LUA_MASKCOUNT, step_);
-
-    threadData->luaState["package"]["path"] = packagePath_;
-    threadData->luaState["package"]["cpath"] = packageCPath_;
-
-    // Inherit all pathes from parent state
-    effil::LuaThread::getUserType(threadData->luaState);
-    effil::ThreadFactory::getUserType(threadData->luaState);
-    effil::SharedTable::getUserType(threadData->luaState);
-
-    return std::make_unique<LuaThread>(threadData, strFunction_, args);
-}
-
-bool ThreadFactory::stepwise(const sol::optional<bool>& value) {
-    bool ret = stepwise_;
-    if (value)
-        stepwise_ = value.value();
-    return ret;
-}
-
-unsigned int ThreadFactory::step(const sol::optional<unsigned int>& value) {
-    bool ret = step_;
-    if (value)
-        step_ = value.value();
-    return ret;
-}
-
-std::string ThreadFactory::packagePath(const sol::optional<std::string>& value) {
-    std::string& ret = packagePath_;
-    if (value)
-        packagePath_ = value.value();
-    return ret;
-}
-
-std::string ThreadFactory::packageCPath(const sol::optional<std::string>& value) {
-    std::string& ret = packageCPath_;
-    if (value)
-        packageCPath_ = value.value();
-    return ret;
-}
-
-sol::object ThreadFactory::getUserType(sol::state_view& lua) {
-    static sol::usertype<ThreadFactory> type("new", sol::no_constructor,                          //
-                                             sol::meta_function::call, &ThreadFactory::runThread, //
-                                             "stepwise", &ThreadFactory::stepwise,                //
-                                             "step", &ThreadFactory::step,                        //
-                                             "package_path", &ThreadFactory::packagePath,         //
-                                             "package_cpath", &ThreadFactory::packageCPath        //
-                                             );
-    sol::stack::push(lua, type);
-    return sol::stack::pop<sol::object>(lua);
-}
 
 } // effil

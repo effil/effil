@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include <sol.hpp>
 
@@ -26,16 +27,29 @@ private:
     std::string message_;
 };
 
+inline void openAllLibs(sol::state& lua) {
+    lua.open_libraries(sol::lib::base,
+        sol::lib::string,
+        sol::lib::package,
+        sol::lib::io,
+        sol::lib::os,
+        sol::lib::count,
+        sol::lib::bit32,
+        sol::lib::coroutine,
+        sol::lib::debug,
+        sol::lib::ffi,
+        sol::lib::jit,
+        sol::lib::math,
+        sol::lib::utf8,
+        sol::lib::table);
+}
+
 } // effil
 
-#define REQUIRE(cond)                                                                                                  \
-    if (!cond)                                                                                                         \
-    throw effil::Exception()
+#define REQUIRE(cond) if (!(cond)) throw effil::Exception()
 
 #ifdef NDEBUG
-#define DEBUG                                                                                                          \
-    if (false)                                                                                                         \
-    std::cout
+#define DEBUG if (false) std::cout
 #else
-#define DEBUG std::cout
+#define DEBUG std::cout << __FUNCTION__ << "::" << __LINE__ << " <" << std::this_thread::get_id() << ">: "
 #endif
