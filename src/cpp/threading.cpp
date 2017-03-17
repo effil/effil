@@ -103,7 +103,9 @@ void runThread(std::shared_ptr<ThreadHandle> handle, const std::string &strFunct
 
 
 std::string threadId() {
-    return (std::stringstream() << std::this_thread::get_id()).str();
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    return ss.str();
 }
 
 void yield() { std::this_thread::yield(); }
@@ -199,7 +201,7 @@ void Thread::detach()
     nativeThread_->detach();
 }
 
-bool Thread::joinable() { return nativeThread_->joinable(); };
+bool Thread::joinable() { return nativeThread_->joinable(); }
 
 void Thread::join() {
     DEBUG << "Join " << nativeThread_->get_id() << std::endl;
