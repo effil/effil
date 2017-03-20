@@ -8,8 +8,14 @@ using namespace effil;
 
 namespace {
 
-sol::object createThreadFactory(sol::this_state lua, const sol::function& func) {
-    return sol::make_object(lua, std::make_unique<ThreadFactory>(func));
+sol::object createThread(sol::this_state lua,
+                         const std::string& path,
+                         const std::string& cpath,
+                         bool stepwise,
+                         unsigned int step,
+                         const sol::function& function,
+                         const sol::variadic_args& args) {
+    return sol::make_object(lua, std::make_unique<Thread>(path, cpath, stepwise, step, function, args));
 }
 
 sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
@@ -18,15 +24,14 @@ sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getG
 
 extern "C" int luaopen_libeffil(lua_State* L) {
     sol::state_view lua(L);
-    effil::LuaThread::getUserType(lua);
+    Thread::getUserType(lua);
     SharedTable::getUserType(lua);
-    ThreadFactory::getUserType(lua);
-    sol::table public_api = lua.create_table_with("thread", createThreadFactory, //
-                                                  "thread_id", threadId,         //
-                                                  "sleep", sleep,                //
-                                                  "yield", yield,                //
-                                                  "table", createTable           //
+    sol::table publicApi = lua.create_table_with("thread", createThread,
+                                                  "thread_id", threadId,
+                                                  "sleep", sleep,
+                                                  "yield", yield,
+                                                  "table", createTable
                                                   );
-    sol::stack::push(lua, public_api);
+    sol::stack::push(lua, publicApi);
     return 1;
 }

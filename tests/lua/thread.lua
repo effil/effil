@@ -1,14 +1,21 @@
 TestThread = {tearDown = tearDown }
+local effil = require 'effil'
+
+function TestThread:testWait()
+    local thread = effil.thread(function() print 'Effil is not that tower' end)()
+    thread:wait()
+    test.assertEquals(thread:status(), "completed")
+end
 
 function TestThread:testThreadCancel()
-    local effil = require 'effil'
     local thread_runner = effil.thread(
         function()
             local startTime = os.time()
             while ( (os.time() - startTime) <= 10) do --[[ Just sleep ]] end
         end
     )
-    test.assertFalse(thread_runner:stepwise(true))
+
+    thread_runner.stepwise = true
     local thread = thread_runner()
     sleep(2) -- let thread starts working
     thread:cancel()
@@ -18,7 +25,6 @@ function TestThread:testThreadCancel()
 end
 
 function TestThread:testThreadPauseAndResume()
-    local effil = require 'effil'
     local data = effil.table()
     data.value = 0
     local thread_runner = effil.thread(
@@ -28,7 +34,7 @@ function TestThread:testThreadPauseAndResume()
             end
         end
     )
-    test.assertFalse(thread_runner:stepwise(true))
+    thread_runner.stepwise = true
 
     local thread = thread_runner(data)
     test.assertTrue(wait(2, function() return data.value > 100 end))
@@ -41,11 +47,9 @@ function TestThread:testThreadPauseAndResume()
     thread:resume()
     test.assertTrue(wait(5, function() return (data.value - savedValue) > 100 end))
     thread:cancel()
-    thread:wait()
 end
 
 function TestThread:testThreadPauseAndStop()
-    local effil = require 'effil'
     log "Create thread"
     local data = effil.table()
     data.value = 0
@@ -56,7 +60,7 @@ function TestThread:testThreadPauseAndStop()
             end
         end
     )
-    test.assertFalse(thread_runner:stepwise(true))
+    thread_runner.stepwise = true
 
     local thread = thread_runner(data)
     test.assertTrue(wait(2, function() return data.value > 100 end))
@@ -67,12 +71,10 @@ function TestThread:testThreadPauseAndStop()
     test.assertEquals(data.value, savedValue)
 
     thread:cancel()
-    test.assertTrue(wait(2, function() return thread:status() == "canceled" end))
-    thread:wait()
+    test.assertEquals(thread:status(),"canceled")
 end
 
 function TestThread:testThreadPauseAndStop()
-    local effil = require 'effil'
     log "Create thread"
     local data = effil.table()
     data.value = 0
@@ -83,7 +85,7 @@ function TestThread:testThreadPauseAndStop()
             end
         end
     )
-    test.assertFalse(thread_runner:stepwise(true))
+    thread_runner.stepwise = true
 
     local thread = thread_runner(data)
     test.assertTrue(wait(2, function() return data.value > 100 end))
@@ -94,8 +96,7 @@ function TestThread:testThreadPauseAndStop()
     test.assertEquals(data.value, savedValue)
 
     thread:cancel()
-    test.assertTrue(wait(2, function() return thread:status() == "canceled" end))
-    thread:wait()
+    test.assertEquals(thread:status(), "canceled")
 end
 
 function TestThread:testCheckThreadReturns()
@@ -109,7 +110,7 @@ function TestThread:testCheckThreadReturns()
         end
     )
     local thread = thread_factory(share)
-    local status, returns = thread:wait()
+    local status, returns = thread:get()
 
     log "Check values"
     test.assertEquals(status, "completed")
@@ -130,11 +131,9 @@ function TestThread:testCheckThreadReturns()
     test.assertEquals(returns[5](11, 89), 100)
 end
 
-
 TestThreadWithTable  = {tearDown = tearDown }
 
 function TestThreadWithTable:testSharedTableTypes()
-    local effil = require 'effil'
     local share = effil.table()
 
     share["number"] = 100500
@@ -214,4 +213,11 @@ function TestThreadWithTable:testThisThreadFunctions()
     check_time(4, 4, 's')
     check_time(4, 4000, 'ms')
     check_time(60, 1, 'm')
+end
+
+TestAcync = { tearDown = tearDown }
+
+function TestAcync:testAsync()
+    local canocical_url = effil.async(function (url)return url .. "." end, "examle.com"):get()
+    test.assertEquals(canocical_url, "examle.com.")
 end
