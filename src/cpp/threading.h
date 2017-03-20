@@ -26,8 +26,6 @@ public:
     std::tuple<sol::object, sol::table> get(sol::this_state state);
     std::string wait();
     void detach();
-    bool joinable();
-    void join();
 
     void cancel();
     void pause();

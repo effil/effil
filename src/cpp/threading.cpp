@@ -163,9 +163,7 @@ sol::object Thread::getUserType(sol::state_view& lua) {
             "new", sol::no_constructor,
             "get", &Thread::get,
             "wait", &Thread::wait,
-            "join", &Thread::join,
             "detach", &Thread::detach,
-            "joinable", &Thread::joinable,
             "cancel", &Thread::cancel,
             "pause", &Thread::pause,
             "resume", &Thread::resume,
@@ -201,13 +199,6 @@ void Thread::detach()
     nativeThread_->detach();
 }
 
-bool Thread::joinable() { return nativeThread_->joinable(); }
-
-void Thread::join() {
-    DEBUG << "Join " << nativeThread_->get_id() << std::endl;
-    nativeThread_->join();
-}
-
 void Thread::cancel() {
     REQUIRE(handle_->isThreadAlive())
         << "Thread " <<  nativeThread_->get_id() << " already canceled";
@@ -215,6 +206,9 @@ void Thread::cancel() {
     DEBUG << "Cancel " << nativeThread_->get_id() << std::endl;
     handle_->command = ThreadCommand::Cancel;
     nativeThread_->join();
+    // Thread can be faild or completed
+    // but we cancel it
+    handle_->command = ThreadCommand::Cancel;
 }
 
 void Thread::pause() {

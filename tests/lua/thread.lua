@@ -1,9 +1,9 @@
 TestThread = {tearDown = tearDown }
 local effil = require 'effil'
 
-function TestThread:testJoincansel()
+function TestThread:testWait()
     local thread = effil.thread(function() print 'Effil is not that tower' end)()
-    thread:join()
+    thread:wait()
     test.assertEquals(thread:status(), "completed")
 end
 
