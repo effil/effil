@@ -21,10 +21,15 @@ endif()
 add_library(effil SHARED ${SOURCES})
 target_link_libraries(effil -lpthread ${LUA_LIBRARY})
 
-set(GENERAL "-std=c++14 -pthread")
+#----------
+# COMPILER FLAGS ---
+#----------
+set(GENERAL "-std=c++14")
 set(ENABLE_WARNINGS "-Wall -Wextra -pedantic -Werror")
-set(BUILD_FLAVOR "-O3 -DNDEBUG")
-set_target_properties(effil PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL} ${ENABLE_WARNINGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror -O0 -g -UNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g0 -DNDEBUG")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 
 #----------
 # TESTS ---
@@ -37,8 +42,6 @@ set(GTEST_DIR libs/gtest/googletest)
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})
 add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
 target_link_libraries(tests effil)
-
-set_target_properties(tests PROPERTIES COMPILE_FLAGS "${ENABLE_WARNINGS} ${GENERAL} ${BUILD_FLAVOR}")
 
 #----------
 # INSTALL -
