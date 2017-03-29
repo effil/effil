@@ -254,7 +254,7 @@ std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
                                                  const sol::optional<std::string>& period) {
     waitFor(duration, period);
     return status(lua);
-};
+}
 
 sol::object Thread::get(const sol::this_state& lua,
                        const sol::optional<int>& duration,
