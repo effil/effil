@@ -2,7 +2,7 @@
 
 #include "notifier.h"
 
-#include <future>
+#include <thread>
 #include <atomic>
 
 using namespace effil;
@@ -10,24 +10,24 @@ using namespace effil;
 TEST(notifier, wait) {
     Notifier n;
     bool done = false;
-    auto f = std::async([&]{
+    auto t = std::thread([&]{
         done = true;
         n.notify();
     });
 
     n.wait();
     EXPECT_TRUE(done);
-    f.wait();
+    t.join();
 }
 
 TEST(notifier, waitMany) {
     const size_t nfutures = 32;
-    std::vector<std::future<void>> vf;
+    std::vector<std::thread> vt;
     std::atomic<size_t> counter(0);
     Notifier n;
 
     for(size_t i = 0; i < nfutures; i++)
-        vf.emplace_back(std::async([&]{
+        vt.emplace_back(std::thread([&]{
             n.wait();
             counter++;
         }));
@@ -35,20 +35,20 @@ TEST(notifier, waitMany) {
     EXPECT_EQ(counter.load(), (size_t)0);
 
     n.notify();
-    for(auto& f : vf) f.wait();
+    for(auto& t : vt) t.join();
     EXPECT_EQ(counter.load(), nfutures);
 }
 
 TEST(notifier, waitFor) {
     Notifier n;
-    auto f = std::async([&] {
+    auto t = std::thread([&] {
         std::this_thread::sleep_for(std::chrono::seconds(2));
         n.notify();
     });
 
     EXPECT_FALSE(n.waitFor(std::chrono::seconds(1)));
     EXPECT_TRUE(n.waitFor(std::chrono::seconds(2)));
-    f.wait();
+    t.join();
 }
 
 TEST(notifier, reset) {
@@ -57,7 +57,7 @@ TEST(notifier, reset) {
     bool flag1 = false;
     bool flag2 = false;
 
-    auto f = std::async([&] {
+    auto t = std::thread([&] {
         n1.notify();
         n2.wait();
         n2.reset();
@@ -81,5 +81,5 @@ TEST(notifier, reset) {
     flag2 = true;
     n2.notify();
 
-    f.wait();
+    t.join();
 }
