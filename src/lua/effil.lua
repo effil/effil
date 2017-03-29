@@ -4,12 +4,40 @@ local function detect_native_lib_ext()
     if string.find(home, "/Users/") then return "dylib" end
     if string.find(home, "/home/") then return "so" end
     -- TODO: unable to detect os
-    -- how to reportabout error
+    -- Unix, is it you?
     return "so"
 end
 
 package.cpath = package.cpath .. ";./?." .. detect_native_lib_ext()
 
-local api = require 'libeffil'
+local capi = require 'libeffil'
+local api = {
+    version = "0.1.0",
+    table = capi.table,
+    thread_id = capi.thread_id,
+    sleep = capi.sleep,
+    yield = capi.yield
+}
+
+local function run_thread(config, f, ...)
+    return capi.thread(config.path, config.cpath, config.managed, config.step, f, ...)
+end
+
+-- Creates thread runner with given function
+-- configurable parameters:
+--     path - lua modules search path in child thread
+--     cpath - lua libs search path in child thread
+--     stepwise - is thread resumable
+--     step - who fast reacte on state changing
+--     __call - run thread, can be invoked multiple times
+api.thread = function (f)
+    local thread_config = {
+        path = package.path,
+        cpath = package.cpath,
+        managed = true,
+        step = 200 }
+    setmetatable(thread_config, {__call = function(c, ...) return run_thread(c, f, ...) end})
+    return thread_config
+end
 
 return api

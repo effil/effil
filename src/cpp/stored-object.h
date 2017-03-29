@@ -36,6 +36,7 @@ struct StoredObjectLess {
 StoredObject createStoredObject(bool);
 StoredObject createStoredObject(double);
 StoredObject createStoredObject(const std::string&);
+StoredObject createStoredObject(const char*);
 StoredObject createStoredObject(GCObjectHandle);
 StoredObject createStoredObject(const sol::object&);
 StoredObject createStoredObject(const sol::stack_object&);

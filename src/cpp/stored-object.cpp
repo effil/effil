@@ -13,6 +13,12 @@ namespace effil {
 
 namespace {
 
+class NilHolder : public BaseHolder {
+public:
+    bool rawCompare(const BaseHolder*) const noexcept final { return true; }
+    sol::object unpack(sol::this_state) const final { return sol::nil; }
+};
+
 template <typename StoredType>
 class PrimitiveHolder : public BaseHolder {
 public:
@@ -130,6 +136,7 @@ template <typename SolObject>
 StoredObject fromSolObject(const SolObject& luaObject) {
     switch (luaObject.get_type()) {
         case sol::type::nil:
+            return std::make_unique<NilHolder>();
             break;
         case sol::type::boolean:
             return std::make_unique<PrimitiveHolder<bool>>(luaObject);
@@ -167,6 +174,10 @@ StoredObject createStoredObject(bool value) { return std::make_unique<PrimitiveH
 StoredObject createStoredObject(double value) { return std::make_unique<PrimitiveHolder<double>>(value); }
 
 StoredObject createStoredObject(const std::string& value) {
+    return std::make_unique<PrimitiveHolder<std::string>>(value);
+}
+
+StoredObject createStoredObject(const char* value) {
     return std::make_unique<PrimitiveHolder<std::string>>(value);
 }
 
