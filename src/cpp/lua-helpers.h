@@ -22,6 +22,9 @@ inline void openAllLibs(sol::state& lua) {
                        sol::lib::table);
 }
 
+// TODO: make function more reliable
+// string.dump can be changed by user
+// TODO: Add cache for each state
 inline std::string dumpFunction(const sol::function& f) {
     sol::state_view lua(f.lua_state());
     sol::function dumper = lua["string"]["dump"];
@@ -30,6 +33,9 @@ inline std::string dumpFunction(const sol::function& f) {
     return dumper(f);
 }
 
+// TODO: make function more reliable
+// loadstring can be changed by user
+// TODO: Add cache for each state
 inline sol::function loadString(const sol::state_view& lua, const std::string& str) {
     sol::function loader = lua["loadstring"];
     REQUIRE(loader.valid() && loader.get_type() == sol::type::function)
