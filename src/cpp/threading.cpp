@@ -237,7 +237,7 @@ std::pair<sol::object, sol::object> Thread::status(const sol::this_state& lua) {
     } else {
         return std::make_pair(luaStatus, sol::nil);
     }
-};
+}
 
 bool Thread::waitFor(const sol::optional<int>& duration,
              const sol::optional<std::string>& period) {
