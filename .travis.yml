@@ -1,7 +1,6 @@
 language: cpp
 
 matrix:
-  # Linux / GCC 5.0
   include:
     - compiler: g++-5
       sudo: required
@@ -25,12 +24,15 @@ matrix:
       before_script:
         - ulimit -c unlimited -S
       script:
-        - mkdir build_dir && cd build_dir
-        - cmake -DCMAKE_BUILD_TYPE=Debug -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so" ..
-        - make -j4 all && make install
-        - ./tests
-        - ./run_tests.lua
-    # Mac OS X / Clang 3.8
+        - export BUILD_TYPES="debug release"
+        - for build_type in $BUILD_TYPES; do
+        -   build_dir = $build_type
+        -   mkdir $build_dir
+        -   (cd $build_dir && cmake -DCMAKE_BUILD_TYPE=$build_type -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"  ..)
+        -   (cd $build_dir && make -j5 install)
+        -   (cd $build_dir && ./tests && ./run_tests.lua)
+        - done
+
     - compiler: clang
       os: osx
       osx_image: xcode8.2
@@ -39,7 +41,10 @@ matrix:
       install:
         - brew install lua
       script:
-        - mkdir build_dir && cd build_dir
-        - cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4 all && make install
-        - ./tests
-        - ./run_tests.lua
+        - export BUILD_TYPES="debug release"
+        - for build_type in $BUILD_TYPES; do
+        -   build_dir = $build_type
+        -   mkdir $build_dir
+        -   (cd $build_dir && cmake -DCMAKE_BUILD_TYPE=$build_type .. && make -j5 install)
+        -   (cd $build_dir && ./tests && ./run_tests.lua)
+        - done
