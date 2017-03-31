@@ -24,13 +24,11 @@ matrix:
       before_script:
         - ulimit -c unlimited -S
       script:
-        - export BUILD_TYPES="debug release"
-        - for build_type in $BUILD_TYPES; do
-        -   build_dir = $build_type
-        -   mkdir $build_dir
-        -   (cd $build_dir && cmake -DCMAKE_BUILD_TYPE=$build_type -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"  ..)
-        -   (cd $build_dir && make -j5 install)
-        -   (cd $build_dir && ./tests && ./run_tests.lua)
+        - for build_type in "debug release"; do
+        -   mkdir $build_type
+        -   (cd $build_type && cmake -DCMAKE_BUILD_TYPE=$build_type -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"  ..)
+        -   (cd $build_type && make -j5 install)
+        -   (cd $build_type && ./tests && ./run_tests.lua)
         - done
 
     - compiler: clang
@@ -41,10 +39,8 @@ matrix:
       install:
         - brew install lua
       script:
-        - export BUILD_TYPES="debug release"
-        - for build_type in $BUILD_TYPES; do
-        -   build_dir = $build_type
-        -   mkdir $build_dir
-        -   (cd $build_dir && cmake -DCMAKE_BUILD_TYPE=$build_type .. && make -j5 install)
-        -   (cd $build_dir && ./tests && ./run_tests.lua)
+        - for build_type in "debug release"; do
+        -   mkdir $build_type
+        -   (cd $build_type && cmake -DCMAKE_BUILD_TYPE=$build_type .. && make -j5 install)
+        -   (cd $build_type && ./tests && ./run_tests.lua)
         - done
