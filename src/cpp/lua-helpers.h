@@ -5,23 +5,6 @@
 
 namespace effil {
 
-inline void openAllLibs(sol::state& lua) {
-    lua.open_libraries(sol::lib::base,
-                       sol::lib::string,
-                       sol::lib::package,
-                       sol::lib::io,
-                       sol::lib::os,
-                       sol::lib::count,
-                       sol::lib::bit32,
-                       sol::lib::coroutine,
-                       sol::lib::debug,
-                       sol::lib::ffi,
-                       sol::lib::jit,
-                       sol::lib::math,
-                       sol::lib::utf8,
-                       sol::lib::table);
-}
-
 // TODO: make function more reliable
 // string.dump can be changed by user
 // TODO: Add cache for each state

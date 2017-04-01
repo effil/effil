@@ -6,7 +6,7 @@
 #include "lua-helpers.h"
 #include "utils.h"
 
-#include <future>
+#include <thread>
 #include <sstream>
 
 namespace effil {
@@ -70,7 +70,7 @@ public:
             : managed(isManaged)
             , status(Status::Running)
             , command_(Command::Run) {
-        openAllLibs(lua);
+        luaL_openlibs(lua);
     }
 
     Command command() const { return command_; }
@@ -113,8 +113,8 @@ void luaHook(lua_State*, lua_Debug*) {
 
 class ScopeGuard {
 public:
-    ScopeGuard(std::function<void()> f)
-            : f_(std::move(f)) {
+    ScopeGuard(const std::function<void()>& f)
+            : f_(f) {
     }
 
     ~ScopeGuard() {

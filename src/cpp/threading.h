@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sol.hpp>
-#include <thread>
 
 namespace effil {
 

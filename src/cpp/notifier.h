@@ -29,7 +29,7 @@ public:
             return notified_;
 
         std::unique_lock<std::mutex> lock(mutex_);
-        while (cv_.wait_for(lock, period) != std::cv_status::timeout);
+        while (cv_.wait_for(lock, period) != std::cv_status::timeout && !notified_);
         return notified_;
     }
 

@@ -7,7 +7,7 @@
 namespace effil {
 
 inline void bootstrapState(sol::state& lua) {
-    openAllLibs(lua);
+    luaL_openlibs(lua);
     SharedTable::getUserType(lua);
 }
 
