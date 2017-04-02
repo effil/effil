@@ -52,34 +52,29 @@ TEST(notifier, waitFor) {
 }
 
 TEST(notifier, reset) {
-    Notifier n1;
-    Notifier n2;
-    bool flag1 = false;
-    bool flag2 = false;
+    const size_t iterations = 1024;
+    Notifier readyToProcess;
+    Notifier needNew;
+    size_t resource = 0;
 
-    auto t = std::thread([&] {
-        n1.notify();
-        n2.wait();
-        n2.reset();
-
-        flag1 = true;
-        n1.notify();
-
-        EXPECT_FALSE(flag2);
-        n2.wait();
-        EXPECT_TRUE(flag2);
+    std::thread producer([&]() {
+        for (size_t i = 0; i < iterations; i++) {
+            resource++;
+            readyToProcess.notify();
+            needNew.wait();
+            needNew.reset();
+        }
     });
 
-    n1.wait();
-    n1.reset();
-    n2.notify();
+    std::thread consumer([&](){
+        for (size_t i = 0; i < iterations; i++) {
+            readyToProcess.wait();
+            readyToProcess.reset();
+            EXPECT_EQ(resource, i + 1);
+            needNew.notify();
+        }
+    });
 
-    EXPECT_FALSE(flag1);
-    n1.wait();
-    EXPECT_TRUE(flag1);
-
-    flag2 = true;
-    n2.notify();
-
-    t.join();
+    producer.join();
+    consumer.join();
 }
