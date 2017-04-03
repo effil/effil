@@ -24,7 +24,7 @@ matrix:
       before_script:
         - ulimit -c unlimited -S
       script:
-        - ci/test.sh -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"
+        - ci/test_all.sh -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"
 
     - compiler: clang
       os: osx
@@ -34,4 +34,4 @@ matrix:
       install:
         - brew install lua
       script:
-        - ci/test.sh
+        - ci/test_all.sh
