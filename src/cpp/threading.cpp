@@ -215,7 +215,7 @@ Thread::Thread(const std::string& path,
 }
 
 sol::object Thread::getUserType(sol::state_view& lua) {
-    static sol::usertype<Thread> type(
+    sol::usertype<Thread> type(
             "new", sol::no_constructor,
             "get", &Thread::get,
             "wait", &Thread::wait,
