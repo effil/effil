@@ -1,7 +1,6 @@
 language: cpp
 
 matrix:
-  # Linux / GCC 5.0
   include:
     - compiler: g++-5
       sudo: required
@@ -25,21 +24,14 @@ matrix:
       before_script:
         - ulimit -c unlimited -S
       script:
-        - mkdir build_dir && cd build_dir
-        - cmake -DCMAKE_BUILD_TYPE=Debug -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so" ..
-        - make -j4 all && make install
-        - ./tests
-        - ./run_tests.lua
-    # Mac OS X / Clang 3.8
+        - ci/test.sh -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"
+
     - compiler: clang
       os: osx
-      osx_image: xcode8.2
+      osx_image: xcode8.3
       before_install:
         - brew update
       install:
         - brew install lua
       script:
-        - mkdir build_dir && cd build_dir
-        - cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j4 all && make install
-        - ./tests
-        - ./run_tests.lua
+        - ci/test.sh
