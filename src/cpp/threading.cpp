@@ -56,7 +56,7 @@ public:
 
     sol::state lua;
     Status status;
-    MultipleReturnPtr result;
+    MultipleReturn result;
 
     Notifier completion;
     // on thread resume
@@ -68,7 +68,6 @@ public:
     ThreadHandle(bool isManaged)
             : managed(isManaged)
             , status(Status::Running)
-            , result(std::make_shared<MultipleReturn>())
             , command_(Command::Run) {
         luaL_openlibs(lua);
     }
@@ -126,8 +125,8 @@ private:
 };
 
 void runThread(std::shared_ptr<ThreadHandle> handle,
-               const std::string &strFunction,
-               std::vector<sol::object> &&arguments) {
+               std::string strFunction,
+               std::vector<sol::object> arguments) {
 
     ScopeGuard reportComplete([=](){
         DEBUG << "Finished " << std::endl;
@@ -144,14 +143,14 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
         sol::variadic_args args(handle->lua, -lua_gettop(handle->lua));
         for (const auto& iter : args) {
             StoredObject store = createStoredObject(iter.get<sol::object>());
-            handle->result->emplace_back(std::move(store));
+            handle->result.emplace_back(std::move(store));
         }
         handle->status = Status::Completed;
     } catch (const LuaHookStopException&) {
         handle->status = Status::Canceled;
     } catch (const sol::error& err) {
         DEBUG << "Failed with msg: " << err.what() << std::endl;
-        handle->result->emplace_back(createStoredObject(err.what()));
+        handle->result.emplace_back(createStoredObject(err.what()));
         handle->status = Status::Failed;
     }
 }
@@ -212,7 +211,7 @@ Thread::Thread(const std::string& path,
 
     std::thread thr(&runThread,
                     handle_,
-                    strFunction,
+                    std::move(strFunction),
                     std::move(arguments));
     DEBUG << "Created " << thr.get_id() << std::endl;
     thr.detach();
@@ -236,8 +235,8 @@ std::pair<sol::object, sol::object> Thread::status(const sol::this_state& lua) {
     sol::object luaStatus = sol::make_object(lua, statusToString(handle_->status));
 
     if (handle_->status == Status::Failed) {
-        assert(!handle_->result->empty());
-        return std::make_pair(luaStatus, (*handle_->result)[0]->unpack(lua));
+        assert(!handle_->result.empty());
+        return std::make_pair(luaStatus, handle_->result[0]->unpack(lua));
     } else {
         return std::make_pair(luaStatus, sol::nil);
     }
@@ -260,15 +259,14 @@ std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
     return status(lua);
 }
 
-MultipleReturnPtr Thread::get(const sol::optional<int>& duration,
+MultipleReturn Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
     bool completed = waitFor(duration, period);
-
     if (completed && handle_->status == Status::Completed)
         return handle_->result;
     else
     {
-        return std::make_shared<MultipleReturn>();
+        return MultipleReturn();
     }
 }
 
