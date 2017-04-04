@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stored-object.h"
+
 #include <iostream>
 #include <sstream>
 #include <thread>

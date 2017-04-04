@@ -26,4 +26,29 @@ inline sol::function loadString(const sol::state_view& lua, const std::string& s
     return loader(str);
 }
 
+typedef std::vector<effil::StoredObject> MultipleReturn;
+typedef std::shared_ptr<MultipleReturn> MultipleReturnPtr;
+
 } // namespace effil
+
+namespace sol {
+    namespace stack {
+        template<>
+        struct pusher<effil::MultipleReturn> {
+            int push(lua_State* state, const effil::MultipleReturn& args) {
+                int p = 0;
+                for (const auto& i : args) {
+                    p += stack::push(state, i->unpack(sol::this_state{state}));
+                }
+                return p;
+            }
+        };
+        template<>
+        struct pusher<effil::MultipleReturnPtr> : public pusher<effil::MultipleReturn> {
+            int push(lua_State* state, effil::MultipleReturnPtr args) {
+                return pusher<effil::MultipleReturn>::push(state, *args.get());
+            }
+        };
+
+    } // stack
+} // sol

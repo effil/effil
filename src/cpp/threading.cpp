@@ -3,7 +3,6 @@
 #include "stored-object.h"
 #include "notifier.h"
 #include "spin-mutex.h"
-#include "lua-helpers.h"
 #include "utils.h"
 
 #include <thread>
@@ -57,7 +56,7 @@ public:
 
     sol::state lua;
     Status status;
-    StoredObject result;
+    MultipleReturnPtr result;
 
     Notifier completion;
     // on thread resume
@@ -69,6 +68,7 @@ public:
     ThreadHandle(bool isManaged)
             : managed(isManaged)
             , status(Status::Running)
+            , result(std::make_shared<MultipleReturn>())
             , command_(Command::Run) {
         luaL_openlibs(lua);
     }
@@ -139,15 +139,19 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
 
     try {
         sol::function userFuncObj = loadString(handle->lua, strFunction);
-        sol::object result = userFuncObj(sol::as_args(arguments));
-        handle->result = createStoredObject(result);
-
+        sol::function_result results = userFuncObj(sol::as_args(arguments));
+        (void)results; // just leave all returns on the stack
+        sol::variadic_args args(handle->lua, -lua_gettop(handle->lua));
+        for (const auto& iter : args) {
+            StoredObject store = createStoredObject(iter.get<sol::object>());
+            handle->result->emplace_back(std::move(store));
+        }
         handle->status = Status::Completed;
     } catch (const LuaHookStopException&) {
         handle->status = Status::Canceled;
     } catch (const sol::error& err) {
         DEBUG << "Failed with msg: " << err.what() << std::endl;
-        handle->result = createStoredObject(err.what());
+        handle->result->emplace_back(createStoredObject(err.what()));
         handle->status = Status::Failed;
     }
 }
@@ -214,7 +218,7 @@ Thread::Thread(const std::string& path,
     thr.detach();
 }
 
-sol::object Thread::getUserType(sol::state_view& lua) {
+void Thread::getUserType(sol::state_view& lua) {
     sol::usertype<Thread> type(
             "new", sol::no_constructor,
             "get", &Thread::get,
@@ -225,15 +229,15 @@ sol::object Thread::getUserType(sol::state_view& lua) {
             "status", &Thread::status);
 
     sol::stack::push(lua, type);
-    return sol::stack::pop<sol::object>(lua);
+    sol::stack::pop<sol::object>(lua);
 }
 
 std::pair<sol::object, sol::object> Thread::status(const sol::this_state& lua) {
     sol::object luaStatus = sol::make_object(lua, statusToString(handle_->status));
 
     if (handle_->status == Status::Failed) {
-        assert(handle_->result);
-        return std::make_pair(luaStatus, handle_->result->unpack(lua));
+        assert(!handle_->result->empty());
+        return std::make_pair(luaStatus, (*handle_->result)[0]->unpack(lua));
     } else {
         return std::make_pair(luaStatus, sol::nil);
     }
@@ -256,15 +260,16 @@ std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
     return status(lua);
 }
 
-sol::object Thread::get(const sol::this_state& lua,
-                       const sol::optional<int>& duration,
+MultipleReturnPtr Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
     bool completed = waitFor(duration, period);
 
     if (completed && handle_->status == Status::Completed)
-        return handle_->result->unpack(lua);
+        return handle_->result;
     else
-        return sol::nil;
+    {
+        return std::make_shared<MultipleReturn>();
+    }
 }
 
 bool Thread::cancel(const sol::this_state&,

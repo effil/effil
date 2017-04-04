@@ -47,3 +47,25 @@ end
 function tearDown()
     collectgarbage()
 end
+
+function make_test_with_param(test_suite, test_case_pattern, ...)
+    local tests_to_delete, tests_to_add = {}, {}
+    for test_name, test_func in pairs(test_suite) do
+        if string.sub(test_name, 1, 4):lower() == 'test' and string.match(test_name, test_case_pattern) then
+            table.insert(tests_to_delete, test_name)
+            for i, param in ipairs({...}) do
+                tests_to_add[test_name .. "/" .. i] = function(t)
+                    print("#    with params: " .. tostring(param))
+                    t.test_param = param
+                    return test_func(t)
+                end
+            end
+        end
+    end
+    for _, test_name in ipairs(tests_to_delete) do
+        test_suite[test_name] = nil
+    end
+    for test_name, test_func in pairs(tests_to_add) do
+        test_suite[test_name] = test_func
+    end
+end

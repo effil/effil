@@ -171,6 +171,38 @@ function TestThread:testAsyncPauseResumeCancel()
     test.assertTrue(wait(5, function() return thread:status() == "canceled" end))
 end
 
+function TestThread:testCheckThreadReturns()
+    local share = effil.table()
+    share.value = "some value"
+
+    local thread_factory = effil.thread(
+        function(share)
+            return 100500, "string value", true, share, function(a,b) return a + b end
+        end
+    )
+    local thread = thread_factory(share)
+    local status = thread:wait()
+    local returns = { thread:get() }
+
+    log "Check values"
+    test.assertEquals(status, "completed")
+
+    test.assertNumber(returns[1])
+    test.assertEquals(returns[1], 100500)
+
+    test.assertString(returns[2])
+    test.assertEquals(returns[2], "string value")
+
+    test.assertBoolean(returns[3])
+    test.assertTrue(returns[3])
+
+    test.assertUserdata(returns[4])
+    test.assertEquals(returns[4].value, share.value)
+
+    test.assertFunction(returns[5])
+    test.assertEquals(returns[5](11, 89), 100)
+end
+
 function TestThread:testTimedCancel()
     local thread = effil.thread(function()
         require("effil").sleep(2)
@@ -179,38 +211,6 @@ function TestThread:testTimedCancel()
     thread:wait()
 end
 
---function TestThread:testCheckThreadReturns()
---    local effil = require 'effil'
---    local share = effil.table()
---    share.value = "some value"
---
---    local thread_factory = effil.thread(
---        function(share)
---            return 100500, "string value", true, share, function(a,b) return a + b end
---        end
---    )
---    local thread = thread_factory(share)
---    local status, returns = thread:get()
---
---    log "Check values"
---    test.assertEquals(status, "completed")
---
---    test.assertNumber(returns[1])
---    test.assertEquals(returns[1], 100500)
---
---    test.assertString(returns[2])
---    test.assertEquals(returns[2], "string value")
---
---    test.assertBoolean(returns[3])
---    test.assertTrue(returns[3])
---
---    test.assertUserdata(returns[4])
---    test.assertEquals(returns[4].value, share.value)
---
---    test.assertFunction(returns[5])
---    test.assertEquals(returns[5](11, 89), 100)
---end
---
 TestThreadWithTable  = {tearDown = tearDown }
 
 function TestThreadWithTable:testSharedTableTypes()
