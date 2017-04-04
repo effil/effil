@@ -1,13 +1,14 @@
 #pragma once
 
 #include "shared-table.h"
+#include "lua-helpers.h"
 #include <sol.hpp>
 
 namespace effil {
 
 inline void bootstrapState(sol::state& lua) {
-    lua.open_libraries(sol::lib::base, sol::lib::string, sol::lib::table);
+    luaL_openlibs(lua);
     SharedTable::getUserType(lua);
 }
 
-} // namespace
+} // namespace effil

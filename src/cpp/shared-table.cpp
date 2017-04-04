@@ -16,7 +16,7 @@ SharedTable::SharedTable(const SharedTable& init)
         , data_(init.data_) {}
 
 sol::object SharedTable::getUserType(sol::state_view& lua) {
-    static sol::usertype<SharedTable> type("new", sol::no_constructor,                          //
+    sol::usertype<SharedTable> type("new", sol::no_constructor,                          //
                                            sol::meta_function::new_index, &SharedTable::luaSet, //
                                            sol::meta_function::index, &SharedTable::luaGet,     //
                                            sol::meta_function::length, &SharedTable::length,    //

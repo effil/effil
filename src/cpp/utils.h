@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include <sol.hpp>
 
@@ -28,14 +29,10 @@ private:
 
 } // effil
 
-#define REQUIRE(cond)                                                                                                  \
-    if (!cond)                                                                                                         \
-    throw effil::Exception()
+#define REQUIRE(cond) if (!(cond)) throw effil::Exception()
 
 #ifdef NDEBUG
-#define DEBUG                                                                                                          \
-    if (false)                                                                                                         \
-    std::cout
+#define DEBUG if (false) std::cout
 #else
-#define DEBUG std::cout
+#define DEBUG std::cout << __FILE__ << ":" << __FUNCTION__ << ":" << __LINE__ << " tid:" << std::this_thread::get_id() << " "
 #endif

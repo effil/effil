@@ -45,6 +45,5 @@ function sleep(timeInSec, silent)
 end
 
 function tearDown()
-    log "TearDown() collect garbage"
     collectgarbage()
 end
