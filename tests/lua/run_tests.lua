@@ -3,6 +3,10 @@
 -- TODO: remove hardcode
 package.path  = package.path .. ";../libs/luaunit/?.lua;../tests/lua/?.lua"
 
+print("---------------")
+print("--  " .. _VERSION .. "  --")
+print("---------------")
+
 do
     -- Hack input arguments to make tests verbose by default
     local found = false
