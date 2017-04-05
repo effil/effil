@@ -265,9 +265,7 @@ MultipleReturn Thread::get(const sol::optional<int>& duration,
     if (completed && handle_->status == Status::Completed)
         return handle_->result;
     else
-    {
         return MultipleReturn();
-    }
 }
 
 bool Thread::cancel(const sol::this_state&,

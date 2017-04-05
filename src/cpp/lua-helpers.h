@@ -1,5 +1,6 @@
 #pragma once
 
+#include "stored-object.h"
 #include "utils.h"
 #include <sol.hpp>
 

@@ -30,6 +30,8 @@ public:
     void rawSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
     sol::object get(const StoredObject& key, sol::this_state state) const;
     sol::object rawGet(const sol::stack_object& key, sol::this_state state) const;
+    static sol::object basicMetaMethod(const std::string&, const std::string&, sol::this_state,
+                                        const sol::stack_object&, const sol::stack_object&);
 
     // These functions are metamethods available in Lua
     void luaNewIndex(const sol::stack_object& luaKey, const sol::stack_object& luaValue, sol::this_state);
@@ -39,23 +41,23 @@ public:
     PairsIterator luaPairs(sol::this_state);
     PairsIterator luaIPairs(sol::this_state);
     MultipleReturn luaCall(sol::this_state state, const sol::variadic_args& args);
-    sol::object luaAdd(sol::this_state, const sol::stack_object&);
-    sol::object luaSub(sol::this_state, const sol::stack_object&);
-    sol::object luaMul(sol::this_state, const sol::stack_object&);
-    sol::object luaDiv(sol::this_state, const sol::stack_object&);
-    sol::object luaMod(sol::this_state, const sol::stack_object&);
-    sol::object luaPow(sol::this_state, const sol::stack_object&);
-    sol::object luaLe(sol::this_state, const sol::stack_object&);
-    sol::object luaLt(sol::this_state, const sol::stack_object&);
-    sol::object luaEq(sol::this_state, const sol::stack_object&);
-    sol::object luaConcat(sol::this_state, const sol::stack_object&);
     sol::object luaUnm(sol::this_state);
+    static sol::object luaAdd(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaSub(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaMul(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaDiv(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaMod(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaPow(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaEq(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaLe(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaLt(sol::this_state, const sol::stack_object&, const sol::stack_object&);
+    static sol::object luaConcat(sol::this_state, const sol::stack_object&, const sol::stack_object&);
 
     // Stand alone functions for effil::table available in Lua
-    static SharedTable luaSetMetatable(SharedTable& stable, sol::stack_object mt);
-    static sol::object luaGetMetatable(const SharedTable& stable, sol::this_state state);
-    static sol::object luaRawGet(const SharedTable& stable, sol::stack_object key, sol::this_state state);
-    static SharedTable luaRawSet(SharedTable& stable, sol::stack_object key, sol::stack_object value);
+    static SharedTable luaSetMetatable(SharedTable& stable, const sol::stack_object& mt);
+    static sol::object luaGetMetatable(const SharedTable& stable, const sol::this_state state);
+    static sol::object luaRawGet(const SharedTable& stable, const sol::stack_object& key, sol::this_state state);
+    static SharedTable luaRawSet(SharedTable& stable, const sol::stack_object& key, const sol::stack_object& value);
     static size_t luaSize(SharedTable& stable);
 
 private:

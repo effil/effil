@@ -117,23 +117,45 @@ function TestGeneralSharedTableMetaTable:testMetamethodCall()
 end
 
 local function CreateMetatableTestForBinaryOperator(method_info, op)
-    TestGeneralSharedTableMetaTable["testMetamethod" .. (method_info.test_name and method_info.test_name or method_info.metamethod)] =
-    function(self)
-        local share = effil.table()
-        self:useMetatable(share, {
-                ['__' .. string.lower(method_info.metamethod)] = function(t, operand)
-                    t.was_called = true
-                    return t.value .. '_'.. tostring(operand)
-                end
-            }
-        )
-        share.was_called = false
-        share.value = "left"
-        test.assertEquals(op(share, method_info.operand or "right"),
-                method_info.exp_value == nil and "left_right" or method_info.exp_value)
-        test.assertTrue(share.was_called)
+    for _, reversed in pairs({true, false}) do
+        TestGeneralSharedTableMetaTable["testMetamethod" .. method_info.metamethod
+                .. (reversed and "Reversed" or "")] =
+            function(self)
+                local testTable, operand = effil.table(), effil.table()
+                self:useMetatable(testTable, {
+                        ['__' .. string.lower(method_info.metamethod)] =
+                            reversed and function(left, right)
+                                right.was_called = true
+                                return  right.value .. '_'.. left.value
+                            end
+                            or function(left, right)
+                                left.was_called = true
+                                return  left.value .. '_'.. right.value
+                            end
+                    }
+                )
+                testTable.was_called = false
+                testTable.value = "left"
+                operand.value = "right"
+                local left_operand, right_operand = unpack(reversed and {operand, testTable} or {testTable, operand})
+                test.assertEquals(op(left_operand, right_operand),
+                        method_info.exp_value == nil and "left_right" or method_info.exp_value)
+                test.assertTrue(testTable.was_called)
+            end
     end
 end
+
+CreateMetatableTestForBinaryOperator({ metamethod = "Concat"},  function(a, b) return a.. b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Add"},     function(a, b) return a + b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Sub"},     function(a, b) return a - b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Mul"},     function(a, b) return a * b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Div"},     function(a, b) return a / b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Mod"},     function(a, b) return a % b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Pow"},     function(a, b) return a ^ b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Le", exp_value = true }, function(a, b) return a <= b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Lt", exp_value = true }, function(a, b) return a < b end)
+CreateMetatableTestForBinaryOperator({ metamethod = "Eq", exp_value = true },
+        function(a, b) return a == b end)
 
 local function CreateMetatableTestForUnaryOperator(methodName, op)
     TestGeneralSharedTableMetaTable["testMetamethod" .. methodName] =
@@ -152,24 +174,6 @@ local function CreateMetatableTestForUnaryOperator(methodName, op)
         test.assertTrue(share.was_called)
     end
 end
-
-CreateMetatableTestForBinaryOperator({ metamethod = "Concat"},  function(a, b) return a.. b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Add"},     function(a, b) return a + b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Sub"},     function(a, b) return a - b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Mul"},     function(a, b) return a * b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Div"},     function(a, b) return a / b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Mod"},     function(a, b) return a % b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Pow"},     function(a, b) return a ^ b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Le", exp_value = true }, function(a, b) return a <= b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Lt", exp_value = true }, function(a, b) return a < b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Eq", operand = effil.table(), exp_value = true },
-        function(a, b) return a == b end)
-CreateMetatableTestForBinaryOperator({ metamethod = "Eq", operand = effil.table(), exp_value = false, test_name = "Ne"},
-        function(a, b) return a ~= b end)
---[[ TODO: Enable when the bug with SOL will be solved
-    CreateMetatableTestForBinaryOperator({ metamethod = "Lt", test_name = "Gt"}, function(a, b) return a > b end, false)
-    CreateMetatableTestForBinaryOperator({ metamethod = "Le", test_name = "Ge"}, function(a, b) return a >= b end, false)
-]]
 
 CreateMetatableTestForUnaryOperator("Unm",      function(a) return -a end)
 CreateMetatableTestForUnaryOperator("ToString", function(a) return tostring(a) end)

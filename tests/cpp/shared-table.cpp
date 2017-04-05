@@ -268,7 +268,7 @@ TEST(sharedTable, stressWithThreads) {
     }
 }
 
-TEST(sharedTable, checkExternalUserdata) {
+TEST(sharedTable, ExternalUserdata) {
     SharedTable st;
     sol::state lua;
     bootstrapState(lua);
@@ -283,7 +283,7 @@ TEST(sharedTable, checkExternalUserdata) {
     EXPECT_THROW(lua.script("st.userdata = udata"), sol::error);
 }
 
-TEST(sharedTable, checkLightUserdata) {
+TEST(sharedTable, LightUserdata) {
     SharedTable st;
     sol::state lua;
     bootstrapState(lua);

@@ -7,6 +7,15 @@
 
 namespace effil {
 
+namespace {
+
+template<typename SolObject>
+bool isSharedTable(const SolObject& obj) {
+    return obj.valid() && obj.get_type() == sol::type::userdata && obj.template is<SharedTable>();
+}
+
+}
+
 SharedTable::SharedTable() : GCObject(), data_(std::make_shared<SharedData>()) {}
 
 SharedTable::SharedTable(const SharedTable& init)
@@ -104,29 +113,48 @@ sol::object SharedTable::rawGet(const sol::stack_object& luaKey, sol::this_state
         } \
     }
 
-#define PROXY_METAMETHOD_IMPL_0(tableMethod, methodName, errMsg) \
-    sol::object SharedTable:: tableMethod(sol::this_state state) { DEFFINE_METAMETHOD_CALL_0(methodName) throw Exception() << errMsg; }
-
-#define PROXY_METAMETHOD_IMPL_1(tableMethod, methodName, errMsg) \
-    sol::object SharedTable:: tableMethod(sol::this_state state, const sol::stack_object& value) { DEFFINE_METAMETHOD_CALL(methodName, *this, value) throw Exception() << errMsg; }
+#define PROXY_METAMETHOD_IMPL(tableMethod, methodName, errMsg) \
+    sol::object SharedTable:: tableMethod(sol::this_state state, \
+            const sol::stack_object& leftObject, const sol::stack_object& rightObject) { \
+        return basicMetaMethod(methodName, errMsg, state, leftObject, rightObject); \
+    }
 
 namespace {
-const char* ARITHMETIC_ERR_MSG = "attempt to perform arithmetic on a effil::table value";
-const char* COMPARE_ERR_MSG = "attempt to compare a effil::table value";
-const char* CONCAT_ERR_MSG = "attempt to concatenate a effil::table value";
+const std::string ARITHMETIC_ERR_MSG = "attempt to perform arithmetic on a effil::table value";
+const std::string COMPARE_ERR_MSG = "attempt to compare a effil::table value";
+const std::string CONCAT_ERR_MSG = "attempt to concatenate a effil::table value";
 }
 
-PROXY_METAMETHOD_IMPL_1(luaConcat, "__concat", CONCAT_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaAdd, "__add", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaSub, "__sub", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaMul, "__mul", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaDiv, "__div", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaMod, "__mod", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaPow, "__pow", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaLe,  "__le",  COMPARE_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaLt,  "__lt",  COMPARE_ERR_MSG)
-PROXY_METAMETHOD_IMPL_1(luaEq,  "__eq",  COMPARE_ERR_MSG)
-PROXY_METAMETHOD_IMPL_0(luaUnm, "__unm", ARITHMETIC_ERR_MSG)
+sol::object SharedTable::basicMetaMethod(const std::string& metamethodName, const std::string& errMsg,
+            sol::this_state state, const sol::stack_object& leftObject, const sol::stack_object& rightObject) {
+    if (isSharedTable(leftObject)) {
+        SharedTable table = leftObject.as<SharedTable>();
+        auto data_ = table.data_;
+        DEFFINE_METAMETHOD_CALL(metamethodName, table, rightObject)
+    }
+    if (isSharedTable(rightObject)) {
+        SharedTable table = rightObject.as<SharedTable>();
+        auto data_ = table.data_;
+        DEFFINE_METAMETHOD_CALL(metamethodName, leftObject, table)
+    }
+    throw Exception() << errMsg;
+}
+
+PROXY_METAMETHOD_IMPL(luaConcat, "__concat", CONCAT_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaAdd, "__add", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaSub, "__sub", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaMul, "__mul", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaDiv, "__div", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaMod, "__mod", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaPow, "__pow", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaLe, "__le", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaLt, "__lt", ARITHMETIC_ERR_MSG)
+PROXY_METAMETHOD_IMPL(luaEq, "__eq", ARITHMETIC_ERR_MSG)
+
+sol::object SharedTable::luaUnm(sol::this_state state) {
+    DEFFINE_METAMETHOD_CALL_0("__unm")
+    throw Exception() << ARITHMETIC_ERR_MSG;
+}
 
 void SharedTable::luaNewIndex(const sol::stack_object& luaKey, const sol::stack_object& luaValue, sol::this_state state) {
     {
@@ -234,30 +262,32 @@ SharedTable::PairsIterator SharedTable::luaIPairs(sol::this_state state) {
  * Lua static API functions
  */
 
-SharedTable SharedTable::luaSetMetatable(SharedTable& stable, sol::stack_object mt) {
+SharedTable SharedTable::luaSetMetatable(SharedTable& stable, const sol::stack_object& mt) {
+    REQUIRE((!mt.valid()) || mt.get_type() == sol::type::table || isSharedTable(mt)) << "Unexpected type of setmetatable argument";
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
-    if (mt.valid()) {
-        REQUIRE(mt.get_type() == sol::type::table || mt.get_type() == sol::type::userdata) << "Unexpected type of semetatable argument";
-        stable.data_->metatable = createStoredObject(mt)->gcHandle();
-        stable.refs_->insert(stable.data_->metatable);
-    }
-    else {
+    if (stable.data_->metatable != GCNull)
+    {
         stable.refs_->erase(stable.data_->metatable);
         stable.data_->metatable = GCNull;
+    }
+    if (mt.valid()) {
+        stable.data_->metatable = createStoredObject(mt)->gcHandle();
+        stable.refs_->insert(stable.data_->metatable);
     }
     return stable;
 }
 
 sol::object SharedTable::luaGetMetatable(const SharedTable& stable, sol::this_state state) {
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
-    return stable.data_->metatable == GCNull ? sol::nil : sol::make_object(state, *static_cast<SharedTable*>(getGC().get(stable.data_->metatable)));
+    return stable.data_->metatable == GCNull ? sol::nil :
+            sol::make_object(state, *static_cast<SharedTable*>(getGC().get(stable.data_->metatable)));
 }
 
-sol::object SharedTable::luaRawGet(const SharedTable& stable, sol::stack_object key, sol::this_state state) {
+sol::object SharedTable::luaRawGet(const SharedTable& stable, const sol::stack_object& key, sol::this_state state) {
     return stable.rawGet(key, state);
 }
 
-SharedTable SharedTable::luaRawSet(SharedTable& stable, sol::stack_object key, sol::stack_object value) {
+SharedTable SharedTable::luaRawSet(SharedTable& stable, const sol::stack_object& key, const sol::stack_object& value) {
     stable.rawSet(key, value);
     return stable;
 }
@@ -267,10 +297,8 @@ size_t SharedTable::luaSize(SharedTable& stable) {
     return stable.data_->entries.size();
 }
 
+#undef DEFFINE_METAMETHOD_CALL_0
 #undef DEFFINE_METAMETHOD_CALL
-#undef DEFFINE_METAMETHOD_CALL
-#undef DEFFINE_METAMETHOD_CALL_
-#undef DEFFINE_METAMETHOD_CALL_WO_RETURN
 #undef PROXY_METAMETHOD_IMPL
 
 } // effil

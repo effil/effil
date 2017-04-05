@@ -1,7 +1,5 @@
 #pragma once
 
-#include "stored-object.h"
-
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -32,7 +30,7 @@ private:
 } // effil
 
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
-
+#define NDEBUG
 #ifdef NDEBUG
 #define DEBUG if (false) std::cout
 #else
