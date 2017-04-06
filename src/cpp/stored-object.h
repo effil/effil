@@ -27,7 +27,7 @@ private:
     BaseHolder(BaseHolder&) = delete;
 };
 
-typedef std::unique_ptr<BaseHolder> StoredObject;
+typedef std::shared_ptr<BaseHolder> StoredObject;
 
 struct StoredObjectLess {
     bool operator()(const StoredObject& lhs, const StoredObject& rhs) const { return lhs->compare(rhs.get()); }

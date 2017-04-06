@@ -15,12 +15,12 @@ TEST(sharedTable, primitiveTypes) {
     lua["st"] = SharedTable();
 
     auto res1 = lua.script(R"(
-st.fst = "first"
-st.snd = 2
-st.thr = true
-st.del = "secret"
-st.del = nil
-)");
+        st.fst = "first"
+        st.snd = 2
+        st.thr = true
+        st.del = "secret"
+        st.del = nil
+    )");
 
     EXPECT_TRUE(res1.valid()) << "Set res1 failed";
     EXPECT_EQ(lua["st"]["fst"], std::string("first"));
@@ -30,13 +30,13 @@ st.del = nil
     EXPECT_EQ(lua["st"]["nex"], sol::nil);
 
     auto res2 = lua.script(R"(
-st[1] = 3
-st[2] = "number"
-st[-1] = false
-st[42] = "answer"
-st[42] = nil
-st.deleted = st[42] == nil
-)");
+        st[1] = 3
+        st[2] = "number"
+        st[-1] = false
+        st[42] = "answer"
+        st[42] = nil
+        st.deleted = st[42] == nil
+    )");
 
     EXPECT_TRUE(res2.valid()) << "Set res2 failed";
     EXPECT_EQ(lua["st"][1], 3);
@@ -45,9 +45,9 @@ st.deleted = st[42] == nil
     EXPECT_EQ(lua["st"]["deleted"], true);
 
     auto res3 = lua.script(R"(
-st[true] = false
-st[false] = 9
-)");
+        st[true] = false
+        st[false] = 9
+    )");
 
     EXPECT_TRUE(res3.valid()) << "Set res3 failed";
     EXPECT_EQ(lua["st"][true], false);
@@ -65,10 +65,10 @@ TEST(sharedTable, multipleStates) {
     lua2["dogs"] = st.get();
 
     auto res1 = lua1.script(R"(
-cats.fluffy = "gav"
-cats.sparky = false
-cats.wow = 3
-)");
+        cats.fluffy = "gav"
+        cats.sparky = false
+        cats.wow = 3
+    )");
 
     EXPECT_EQ(lua2["dogs"]["fluffy"], std::string("gav"));
     EXPECT_EQ(lua2["dogs"]["sparky"], false);
@@ -86,8 +86,9 @@ TEST(sharedTable, multipleThreads) {
         ;
         lua["st"] = st;
         lua.script(R"(
-while not st.ready do end
-st.fst = true)");
+            while not st.ready do end
+            st.fst = true
+        )");
     });
 
     threads.emplace_back([=]() {
@@ -95,8 +96,9 @@ st.fst = true)");
         bootstrapState(lua);
         lua["st"] = st;
         lua.script(R"(
-while not st.ready do end
-st.snd = true)");
+            while not st.ready do end
+            st.snd = true
+        )");
     });
 
     threads.emplace_back([=]() {
@@ -104,8 +106,9 @@ st.snd = true)");
         bootstrapState(lua);
         lua["st"] = st;
         lua.script(R"(
-while not st.ready do end
-st.thr = true)");
+            while not st.ready do end
+            st.thr = true
+        )");
     });
 
     sol::state lua;
@@ -131,11 +134,11 @@ TEST(sharedTable, playingWithSharedTables) {
     lua["st2"] = getGC().create<SharedTable>();
 
     lua.script(R"(
-st1.proxy = st2
-st1.proxy.value = true
-recursive.next = recursive
-recursive.val = "yes"
-)");
+        st1.proxy = st2
+        st1.proxy.value = true
+        recursive.next = recursive
+        recursive.val = "yes"
+    )");
     EXPECT_EQ(lua["st2"]["value"], true);
     EXPECT_EQ(lua["recursive"]["next"]["next"]["next"]["val"], std::string("yes"));
 }
@@ -148,12 +151,12 @@ TEST(sharedTable, playingWithFunctions) {
     lua["st"] = st;
 
     lua.script(R"(
-st.fn = function ()
-    print "Hello C++"
-    return true
-end
-st.fn()
-)");
+        st.fn = function ()
+            print "Hello C++"
+            return true
+        end
+        st.fn()
+    )");
 
     sol::function sf = lua["st"]["fn"];
     EXPECT_TRUE((bool)sf());
@@ -163,10 +166,10 @@ st.fn()
 
     lua2["st2"] = st;
     lua2.script(R"(
-st2.fn2 = function(str)
-    return "*" .. str .. "*"
-end
-)");
+        st2.fn2 = function(str)
+            return "*" .. str .. "*"
+        end
+    )");
 
     sol::function sf2 = lua["st"]["fn2"];
 
@@ -180,22 +183,22 @@ TEST(sharedTable, playingWithTables) {
 
     lua["st"] = st;
     auto res = lua.script(R"(
-st.works = "fine"
-st.person = {name = 'John Doe', age = 25}
-pet = {
-    type = "cat",
-    name = "Tomas",
-    real = "Яша",
-    owner = "Mama",
-    spec = { colour = "grey", legs = 4, eyes = 2 }
-}
-st.pet = pet
-recursive = {}
-recursive.next = recursive
-recursive.prev = recursive
-recursive.val = "recursive"
-st.recursive = recursive
-)");
+        st.works = "fine"
+        st.person = {name = 'John Doe', age = 25}
+        pet = {
+            type = "cat",
+            name = "Tomas",
+            real = "Яша",
+            owner = "Mama",
+            spec = { colour = "grey", legs = 4, eyes = 2 }
+        }
+        st.pet = pet
+        recursive = {}
+        recursive.next = recursive
+        recursive.prev = recursive
+        recursive.val = "recursive"
+        st.recursive = recursive
+    )");
 
     EXPECT_TRUE(res.valid());
     EXPECT_EQ(lua["st"]["person"]["name"], std::string("John Doe"));
@@ -216,21 +219,21 @@ TEST(sharedTable, stress) {
     lua["st"] = st;
 
     auto res1 = lua.script(R"(
-for i = 1, 1000000 do
-    st[i] = tostring(i)
-end
-)");
+        for i = 1, 1000000 do
+            st[i] = tostring(i)
+        end
+    )");
 
     EXPECT_TRUE(res1.valid());
-    EXPECT_TRUE(st.size() == 1'000'000);
+    EXPECT_TRUE(SharedTable::luaSize(st) == 1'000'000);
 
     auto res2 = lua.script(R"(
-for i = 1000000, 1, -1 do
-    st[i] = nil
-end
-)");
+        for i = 1000000, 1, -1 do
+            st[i] = nil
+        end
+    )");
     EXPECT_TRUE(res2.valid());
-    EXPECT_TRUE(st.size() == 0);
+    EXPECT_TRUE(SharedTable::luaSize(st) == 0);
 }
 
 TEST(sharedTable, stressWithThreads) {
@@ -263,4 +266,34 @@ TEST(sharedTable, stressWithThreads) {
     for (size_t i = 0; i < threadCount; i++) {
         EXPECT_TRUE(lua["st"][i] == 100'001) << (double)lua["st"][i] << std::endl;
     }
+}
+
+TEST(sharedTable, ExternalUserdata) {
+    SharedTable st;
+    sol::state lua;
+    bootstrapState(lua);
+    lua["st"] = st;
+
+    struct TestUserdata
+    {
+        int field;
+    };
+
+    lua["udata"] = TestUserdata{17};
+    EXPECT_THROW(lua.script("st.userdata = udata"), sol::error);
+}
+
+TEST(sharedTable, LightUserdata) {
+    SharedTable st;
+    sol::state lua;
+    bootstrapState(lua);
+    lua["st"] = st;
+
+    int lightUserdata = 19;
+    lua_pushlightuserdata(lua, (void*)&lightUserdata);
+    lua["light_udata"] = sol::stack::pop<sol::object>(lua);
+    EXPECT_TRUE((bool)lua.script("st.light_userdata = light_udata; return st.light_userdata == light_udata"));
+    std::string strRet = lua.script("return type(light_udata)");
+    EXPECT_EQ(strRet, "userdata");
+    EXPECT_EQ(lua["light_udata"].get<sol::lightuserdata_value>().value, &lightUserdata);
 }

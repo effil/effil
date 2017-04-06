@@ -1,5 +1,6 @@
 #include "stored-object.h"
 
+#include "threading.h"
 #include "shared-table.h"
 #include "utils.h"
 
@@ -144,8 +145,15 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<PrimitiveHolder<double>>(luaObject);
         case sol::type::string:
             return std::make_unique<PrimitiveHolder<std::string>>(luaObject);
+        case sol::type::lightuserdata:
+            return std::make_unique<PrimitiveHolder<void*>>(luaObject);
         case sol::type::userdata:
-            return std::make_unique<TableHolder>(luaObject);
+            if (luaObject.template is<SharedTable>())
+                return std::make_unique<TableHolder>(luaObject);
+            else if (luaObject.template is<std::shared_ptr<Thread>>())
+                return std::make_unique<PrimitiveHolder<std::shared_ptr<Thread>>>(luaObject);
+            else
+                throw Exception() << "Unable to store userdata object\n";
         case sol::type::function:
             return std::make_unique<FunctionHolder>(luaObject);
         case sol::type::table: {

@@ -16,7 +16,12 @@ local api = {
     table = capi.table,
     thread_id = capi.thread_id,
     sleep = capi.sleep,
-    yield = capi.yield
+    yield = capi.yield,
+    size = capi.size,
+    rawget = capi.rawget,
+    rawset = capi.rawset,
+    setmetatable = capi.setmetatable,
+    getmetatable = capi.getmetatable,
 }
 
 local function run_thread(config, f, ...)
