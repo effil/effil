@@ -30,7 +30,7 @@ private:
 } // effil
 
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
-#define NDEBUG
+
 #ifdef NDEBUG
 #define DEBUG if (false) std::cout
 #else

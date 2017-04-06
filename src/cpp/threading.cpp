@@ -56,7 +56,7 @@ public:
 
     sol::state lua;
     Status status;
-    MultipleReturn result;
+    StoredArray result;
 
     Notifier completion;
     // on thread resume
@@ -126,7 +126,7 @@ private:
 
 void runThread(std::shared_ptr<ThreadHandle> handle,
                std::string strFunction,
-               std::vector<sol::object> arguments) {
+               effil::StoredArray arguments) {
 
     ScopeGuard reportComplete([=](){
         DEBUG << "Finished " << std::endl;
@@ -138,7 +138,7 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
 
     try {
         sol::function userFuncObj = loadString(handle->lua, strFunction);
-        sol::function_result results = userFuncObj(sol::as_args(arguments));
+        sol::function_result results = userFuncObj(std::move(arguments));
         (void)results; // just leave all returns on the stack
         sol::variadic_args args(handle->lua, -lua_gettop(handle->lua));
         for (const auto& iter : args) {
@@ -202,12 +202,10 @@ Thread::Thread(const std::string& path,
 
     std::string strFunction = dumpFunction(function);
 
-    std::vector<sol::object> arguments;
+    effil::StoredArray arguments;
     for (const auto& arg : variadicArgs) {
-        StoredObject store = createStoredObject(arg.get<sol::object>());
-        arguments.push_back(store->unpack(sol::this_state{handle_->lua}));
+        arguments.emplace_back(createStoredObject(arg.get<sol::object>()));
     }
-
 
     std::thread thr(&runThread,
                     handle_,
@@ -259,13 +257,13 @@ std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
     return status(lua);
 }
 
-MultipleReturn Thread::get(const sol::optional<int>& duration,
+StoredArray Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
     bool completed = waitFor(duration, period);
     if (completed && handle_->status == Status::Completed)
         return handle_->result;
     else
-        return MultipleReturn();
+        return StoredArray();
 }
 
 bool Thread::cancel(const sol::this_state&,

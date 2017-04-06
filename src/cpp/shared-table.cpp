@@ -177,13 +177,13 @@ sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_sta
     return rawGet(luaKey, state);
 }
 
-MultipleReturn SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
+StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
     std::unique_lock<SpinMutex> lock(data_->lock);
     if (data_->metatable != GCNull) {
         sol::function handler = static_cast<SharedTable*>(getGC().get(data_->metatable))->get(createStoredObject(std::string("__call")), state);
         lock.unlock();
         if (handler.valid()) {
-            MultipleReturn storedResults;
+            StoredArray storedResults;
             const int savedStackTop = lua_gettop(state);
             sol::function_result callResults = handler(*this, args);
             (void)callResults;

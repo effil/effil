@@ -40,7 +40,7 @@ public:
     sol::object luaLength(sol::this_state state);
     PairsIterator luaPairs(sol::this_state);
     PairsIterator luaIPairs(sol::this_state);
-    MultipleReturn luaCall(sol::this_state state, const sol::variadic_args& args);
+    StoredArray luaCall(sol::this_state state, const sol::variadic_args& args);
     sol::object luaUnm(sol::this_state);
     static sol::object luaAdd(sol::this_state, const sol::stack_object&, const sol::stack_object&);
     static sol::object luaSub(sol::this_state, const sol::stack_object&, const sol::stack_object&);

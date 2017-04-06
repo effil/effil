@@ -27,7 +27,7 @@ public:
     std::pair<sol::object, sol::object> wait(const sol::this_state& state,
                                              const sol::optional<int>& duration,
                                              const sol::optional<std::string>& period);
-    MultipleReturn get(const sol::optional<int>& duration,
+    StoredArray get(const sol::optional<int>& duration,
                    const sol::optional<std::string>& period);
     bool cancel(const sol::this_state& state,
                 const sol::optional<int>& duration,
