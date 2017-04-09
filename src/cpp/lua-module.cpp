@@ -1,6 +1,7 @@
 #include "threading.h"
 #include "shared-table.h"
 #include "garbage-collector.h"
+#include "channel.h"
 
 #include <lua.hpp>
 
@@ -20,12 +21,15 @@ sol::object createThread(const sol::this_state& lua,
 
 sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
 
+sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) { return sol::make_object(lua, std::make_shared<Channel>(capacity)); }
+
 } // namespace
 
 extern "C" int luaopen_libeffil(lua_State* L) {
     sol::state_view lua(L);
     Thread::getUserType(lua);
     SharedTable::getUserType(lua);
+    Channel::getUserType(lua);
     sol::table publicApi = lua.create_table_with(
             "thread", createThread,
             "thread_id", threadId,
@@ -36,7 +40,8 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "rawget", SharedTable::luaRawGet,
             "size", SharedTable::luaSize,
             "setmetatable", SharedTable::luaSetMetatable,
-            "getmetatable", SharedTable::luaGetMetatable
+            "getmetatable", SharedTable::luaGetMetatable,
+            "channel", createChannel
     );
     sol::stack::push(lua, publicApi);
     return 1;

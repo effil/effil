@@ -22,6 +22,7 @@ local api = {
     rawset = capi.rawset,
     setmetatable = capi.setmetatable,
     getmetatable = capi.getmetatable,
+    channel = capi.channel,
 }
 
 local function run_thread(config, f, ...)
