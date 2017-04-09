@@ -105,6 +105,8 @@ sol::object getLuaGCApi(sol::state_view& lua) {
             case GCState::Paused:
                 return "paused";
         }
+        assert(false);
+        return "unknown";
     };
     api["step"] = [](sol::optional<int> newStep){
         if (newStep) {
