@@ -25,7 +25,7 @@ TEST(gc, GCObject) {
 }
 
 TEST(gc, collect) {
-    getGC().cleanup();
+    getGC().collect();
     ASSERT_EQ(getGC().size(), (size_t)0);
 
     {
@@ -35,7 +35,7 @@ TEST(gc, collect) {
         ;
     }
     EXPECT_EQ(getGC().size(), (size_t)2);
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)0);
 }
 
@@ -47,7 +47,7 @@ struct Dummy : public GCObject {
 }
 
 TEST(gc, withRefs) {
-    getGC().cleanup();
+    getGC().collect();
     {
         Dummy root = getGC().create<Dummy>();
 
@@ -59,10 +59,10 @@ TEST(gc, withRefs) {
             }
         }
         EXPECT_EQ(getGC().size(), (size_t)5);
-        getGC().cleanup();
+        getGC().collect();
         EXPECT_EQ(getGC().size(), (size_t)4);
     }
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)0);
 }
 
@@ -99,7 +99,7 @@ for i=1,1000 do
 st[i] = nil
 end
 )");
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)1);
 }
 
@@ -107,7 +107,7 @@ TEST(gc, cycles) {
     {
         sol::state lua;
         bootstrapState(lua);
-        getGC().cleanup();
+        getGC().collect();
 
         lua["st"] = getGC().create<SharedTable>();
         lua.script(R"(
@@ -121,10 +121,10 @@ st[5] = { flag = true }
         lua.script("st.parent = nil");
 
         lua.collect_garbage();
-        getGC().cleanup();
+        getGC().collect();
         EXPECT_EQ(getGC().size(), (size_t)3);
     }
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)0);
 }
 
@@ -139,7 +139,7 @@ TEST(gc, multipleStates) {
         lua1["st"] = st;
         lua2["st"] = st;
     }
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)1);
 
     lua1.script(R"(
@@ -152,13 +152,13 @@ st.men.car = st.car
 st.men.cat = st.cat
 st.men.fish = st.fish
 )");
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)5);
 
     lua2.script("copy = { st.men } st = nil");
     lua1.script("st = nil");
     lua1.collect_garbage();
     lua2.collect_garbage();
-    getGC().cleanup();
+    getGC().collect();
     EXPECT_EQ(getGC().size(), (size_t)4);
 }

@@ -29,10 +29,10 @@ bool GarbageCollector::has(GCObjectHandle handle) const {
 
 // Here is the naive tri-color marking
 // garbage collecting algorithm implementation.
-void GarbageCollector::cleanup() {
+void GarbageCollector::collect() {
     std::lock_guard<std::mutex> g(lock_);
 
-    if (state_ == GCState::Stopped)
+    if (state_ == GCState::Paused)
         return;
     assert(state_ != GCState::Running);
     state_ = GCState::Running;
@@ -68,21 +68,55 @@ size_t GarbageCollector::size() const {
     return objects_.size();
 }
 
-void GarbageCollector::stop() {
+void GarbageCollector::pause() {
     std::lock_guard<std::mutex> g(lock_);
-    assert(state_ == GCState::Idle || state_ == GCState::Stopped);
-    state_ = GCState::Stopped;
+    state_ = GCState::Paused;
 }
 
 void GarbageCollector::resume() {
     std::lock_guard<std::mutex> g(lock_);
-    assert(state_ == GCState::Idle || state_ == GCState::Stopped);
     state_ = GCState::Idle;
+}
+
+size_t GarbageCollector::count() {
+    std::lock_guard<std::mutex> g(lock_);
+    return objects_.size();
 }
 
 GarbageCollector& getGC() {
     static GarbageCollector pool;
     return pool;
+}
+
+sol::object getLuaGCApi(sol::state_view& lua) {
+    sol::table api = lua.create_table_with();
+    api["collect"] = [=] {
+        lua["collectgarbage"]();
+        getGC().collect();
+    };
+    api["pause"] = [] { getGC().pause(); };
+    api["resume"] = [] { getGC().resume(); };
+    api["status"] = [] {
+        switch (getGC().state()) {
+            case GCState::Idle:
+                return "idle";
+            case GCState::Running:
+                return "running";
+            case GCState::Paused:
+                return "paused";
+        }
+    };
+    api["step"] = [](sol::optional<int> newStep){
+        if (newStep) {
+            REQUIRE(*newStep <= 0) << "gc.step have to be > 0";
+            getGC().step(*newStep);
+        }
+        return getGC().step();
+    };
+    api["count"] = [] {
+        return getGC().count();
+    };
+    return api;
 }
 
 } // effil

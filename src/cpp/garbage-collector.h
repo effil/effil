@@ -2,6 +2,8 @@
 
 #include "spin-mutex.h"
 
+#include <sol.hpp>
+
 #include <mutex>
 #include <map>
 #include <set>
@@ -32,7 +34,7 @@ protected:
     std::shared_ptr<std::set<GCObjectHandle>> refs_;
 };
 
-enum class GCState { Idle, Running, Stopped };
+enum class GCState { Idle, Running, Paused };
 
 class GarbageCollector {
 public:
@@ -43,7 +45,7 @@ public:
     template <typename ObjectType, typename... Args>
     ObjectType create(Args&&... args) {
         if (lastCleanup_.fetch_add(1) == step_)
-            cleanup();
+            collect();
         auto object = std::make_shared<ObjectType>(std::forward<Args>(args)...);
 
         std::lock_guard<std::mutex> g(lock_);
@@ -53,13 +55,14 @@ public:
 
     GCObject* get(GCObjectHandle handle);
     bool has(GCObjectHandle handle) const;
-    void cleanup();
+    void collect();
     size_t size() const;
-    void stop();
+    void pause();
     void resume();
     size_t step() const { return step_; }
     void step(size_t newStep) { step_ = newStep; }
     GCState state() const { return state_; }
+    size_t count();
 
 private:
     mutable std::mutex lock_;
@@ -74,5 +77,7 @@ private:
 };
 
 GarbageCollector& getGC();
+
+sol::object getLuaGCApi(sol::state_view&);
 
 } // effil

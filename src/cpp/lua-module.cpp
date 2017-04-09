@@ -36,7 +36,8 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "rawget", SharedTable::luaRawGet,
             "size", SharedTable::luaSize,
             "setmetatable", SharedTable::luaSetMetatable,
-            "getmetatable", SharedTable::luaGetMetatable
+            "getmetatable", SharedTable::luaGetMetatable,
+            "gc", getLuaGCApi(lua)
     );
     sol::stack::push(lua, publicApi);
     return 1;
