@@ -21,7 +21,7 @@ sol::object createThread(const sol::this_state& lua,
 
 sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
 
-sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) { return sol::make_object(lua, std::make_shared<Channel>(capacity)); }
+sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) { return sol::make_object(lua, getGC().create<Channel>(capacity)); }
 
 } // namespace
 

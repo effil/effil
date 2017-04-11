@@ -1,4 +1,5 @@
 #include "stored-object.h"
+#include "channel.h"
 
 #include "threading.h"
 #include "shared-table.h"
@@ -73,24 +74,25 @@ private:
     std::string function_;
 };
 
-class TableHolder : public BaseHolder {
+template<typename T>
+class GCObjectHolder : public BaseHolder {
 public:
     template <typename SolType>
-    TableHolder(const SolType& luaObject) {
-        assert(luaObject.template is<SharedTable>());
-        handle_ = luaObject.template as<SharedTable>().handle();
+    GCObjectHolder(const SolType& luaObject) {
+        assert(luaObject.template is<T>());
+        handle_ = luaObject.template as<T>().handle();
         assert(getGC().has(handle_));
     }
 
-    TableHolder(GCObjectHandle handle)
+    GCObjectHolder(GCObjectHandle handle)
             : handle_(handle) {}
 
     bool rawCompare(const BaseHolder* other) const final {
-        return handle_ < static_cast<const TableHolder*>(other)->handle_;
+        return handle_ < static_cast<const GCObjectHolder*>(other)->handle_;
     }
 
     sol::object unpack(sol::this_state state) const final {
-        return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
+        return sol::make_object(state, *static_cast<T*>(getGC().get(handle_)));
     }
 
     GCObjectHandle gcHandle() const override { return handle_; }
@@ -149,7 +151,9 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<PrimitiveHolder<void*>>(luaObject);
         case sol::type::userdata:
             if (luaObject.template is<SharedTable>())
-                return std::make_unique<TableHolder>(luaObject);
+                return std::make_unique<GCObjectHolder<SharedTable>>(luaObject);
+            else if (luaObject.template is<Channel>())
+                return std::make_unique<GCObjectHolder<Channel>>(luaObject);
             else if (luaObject.template is<std::shared_ptr<Thread>>())
                 return std::make_unique<PrimitiveHolder<std::shared_ptr<Thread>>>(luaObject);
             else
@@ -167,7 +171,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
             dumpTable(&table, luaTable, visited);
-            return std::make_unique<TableHolder>(table.handle());
+            return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
         }
         default:
             throw Exception() << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
@@ -193,7 +197,7 @@ StoredObject createStoredObject(const sol::object& object) { return fromSolObjec
 
 StoredObject createStoredObject(const sol::stack_object& object) { return fromSolObject(object); }
 
-StoredObject createStoredObject(GCObjectHandle handle) { return std::make_unique<TableHolder>(handle); }
+//StoredObject createStoredObject(GCObjectHandle handle) { return std::make_unique<TableHolder>(handle); }
 
 template <typename DataType>
 sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
