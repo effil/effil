@@ -7,13 +7,12 @@
 
 namespace effil {
 
-GarbageCollector::GarbageCollector()
-        : state_(GCState::Idle)
+GC::GC()
+        : state_(State::Idle)
         , lastCleanup_(0)
         , step_(200) {}
 
-GCObject* GarbageCollector::get(GCObjectHandle handle) {
-    std::lock_guard<std::mutex> g(lock_);
+GCObject* GC::findObject(GCObjectHandle handle) {
     auto it = objects_.find(handle);
     if (it == objects_.end()) {
         DEBUG << "Null handle " << handle << std::endl;
@@ -22,20 +21,20 @@ GCObject* GarbageCollector::get(GCObjectHandle handle) {
     return it->second.get();
 }
 
-bool GarbageCollector::has(GCObjectHandle handle) const {
+bool GC::has(GCObjectHandle handle) const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.find(handle) != objects_.end();
 }
 
 // Here is the naive tri-color marking
 // garbage collecting algorithm implementation.
-void GarbageCollector::collect() {
+void GC::collect() {
     std::lock_guard<std::mutex> g(lock_);
 
-    if (state_ == GCState::Paused)
+    if (state_ == State::Paused)
         return;
-    assert(state_ != GCState::Running);
-    state_ = GCState::Running;
+    assert(state_ != State::Running);
+    state_ = State::Running;
 
     std::vector<GCObjectHandle> grey;
     std::map<GCObjectHandle, std::shared_ptr<GCObject>> black;
@@ -59,64 +58,64 @@ void GarbageCollector::collect() {
     // Sweep phase
     objects_ = std::move(black);
 
-    state_ = GCState::Idle;
+    state_ = State::Idle;
     lastCleanup_.store(0);
 }
 
-size_t GarbageCollector::size() const {
+size_t GC::size() const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.size();
 }
 
-void GarbageCollector::pause() {
+void GC::pause() {
     std::lock_guard<std::mutex> g(lock_);
-    state_ = GCState::Paused;
+    state_ = State::Paused;
 }
 
-void GarbageCollector::resume() {
+void GC::resume() {
     std::lock_guard<std::mutex> g(lock_);
-    state_ = GCState::Idle;
+    state_ = State::Idle;
 }
 
-size_t GarbageCollector::count() {
+size_t GC::count() {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.size();
 }
 
-GarbageCollector& getGC() {
-    static GarbageCollector pool;
+GC& GC::instance() {
+    static GC pool;
     return pool;
 }
 
-sol::object getLuaGCApi(sol::state_view& lua) {
+sol::table GC::getLuaApi(sol::state_view& lua) {
     sol::table api = lua.create_table_with();
     api["collect"] = [=] {
-        getGC().collect();
+        instance().collect();
     };
-    api["pause"] = [] { getGC().pause(); };
-    api["resume"] = [] { getGC().resume(); };
+    api["pause"] = [] { instance().pause(); };
+    api["resume"] = [] { instance().resume(); };
     api["status"] = [] {
-        switch (getGC().state()) {
-            case GCState::Idle:
+        switch (instance().state()) {
+            case State::Idle:
                 return "idle";
-            case GCState::Running:
+            case State::Running:
                 return "running";
-            case GCState::Paused:
+            case State::Paused:
                 return "paused";
         }
         assert(false);
         return "unknown";
     };
     api["step"] = [](sol::optional<int> newStep){
-        auto previous = getGC().step();
+        auto previous = instance().step();
         if (newStep) {
             REQUIRE(*newStep <= 0) << "gc.step have to be > 0";
-            getGC().step(*newStep);
+            instance().step(static_cast<size_t>(*newStep));
         }
         return previous;
     };
     api["count"] = [] {
-        return getGC().count();
+        return instance().count();
     };
     return api;
 }

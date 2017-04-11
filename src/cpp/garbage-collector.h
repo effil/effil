@@ -34,12 +34,17 @@ protected:
     std::shared_ptr<std::set<GCObjectHandle>> refs_;
 };
 
-enum class GCState { Idle, Running, Paused };
-
-class GarbageCollector {
+class GC {
 public:
-    GarbageCollector();
-    ~GarbageCollector() = default;
+    enum class State {
+        Idle,
+        Running,
+        Paused
+    };
+
+public:
+    GC();
+    ~GC() = default;
 
     // This method is used to create all managed objects.
     template <typename ObjectType, typename... Args>
@@ -53,31 +58,39 @@ public:
         return *object;
     }
 
-    GCObject* get(GCObjectHandle handle);
+    template <typename ObjectType>
+    ObjectType get(GCObjectHandle handle) {
+        std::lock_guard<std::mutex> g(lock_);
+        // TODO: add dynamic cast to check?
+        return *static_cast<ObjectType*>(findObject(handle));
+    }
     bool has(GCObjectHandle handle) const;
+
     void collect();
     size_t size() const;
     void pause();
     void resume();
     size_t step() const { return step_; }
     void step(size_t newStep) { step_ = newStep; }
-    GCState state() const { return state_; }
+    State state() const { return state_; }
     size_t count();
+
+    static GC& instance();
+    static sol::table getLuaApi(sol::state_view& lua);
 
 private:
     mutable std::mutex lock_;
-    GCState state_;
+    State state_;
     std::atomic<size_t> lastCleanup_;
     size_t step_;
     std::map<GCObjectHandle, std::shared_ptr<GCObject>> objects_;
 
 private:
-    GarbageCollector(GarbageCollector&&) = delete;
-    GarbageCollector(const GarbageCollector&) = delete;
+    GCObject* findObject(GCObjectHandle handle);
+
+private:
+    GC(GC&&) = delete;
+    GC(const GC&) = delete;
 };
-
-GarbageCollector& getGC();
-
-sol::object getLuaGCApi(sol::state_view&);
 
 } // effil

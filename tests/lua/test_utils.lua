@@ -46,6 +46,9 @@ end
 
 function tearDown()
     collectgarbage()
+    local gc = require("effil").gc
+    gc.collect()
+    test.assertEquals(gc.count(), 0)
 end
 
 function make_test_with_param(test_suite, test_case_pattern, ...)
