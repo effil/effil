@@ -88,7 +88,7 @@ public:
             : handle_(handle) {}
 
     bool rawCompare(const BaseHolder* other) const final {
-        return handle_ < static_cast<const GCObjectHolder*>(other)->handle_;
+        return handle_ < static_cast<const GCObjectHolder<T>*>(other)->handle_;
     }
 
     sol::object unpack(sol::this_state state) const final {
@@ -120,9 +120,9 @@ StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) 
             SharedTable table = getGC().create<SharedTable>();
             visited.emplace_back(std::make_pair(luaTable, table.handle()));
             dumpTable(&table, luaTable, visited);
-            return createStoredObject(table.handle());
+            return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
         } else {
-            return createStoredObject(st->second);
+            return std::make_unique<GCObjectHolder<SharedTable>>(st->second);
         }
     } else {
         return createStoredObject(luaObject);
@@ -196,8 +196,6 @@ StoredObject createStoredObject(const char* value) {
 StoredObject createStoredObject(const sol::object& object) { return fromSolObject(object); }
 
 StoredObject createStoredObject(const sol::stack_object& object) { return fromSolObject(object); }
-
-//StoredObject createStoredObject(GCObjectHandle handle) { return std::make_unique<TableHolder>(handle); }
 
 template <typename DataType>
 sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {

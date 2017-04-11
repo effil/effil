@@ -65,7 +65,7 @@ StoredArray Channel::read(const sol::optional<int>& duration,
         if (!data_->channel_.size())
             data_->notifier_.reset();
         data_->lock_.unlock();
-        return std::move(ret);
+        return ret;
     }
     data_->lock_.unlock();
     return StoredArray();
