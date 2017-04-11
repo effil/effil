@@ -4,6 +4,7 @@ local gc = effil.gc
 TestGC = {tearDown = tearDown }
 
 function TestGC:testCleanup()
+    collectgarbage()
     gc.collect()
     test.assertEquals(gc.count(), 0)
 
@@ -11,12 +12,15 @@ function TestGC:testCleanup()
         local tmp = effil.table()
     end
 
+    collectgarbage()
     gc.collect()
     test.assertEquals(gc.count(), 0)
 end
 
 function TestGC:testDisableGC()
     local nobjects = 10000
+
+    collectgarbage()
     gc.collect()
     test.assertEquals(gc.count(), 0)
 
@@ -28,10 +32,12 @@ function TestGC:testDisableGC()
     end
 
     test.assertEquals(gc.count(), nobjects)
+    collectgarbage()
     gc.collect()
     test.assertEquals(gc.count(), nobjects)
 
     gc.resume()
+    collectgarbage()
     gc.collect()
     test.assertEquals(gc.count(), 0)
 end

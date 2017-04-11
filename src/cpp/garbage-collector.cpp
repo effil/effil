@@ -91,7 +91,6 @@ GarbageCollector& getGC() {
 sol::object getLuaGCApi(sol::state_view& lua) {
     sol::table api = lua.create_table_with();
     api["collect"] = [=] {
-        lua["collectgarbage"]();
         getGC().collect();
     };
     api["pause"] = [] { getGC().pause(); };
@@ -109,11 +108,12 @@ sol::object getLuaGCApi(sol::state_view& lua) {
         return "unknown";
     };
     api["step"] = [](sol::optional<int> newStep){
+        auto previous = getGC().step();
         if (newStep) {
             REQUIRE(*newStep <= 0) << "gc.step have to be > 0";
             getGC().step(*newStep);
         }
-        return getGC().step();
+        return previous;
     };
     api["count"] = [] {
         return getGC().count();
