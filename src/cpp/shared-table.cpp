@@ -104,7 +104,7 @@ sol::object SharedTable::rawGet(const sol::stack_object& luaKey, sol::this_state
     { \
         std::unique_lock<SpinMutex> lock(data_->lock); \
         if (data_->metatable != GCNull) { \
-            SharedTable tableHolder = *static_cast<SharedTable*>(getGC().get(data_->metatable)); \
+            auto tableHolder = GC::instance().get<SharedTable>(data_->metatable); \
             lock.unlock(); \
             sol::function handler = tableHolder.get(createStoredObject(methodName), state); \
             if (handler.valid()) { \
@@ -160,7 +160,7 @@ void SharedTable::luaNewIndex(const sol::stack_object& luaKey, const sol::stack_
     {
         std::unique_lock<SpinMutex> lock(data_->lock);
         if (data_->metatable != GCNull) {
-            SharedTable tableHolder = *static_cast<SharedTable*>(getGC().get(data_->metatable));
+            auto tableHolder = GC::instance().get<SharedTable>(data_->metatable);
             lock.unlock();
             sol::function handler = tableHolder.get(createStoredObject("__newindex"), state);
             if (handler.valid()) {
@@ -180,7 +180,8 @@ sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_sta
 StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
     std::unique_lock<SpinMutex> lock(data_->lock);
     if (data_->metatable != GCNull) {
-        sol::function handler = static_cast<SharedTable*>(getGC().get(data_->metatable))->get(createStoredObject(std::string("__call")), state);
+        auto metatable = GC::instance().get<SharedTable>(data_->metatable);
+        sol::function handler = metatable.get(createStoredObject(std::string("__call")), state);
         lock.unlock();
         if (handler.valid()) {
             StoredArray storedResults;
@@ -280,7 +281,7 @@ SharedTable SharedTable::luaSetMetatable(SharedTable& stable, const sol::stack_o
 sol::object SharedTable::luaGetMetatable(const SharedTable& stable, sol::this_state state) {
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
     return stable.data_->metatable == GCNull ? sol::nil :
-            sol::make_object(state, *static_cast<SharedTable*>(getGC().get(stable.data_->metatable)));
+            sol::make_object(state, GC::instance().get<SharedTable>(stable.data_->metatable));
 }
 
 sol::object SharedTable::luaRawGet(const SharedTable& stable, const sol::stack_object& key, sol::this_state state) {

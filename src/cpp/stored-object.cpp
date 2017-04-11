@@ -79,7 +79,7 @@ public:
     TableHolder(const SolType& luaObject) {
         assert(luaObject.template is<SharedTable>());
         handle_ = luaObject.template as<SharedTable>().handle();
-        assert(getGC().has(handle_));
+        assert(GC::instance().has(handle_));
     }
 
     TableHolder(GCObjectHandle handle)
@@ -90,7 +90,7 @@ public:
     }
 
     sol::object unpack(sol::this_state state) const final {
-        return sol::make_object(state, *static_cast<SharedTable*>(getGC().get(handle_)));
+        return sol::make_object(state, GC::instance().get<SharedTable>(handle_));
     }
 
     GCObjectHandle gcHandle() const override { return handle_; }
@@ -115,7 +115,7 @@ StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) 
         auto st = std::find_if(visited.begin(), visited.end(), comparator);
 
         if (st == std::end(visited)) {
-            SharedTable table = getGC().create<SharedTable>();
+            SharedTable table = GC::instance().create<SharedTable>();
             visited.emplace_back(std::make_pair(luaTable, table.handle()));
             dumpTable(&table, luaTable, visited);
             return createStoredObject(table.handle());
@@ -160,7 +160,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             sol::table luaTable = luaObject;
             // Tables pool is used to store tables.
             // Right now not defiantly clear how ownership between states works.
-            SharedTable table = getGC().create<SharedTable>();
+            SharedTable table = GC::instance().create<SharedTable>();
             SolTableToShared visited{{luaTable, table.handle()}};
 
             // Let's dump table and all subtables
