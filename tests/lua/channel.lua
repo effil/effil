@@ -101,7 +101,7 @@ function TestChannels:testTimedRead()
 
     local start_time = os.time()
     test.assertEquals(chan:read(10), "hello!")
-    test.assertTrue(os.time() < start_time + 7)
+    test.assertTrue(os.time() < start_time + 10)
 end
 
 end -- WITH_EXTRA_CHECKS
