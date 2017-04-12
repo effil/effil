@@ -20,6 +20,8 @@ sol::object createThread(const sol::this_state& lua,
 
 sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
 
+SharedTable globalTable = getGC().create<SharedTable>();
+
 } // namespace
 
 extern "C" int luaopen_libeffil(lua_State* L) {
@@ -36,7 +38,8 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "rawget", SharedTable::luaRawGet,
             "size", SharedTable::luaSize,
             "setmetatable", SharedTable::luaSetMetatable,
-            "getmetatable", SharedTable::luaGetMetatable
+            "getmetatable", SharedTable::luaGetMetatable,
+            "G", sol::make_object(lua, globalTable)
     );
     sol::stack::push(lua, publicApi);
     return 1;
