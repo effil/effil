@@ -26,7 +26,7 @@ TEST(gc, GCObject) {
 
 TEST(gc, collect) {
     getGC().cleanup();
-    ASSERT_EQ(getGC().size(), (size_t)0);
+    ASSERT_EQ(getGC().size(), (size_t)1);
 
     {
         GCObject o1 = getGC().create<GCObject>();
@@ -34,9 +34,9 @@ TEST(gc, collect) {
         GCObject o2 = getGC().create<GCObject>();
         ;
     }
-    EXPECT_EQ(getGC().size(), (size_t)2);
+    EXPECT_EQ(getGC().size(), (size_t)3);
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)0);
+    EXPECT_EQ(getGC().size(), (size_t)1);
 }
 
 namespace {
@@ -58,12 +58,12 @@ TEST(gc, withRefs) {
                 root.add(child.handle());
             }
         }
-        EXPECT_EQ(getGC().size(), (size_t)5);
+        EXPECT_EQ(getGC().size(), (size_t)6);
         getGC().cleanup();
-        EXPECT_EQ(getGC().size(), (size_t)4);
+        EXPECT_EQ(getGC().size(), (size_t)5);
     }
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)0);
+    EXPECT_EQ(getGC().size(), (size_t)1);
 }
 
 TEST(gc, autoCleanup) {
@@ -92,7 +92,7 @@ for i=1,1000 do
 st[i] = {"Wow"}
 end
 )");
-    EXPECT_EQ(getGC().size(), (size_t)1001);
+    EXPECT_EQ(getGC().size(), (size_t)1002);
 
     lua.script(R"(
 for i=1,1000 do
@@ -100,7 +100,7 @@ st[i] = nil
 end
 )");
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)1);
+    EXPECT_EQ(getGC().size(), (size_t)2);
 }
 
 TEST(gc, cycles) {
@@ -116,16 +116,16 @@ st.parent.child = { ref = st.parent }
 st[4] = { one = 1 }
 st[5] = { flag = true }
 )");
-        EXPECT_EQ(getGC().size(), (size_t)5);
+        EXPECT_EQ(getGC().size(), (size_t)6);
 
         lua.script("st.parent = nil");
 
         lua.collect_garbage();
         getGC().cleanup();
-        EXPECT_EQ(getGC().size(), (size_t)3);
+        EXPECT_EQ(getGC().size(), (size_t)4);
     }
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)0);
+    EXPECT_EQ(getGC().size(), (size_t)1);
 }
 
 TEST(gc, multipleStates) {
@@ -140,7 +140,7 @@ TEST(gc, multipleStates) {
         lua2["st"] = st;
     }
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)1);
+    EXPECT_EQ(getGC().size(), (size_t)2);
 
     lua1.script(R"(
 st.men = { name = "John", age = 22 }
@@ -153,12 +153,12 @@ st.men.cat = st.cat
 st.men.fish = st.fish
 )");
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)5);
+    EXPECT_EQ(getGC().size(), (size_t)6);
 
     lua2.script("copy = { st.men } st = nil");
     lua1.script("st = nil");
     lua1.collect_garbage();
     lua2.collect_garbage();
     getGC().cleanup();
-    EXPECT_EQ(getGC().size(), (size_t)4);
+    EXPECT_EQ(getGC().size(), (size_t)5);
 }

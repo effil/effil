@@ -249,3 +249,21 @@ function TestSharedTableWithMetaTable:testMetatableAsSharedTable()
     share.table_key = "table_value"
     test.assertEquals(share.table_key, "mt_table_value")
 end
+
+function TestSharedTable:testGlobalTable()
+    test.assertNotEquals(effil.G, nil)
+    effil.G.test_key = "test_value"
+    local thr = effil.thread(function()
+            local effil = require "effil"
+            if effil.G == nil or effil.G.test_key ~= "test_value" then
+                error("Invalid value of global table: " .. tostring(effil.G and effil.G.test_key or nil))
+            end
+            effil.G.test_key = "checked"
+        end)()
+    local status, err = thr:wait()
+    if status == "failed" then
+        print("Thread failed with message: " .. err)
+    end
+    test.assertEquals(status, "completed")
+    test.assertEquals(effil.G.test_key, "checked")
+end
