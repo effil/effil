@@ -23,6 +23,8 @@ sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getG
 
 sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) { return sol::make_object(lua, getGC().create<Channel>(capacity)); }
 
+SharedTable globalTable = getGC().create<SharedTable>();
+
 } // namespace
 
 extern "C" int luaopen_libeffil(lua_State* L) {
@@ -41,6 +43,7 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "size", SharedTable::luaSize,
             "setmetatable", SharedTable::luaSetMetatable,
             "getmetatable", SharedTable::luaGetMetatable,
+            "G", sol::make_object(lua, globalTable),
             "channel", createChannel
     );
     sol::stack::push(lua, publicApi);
