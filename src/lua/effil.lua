@@ -26,21 +26,19 @@ local api = {
 }
 
 local function run_thread(config, f, ...)
-    return capi.thread(config.path, config.cpath, config.managed, config.step, f, ...)
+    return capi.thread(config.path, config.cpath, config.step, f, ...)
 end
 
 -- Creates thread runner with given function
 -- configurable parameters:
 --     path - lua modules search path in child thread
 --     cpath - lua libs search path in child thread
---     stepwise - is thread resumable
 --     step - who fast reacte on state changing
 --     __call - run thread, can be invoked multiple times
 api.thread = function (f)
     local thread_config = {
         path = package.path,
         cpath = package.cpath,
-        managed = true,
         step = 200 }
     setmetatable(thread_config, {__call = function(c, ...) return run_thread(c, f, ...) end})
     return thread_config

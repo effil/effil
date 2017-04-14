@@ -11,11 +11,10 @@ namespace {
 sol::object createThread(const sol::this_state& lua,
                          const std::string& path,
                          const std::string& cpath,
-                         bool stepwise,
-                         unsigned int step,
+                         int step,
                          const sol::function& function,
                          const sol::variadic_args& args) {
-    return sol::make_object(lua, std::make_shared<Thread>(path, cpath, stepwise, step, function, args));
+    return sol::make_object(lua, std::make_shared<Thread>(path, cpath, step, function, args));
 }
 
 sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
