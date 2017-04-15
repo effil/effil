@@ -12,7 +12,7 @@ end
 
 function TestChannels:testWithThread()
     local chan = effil.channel()
-    effil.thread(function(chan)
+    local thread = effil.thread(function(chan)
             chan:write("message1")
             chan:write("message2")
             chan:write("message3")
@@ -22,6 +22,7 @@ function TestChannels:testWithThread()
 
     local start_time = os.time()
     test.assertEquals(chan:read(),       "message1")
+    thread:wait()
     test.assertEquals(chan:read(0),      "message2")
     test.assertEquals(chan:read(1),      "message3")
     test.assertEquals(chan:read(1, 'm'), "message4")
