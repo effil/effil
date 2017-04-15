@@ -14,4 +14,4 @@ std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::str
     else throw sol::error("invalid time identification: " + metric);
 }
 
-}
+} // namespace effil

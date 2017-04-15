@@ -14,8 +14,13 @@ void Channel::getUserType(sol::state_view& lua) {
 }
 
 Channel::Channel(sol::optional<int> capacity) : data_(std::make_shared<SharedData>()){
-    REQUIRE((!capacity) || (capacity.value() >= 0)) << "Invalid capacity value = " << capacity.value();
-    data_->capacity_ = static_cast<size_t>(capacity.value_or(0));
+    if (capacity) {
+        REQUIRE(capacity.value() >= 0) << "Invalid capacity value = " << capacity.value();
+        data_->capacity_ = static_cast<size_t>(capacity.value());
+    }
+    else {
+        data_->capacity_ = 0;
+    }
 }
 
 bool Channel::write(const sol::variadic_args& args) {
@@ -23,7 +28,7 @@ bool Channel::write(const sol::variadic_args& args) {
         return false;
 
     std::unique_lock<std::mutex> lock(data_->lock_);
-    if (data_->capacity_ && data_->channel_.size() >= (size_t)data_->capacity_)
+    if (data_->capacity_ && data_->channel_.size() >= data_->capacity_)
         return false;
     effil::StoredArray array;
     for (const auto& arg : args) {
@@ -40,35 +45,33 @@ bool Channel::write(const sol::variadic_args& args) {
 
 StoredArray Channel::read(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
-    bool waitUnlimitedly = !static_cast<bool>(duration);
-    data_->lock_.lock();
+    bool waitUnlimitedly = !duration;
+    std::unique_lock<std::mutex> lock(data_->lock_);
     bool isEmpty = !data_->channel_.size();
     if (isEmpty)
     {
         do {
-            data_->lock_.unlock();
+            lock.unlock();
             if (waitUnlimitedly)
                 data_->notifier_.wait();
             else
                 data_->notifier_.waitFor(fromLuaTime(duration.value(), period));
-            data_->lock_.lock();
+            lock.lock();
             isEmpty = !data_->channel_.size();
         } while (isEmpty && waitUnlimitedly);
     }
-    if (!isEmpty) {
-        auto ret = data_->channel_.front();
-        for (const auto& obj: ret) {
-            if (obj->gcHandle())
-                refs_->erase(obj->gcHandle());
-        }
-        data_->channel_.pop();
-        if (!data_->channel_.size())
-            data_->notifier_.reset();
-        data_->lock_.unlock();
-        return ret;
+    if (isEmpty)
+        return StoredArray();
+
+    auto ret = data_->channel_.front();
+    for (const auto& obj: ret) {
+        if (obj->gcHandle())
+            refs_->erase(obj->gcHandle());
     }
-    data_->lock_.unlock();
-    return StoredArray();
+    data_->channel_.pop();
+    if (!data_->channel_.size())
+        data_->notifier_.reset();
+    return ret;
 }
 
 }

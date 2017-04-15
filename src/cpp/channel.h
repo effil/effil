@@ -18,10 +18,10 @@ public:
 
 protected:
     struct SharedData {
+        std::mutex lock_;
         size_t capacity_;
         Notifier notifier_;
         std::queue<StoredArray> channel_;
-        std::mutex lock_;
     };
 
     std::shared_ptr<SharedData> data_;

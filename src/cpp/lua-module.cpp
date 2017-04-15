@@ -21,7 +21,9 @@ sol::object createThread(const sol::this_state& lua,
 
 sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
 
-sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) { return sol::make_object(lua, getGC().create<Channel>(capacity)); }
+sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) {
+    return sol::make_object(lua, getGC().create<Channel>(capacity));
+}
 
 SharedTable globalTable = getGC().create<SharedTable>();
 
