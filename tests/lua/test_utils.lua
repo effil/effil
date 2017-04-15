@@ -46,6 +46,10 @@ end
 
 function tearDown()
     collectgarbage()
+    effil.gc.collect()
+    -- effil.G is always present
+    -- thus, gc has one object
+    test.assertEquals(effil.gc.count(), 1)
 end
 
 function make_test_with_param(test_suite, test_case_pattern, ...)

@@ -54,7 +54,6 @@ class ThreadHandle {
 public:
     const bool managed;
 
-    sol::state lua;
     Status status;
     StoredArray result;
 
@@ -68,8 +67,9 @@ public:
     ThreadHandle(bool isManaged)
             : managed(isManaged)
             , status(Status::Running)
-            , command_(Command::Run) {
-        luaL_openlibs(lua);
+            , command_(Command::Run)
+            , lua_(std::make_unique<sol::state>()) {
+        luaL_openlibs(*lua_);
     }
 
     Command command() const { return command_; }
@@ -81,9 +81,18 @@ public:
         command_ = cmd;
     }
 
+    sol::state& lua() {
+        assert(lua_);
+        return  *lua_;
+    }
+
+    void destroyLua() { lua_.reset(); }
+
 private:
     SpinMutex commandMutex_;
     Command command_;
+
+    std::unique_ptr<sol::state> lua_;
 };
 
 namespace  {
@@ -112,13 +121,8 @@ void luaHook(lua_State*, lua_Debug*) {
 
 class ScopeGuard {
 public:
-    ScopeGuard(const std::function<void()>& f)
-            : f_(f) {
-    }
-
-    ~ScopeGuard() {
-        f_();
-    }
+    ScopeGuard(const std::function<void()>& f) : f_(f) {}
+    ~ScopeGuard() { f_(); }
 
 private:
     std::function<void()> f_;
@@ -130,6 +134,9 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
 
     ScopeGuard reportComplete([=](){
         DEBUG << "Finished " << std::endl;
+        // Let's destroy accociated state
+        // to release all resources as soon as possible
+        handle->destroyLua();
         handle->completion.notify();
     });
 
@@ -137,10 +144,10 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
     thisThreadHandle = handle.get();
 
     try {
-        sol::function userFuncObj = loadString(handle->lua, strFunction);
+        sol::function userFuncObj = loadString(handle->lua(), strFunction);
         sol::function_result results = userFuncObj(std::move(arguments));
         (void)results; // just leave all returns on the stack
-        sol::variadic_args args(handle->lua, -lua_gettop(handle->lua));
+        sol::variadic_args args(handle->lua(), -lua_gettop(handle->lua()));
         for (const auto& iter : args) {
             StoredObject store = createStoredObject(iter.get<sol::object>());
             handle->result.emplace_back(std::move(store));
@@ -193,12 +200,12 @@ Thread::Thread(const std::string& path,
        const sol::variadic_args& variadicArgs)
         : handle_(std::make_shared<ThreadHandle>(managed)) {
 
-    handle_->lua["package"]["path"] = path;
-    handle_->lua["package"]["cpath"] = cpath;
-    handle_->lua.script("require 'effil'");
+    handle_->lua()["package"]["path"] = path;
+    handle_->lua()["package"]["cpath"] = cpath;
+    handle_->lua().script("require 'effil'");
 
     if (managed)
-        lua_sethook(handle_->lua, luaHook, LUA_MASKCOUNT, step);
+        lua_sethook(handle_->lua(), luaHook, LUA_MASKCOUNT, step);
 
     std::string strFunction = dumpFunction(function);
 
