@@ -12,15 +12,15 @@ public:
     Channel(sol::optional<int> capacity);
     static void getUserType(sol::state_view& lua);
 
-    bool write(const sol::variadic_args& args);
-    StoredArray read(const sol::optional<int>& duration,
+    bool push(const sol::variadic_args& args);
+    StoredArray pop(const sol::optional<int>& duration,
                      const sol::optional<std::string>& period);
 
 protected:
     struct SharedData {
         std::mutex lock_;
+        std::condition_variable cv_;
         size_t capacity_;
-        Notifier notifier_;
         std::queue<StoredArray> channel_;
     };
 

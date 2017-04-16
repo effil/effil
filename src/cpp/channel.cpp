@@ -6,8 +6,8 @@ namespace effil {
 
 void Channel::getUserType(sol::state_view& lua) {
     sol::usertype<Channel> type("new", sol::no_constructor,
-        "write",  &Channel::write,
-        "read",  &Channel::read
+        "push",  &Channel::push,
+        "pop",  &Channel::pop
     );
     sol::stack::push(lua, type);
     sol::stack::pop<sol::object>(lua);
@@ -23,7 +23,7 @@ Channel::Channel(sol::optional<int> capacity) : data_(std::make_shared<SharedDat
     }
 }
 
-bool Channel::write(const sol::variadic_args& args) {
+bool Channel::push(const sol::variadic_args& args) {
     if (!args.leftover_count())
         return false;
 
@@ -38,30 +38,23 @@ bool Channel::write(const sol::variadic_args& args) {
         array.emplace_back(obj);
     }
     if (data_->channel_.empty())
-        data_->notifier_.notify();
+        data_->cv_.notify_one();
     data_->channel_.emplace(array);
     return true;
 }
 
-StoredArray Channel::read(const sol::optional<int>& duration,
+StoredArray Channel::pop(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
-    bool waitUnlimitedly = !duration;
     std::unique_lock<std::mutex> lock(data_->lock_);
-    bool isEmpty = !data_->channel_.size();
-    if (isEmpty)
-    {
-        do {
-            lock.unlock();
-            if (waitUnlimitedly)
-                data_->notifier_.wait();
-            else
-                data_->notifier_.waitFor(fromLuaTime(duration.value(), period));
-            lock.lock();
-            isEmpty = !data_->channel_.size();
-        } while (isEmpty && waitUnlimitedly);
+    while (data_->channel_.empty()) {
+        if (duration) {
+            if (data_->cv_.wait_for(lock, fromLuaTime(duration.value(), period)) == std::cv_status::timeout)
+                return StoredArray();
+        }
+        else { // No time limit
+            data_->cv_.wait(lock);
+        }
     }
-    if (isEmpty)
-        return StoredArray();
 
     auto ret = data_->channel_.front();
     for (const auto& obj: ret) {
@@ -69,9 +62,7 @@ StoredArray Channel::read(const sol::optional<int>& duration,
             refs_->erase(obj->gcHandle());
     }
     data_->channel_.pop();
-    if (!data_->channel_.size())
-        data_->notifier_.reset();
     return ret;
 }
 
-}
+} // namespace effil
