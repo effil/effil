@@ -36,6 +36,7 @@ require 'thread'
 require 'shared_table'
 require 'gc'
 require 'channel'
+require 'type'
 
 -- Hack tests functions to print when test starts
 for suite_name, suite in pairs(_G) do
