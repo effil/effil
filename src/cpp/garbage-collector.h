@@ -2,6 +2,8 @@
 
 #include "spin-mutex.h"
 
+#include <sol.hpp>
+
 #include <mutex>
 #include <map>
 #include <set>
@@ -32,18 +34,17 @@ protected:
     std::shared_ptr<std::set<GCObjectHandle>> refs_;
 };
 
-enum class GCState { Idle, Running, Stopped };
-
-class GarbageCollector {
+class GC {
 public:
-    GarbageCollector();
-    ~GarbageCollector() = default;
+    GC();
+    ~GC() = default;
 
     // This method is used to create all managed objects.
     template <typename ObjectType, typename... Args>
     ObjectType create(Args&&... args) {
-        if (lastCleanup_.fetch_add(1) == step_)
-            cleanup();
+        if (enabled_ && lastCleanup_.fetch_add(1) == step_)
+                collect();
+
         auto object = std::make_shared<ObjectType>(std::forward<Args>(args)...);
 
         std::lock_guard<std::mutex> g(lock_);
@@ -51,28 +52,39 @@ public:
         return *object;
     }
 
-    GCObject* get(GCObjectHandle handle);
+    template <typename ObjectType>
+    ObjectType get(GCObjectHandle handle) {
+        std::lock_guard<std::mutex> g(lock_);
+        // TODO: add dynamic cast to check?
+        return *static_cast<ObjectType*>(findObject(handle));
+    }
     bool has(GCObjectHandle handle) const;
-    void cleanup();
+
+    void collect();
     size_t size() const;
-    void stop();
-    void resume();
+    void pause() { enabled_ = false; };
+    void resume() { enabled_ = true; };
     size_t step() const { return step_; }
     void step(size_t newStep) { step_ = newStep; }
-    GCState state() const { return state_; }
+    bool enabled() { return enabled_; };
+    size_t count();
+
+    static GC& instance();
+    static sol::table getLuaApi(sol::state_view& lua);
 
 private:
     mutable std::mutex lock_;
-    GCState state_;
+    bool enabled_;
     std::atomic<size_t> lastCleanup_;
     size_t step_;
     std::map<GCObjectHandle, std::shared_ptr<GCObject>> objects_;
 
 private:
-    GarbageCollector(GarbageCollector&&) = delete;
-    GarbageCollector(const GarbageCollector&) = delete;
-};
+    GCObject* findObject(GCObjectHandle handle);
 
-GarbageCollector& getGC();
+private:
+    GC(GC&&) = delete;
+    GC(const GC&) = delete;
+};
 
 } // effil

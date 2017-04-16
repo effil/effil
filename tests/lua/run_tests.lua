@@ -31,6 +31,7 @@ effil = require 'effil'
 require 'test_utils'
 require 'thread'
 require 'shared_table'
+require 'gc'
 
 -- Hack tests functions to print when test starts
 for suite_name, suite in pairs(_G) do
