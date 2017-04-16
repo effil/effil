@@ -24,7 +24,7 @@ sol::object createTable(sol::this_state lua) {
 }
 
 sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) {
-    return sol::make_object(lua, getGC().create<Channel>(capacity));
+    return sol::make_object(lua, GC::instance().create<Channel>(capacity));
 }
 
 SharedTable globalTable = GC::instance().create<SharedTable>();

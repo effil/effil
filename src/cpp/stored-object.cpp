@@ -92,7 +92,7 @@ public:
     }
 
     sol::object unpack(sol::this_state state) const final {
-        return sol::make_object(state, *static_cast<T*>(GC::instance().get(handle_)));
+        return sol::make_object(state, GC::instance().get<T>(handle_));
     }
 
     GCObjectHandle gcHandle() const override { return handle_; }
