@@ -7,13 +7,12 @@
 
 namespace effil {
 
-GarbageCollector::GarbageCollector()
-        : state_(GCState::Idle)
+GC::GC()
+        : enabled_(true)
         , lastCleanup_(0)
         , step_(200) {}
 
-GCObject* GarbageCollector::get(GCObjectHandle handle) {
-    std::lock_guard<std::mutex> g(lock_);
+GCObject* GC::findObject(GCObjectHandle handle) {
     auto it = objects_.find(handle);
     if (it == objects_.end()) {
         DEBUG << "Null handle " << handle << std::endl;
@@ -22,20 +21,15 @@ GCObject* GarbageCollector::get(GCObjectHandle handle) {
     return it->second.get();
 }
 
-bool GarbageCollector::has(GCObjectHandle handle) const {
+bool GC::has(GCObjectHandle handle) const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.find(handle) != objects_.end();
 }
 
 // Here is the naive tri-color marking
 // garbage collecting algorithm implementation.
-void GarbageCollector::cleanup() {
+void GC::collect() {
     std::lock_guard<std::mutex> g(lock_);
-
-    if (state_ == GCState::Stopped)
-        return;
-    assert(state_ != GCState::Running);
-    state_ = GCState::Running;
 
     std::vector<GCObjectHandle> grey;
     std::map<GCObjectHandle, std::shared_ptr<GCObject>> black;
@@ -59,30 +53,44 @@ void GarbageCollector::cleanup() {
     // Sweep phase
     objects_ = std::move(black);
 
-    state_ = GCState::Idle;
     lastCleanup_.store(0);
 }
 
-size_t GarbageCollector::size() const {
+size_t GC::size() const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.size();
 }
 
-void GarbageCollector::stop() {
+size_t GC::count() {
     std::lock_guard<std::mutex> g(lock_);
-    assert(state_ == GCState::Idle || state_ == GCState::Stopped);
-    state_ = GCState::Stopped;
+    return objects_.size();
 }
 
-void GarbageCollector::resume() {
-    std::lock_guard<std::mutex> g(lock_);
-    assert(state_ == GCState::Idle || state_ == GCState::Stopped);
-    state_ = GCState::Idle;
-}
-
-GarbageCollector& getGC() {
-    static GarbageCollector pool;
+GC& GC::instance() {
+    static GC pool;
     return pool;
+}
+
+sol::table GC::getLuaApi(sol::state_view& lua) {
+    sol::table api = lua.create_table_with();
+    api["collect"] = [=] {
+        instance().collect();
+    };
+    api["pause"] = [] { instance().pause(); };
+    api["resume"] = [] { instance().resume(); };
+    api["enabled"] = [] { return instance().enabled(); };
+    api["step"] = [](sol::optional<int> newStep){
+        auto previous = instance().step();
+        if (newStep) {
+            REQUIRE(*newStep <= 0) << "gc.step have to be > 0";
+            instance().step(static_cast<size_t>(*newStep));
+        }
+        return previous;
+    };
+    api["count"] = [] {
+        return instance().count();
+    };
+    return api;
 }
 
 } // effil

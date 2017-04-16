@@ -23,7 +23,8 @@ local api = {
     setmetatable = capi.setmetatable,
     getmetatable = capi.getmetatable,
     G = capi.G,
-    channel = capi.channel,
+    gc = capi.gc,
+    channel = capi.channel
 }
 
 local function run_thread(config, f, ...)

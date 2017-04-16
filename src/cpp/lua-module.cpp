@@ -19,13 +19,15 @@ sol::object createThread(const sol::this_state& lua,
     return sol::make_object(lua, std::make_shared<Thread>(path, cpath, stepwise, step, function, args));
 }
 
-sol::object createTable(sol::this_state lua) { return sol::make_object(lua, getGC().create<SharedTable>()); }
+sol::object createTable(sol::this_state lua) {
+    return sol::make_object(lua, GC::instance().create<SharedTable>());
+}
 
 sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) {
     return sol::make_object(lua, getGC().create<Channel>(capacity));
 }
 
-SharedTable globalTable = getGC().create<SharedTable>();
+SharedTable globalTable = GC::instance().create<SharedTable>();
 
 } // namespace
 
@@ -46,6 +48,8 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "setmetatable", SharedTable::luaSetMetatable,
             "getmetatable", SharedTable::luaGetMetatable,
             "G", sol::make_object(lua, globalTable),
+            "getmetatable", SharedTable::luaGetMetatable,
+            "gc", GC::getLuaApi(lua),
             "channel", createChannel
     );
     sol::stack::push(lua, publicApi);

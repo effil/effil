@@ -129,9 +129,9 @@ TEST(sharedTable, playingWithSharedTables) {
     sol::state lua;
     bootstrapState(lua);
 
-    lua["recursive"] = getGC().create<SharedTable>();
-    lua["st1"] = getGC().create<SharedTable>();
-    lua["st2"] = getGC().create<SharedTable>();
+    lua["recursive"] = GC::instance().create<SharedTable>();
+    lua["st1"] = GC::instance().create<SharedTable>();
+    lua["st2"] = GC::instance().create<SharedTable>();
 
     lua.script(R"(
         st1.proxy = st2

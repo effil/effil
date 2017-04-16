@@ -34,6 +34,7 @@ effil = require 'effil'
 require 'test_utils'
 require 'thread'
 require 'shared_table'
+require 'gc'
 require 'channel'
 
 -- Hack tests functions to print when test starts
