@@ -1,9 +1,7 @@
 #pragma once
 
 #include "spin-mutex.h"
-
 #include <sol.hpp>
-
 #include <mutex>
 #include <map>
 #include <set>

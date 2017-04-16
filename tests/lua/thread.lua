@@ -284,6 +284,8 @@ function TestThisThread:testThisThreadFunctions()
     effil.yield() -- just call it
 end
 
+if WITH_EXTRA_CHECKS then
+
 function TestThisThread:testTime()
     local function check_time(real_time, use_time, metric)
         local start_time = os.time()
@@ -295,3 +297,5 @@ function TestThisThread:testTime()
     check_time(4, 4000, 'ms')
     check_time(60, 1, 'm')
 end
+
+end -- WITH_EXTRA_CHECKS

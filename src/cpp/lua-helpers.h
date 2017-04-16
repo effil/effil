@@ -27,6 +27,8 @@ inline sol::function loadString(const sol::state_view& lua, const std::string& s
     return loader(str);
 }
 
+std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::string>& period);
+
 typedef std::vector<effil::StoredObject> StoredArray;
 
 } // namespace effil

@@ -9,14 +9,17 @@ print("---------------")
 
 do
     -- Hack input arguments to make tests verbose by default
-    local found = false
-    for _, v in ipairs(arg) do
+    local make_verbose = true
+    for i, v in ipairs(arg) do
         if v == '-o' or v == '--output' then
-            found = true
-            break
+            make_verbose = false
+        elseif v == "--extra-checks" then
+            table.remove(arg, i)
+            WITH_EXTRA_CHECKS = true
+            print "# RUN TESTS WITH EXTRA CHECKS"
         end
     end
-    if not found then
+    if make_verbose then
         table.insert(arg, '-o')
         table.insert(arg, 'TAP')
     end
@@ -32,6 +35,7 @@ require 'test_utils'
 require 'thread'
 require 'shared_table'
 require 'gc'
+require 'channel'
 
 -- Hack tests functions to print when test starts
 for suite_name, suite in pairs(_G) do
