@@ -29,6 +29,19 @@ sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) {
 
 SharedTable globalTable = GC::instance().create<SharedTable>();
 
+std::string userdataType(const sol::object& something) {
+    assert(something.get_type() == sol::type::userdata);
+    if (something.template is<SharedTable>()) {
+        return something.template as<SharedTable>().toString();
+    } else if (something.template is<Channel>()) {
+        return something.template as<Channel>().toString();
+    } else if (something.template is<std::shared_ptr<Thread>>()) {
+        return something.template as<Thread>().toString();
+    } else {
+        return "userdata";
+    }
+}
+
 } // namespace
 
 extern "C" int luaopen_libeffil(lua_State* L) {
@@ -50,7 +63,8 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "G", sol::make_object(lua, globalTable),
             "getmetatable", SharedTable::luaGetMetatable,
             "gc", GC::getLuaApi(lua),
-            "channel", createChannel
+            "channel", createChannel,
+            "userdata_type", userdataType
     );
     sol::stack::push(lua, publicApi);
     return 1;

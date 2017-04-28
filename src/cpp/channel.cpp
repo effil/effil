@@ -23,6 +23,12 @@ Channel::Channel(sol::optional<int> capacity) : data_(std::make_shared<SharedDat
     }
 }
 
+std::string Channel::toString() const {
+    std::stringstream ss;
+    ss << "effil.channel: 0x" << std::hex << handle();
+    return ss.str();
+}
+
 bool Channel::push(const sol::variadic_args& args) {
     if (!args.leftover_count())
         return false;
