@@ -20,7 +20,7 @@ public:
            unsigned int step,
            const sol::function& function,
            const sol::variadic_args& args);
-
+    std::string toString() const;
     static void getUserType(sol::state_view& lua);
 
     std::pair<sol::object, sol::object> status(const sol::this_state& state);

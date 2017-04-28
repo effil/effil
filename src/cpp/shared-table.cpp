@@ -96,6 +96,12 @@ sol::object SharedTable::rawGet(const sol::stack_object& luaKey, sol::this_state
     return get(key, state);
 }
 
+std::string SharedTable::toString() const {
+    std::stringstream ss;
+    ss << "effil.table: 0x" << std::hex << handle();
+    return ss.str();
+}
+
 /*
  * Lua Meta API methods
  */
@@ -199,9 +205,7 @@ StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args
 
 sol::object SharedTable::luaToString(sol::this_state state) {
     DEFFINE_METAMETHOD_CALL_0("__tostring");
-    std::stringstream ss;
-    ss << "effil::table (0x" << std::hex << this << ")";
-    return sol::make_object(state, ss.str());
+    return sol::make_object(state, toString());
 }
 
 sol::object SharedTable::luaLength(sol::this_state state) {

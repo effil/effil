@@ -32,13 +32,13 @@ SharedTable globalTable = GC::instance().create<SharedTable>();
 std::string userdataType(const sol::object& something) {
     assert(something.get_type() == sol::type::userdata);
     if (something.template is<SharedTable>()) {
-        return "effil.table";
+        return something.template as<SharedTable>().toString();
     } else if (something.template is<Channel>()) {
-        return "effil.channel";
+        return something.template as<Channel>().toString();
     } else if (something.template is<std::shared_ptr<Thread>>()) {
-        return "effil.thread";
+        return something.template as<Thread>().toString();
     } else {
-        return "unknown userdata";
+        return "userdata";
     }
 }
 

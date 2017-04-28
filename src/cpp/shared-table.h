@@ -30,6 +30,7 @@ public:
     void rawSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
     sol::object get(const StoredObject& key, sol::this_state state) const;
     sol::object rawGet(const sol::stack_object& key, sol::this_state state) const;
+    std::string toString() const;
     static sol::object basicMetaMethod(const std::string&, const std::string&, sol::this_state,
                                         const sol::stack_object&, const sol::stack_object&);
 

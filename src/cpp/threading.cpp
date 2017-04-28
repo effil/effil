@@ -210,6 +210,12 @@ Thread::Thread(const std::string& path,
     thr.detach();
 }
 
+std::string Thread::toString() const {
+    std::stringstream ss;
+    ss << "effil.thread: 0x" << std::hex << handle_.get();
+    return ss.str();
+}
+
 void Thread::getUserType(sol::state_view& lua) {
     sol::usertype<Thread> type(
             "new", sol::no_constructor,

@@ -10,6 +10,7 @@ namespace effil {
 class Channel : public GCObject {
 public:
     Channel(sol::optional<int> capacity);
+    std::string toString() const;
     static void getUserType(sol::state_view& lua);
 
     bool push(const sol::variadic_args& args);
