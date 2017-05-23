@@ -200,7 +200,7 @@ StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args
 sol::object SharedTable::luaToString(sol::this_state state) {
     DEFFINE_METAMETHOD_CALL_0("__tostring");
     std::stringstream ss;
-    ss << "effil::table (0x" << std::hex << this << ")";
+    ss << "effil.table: " << data_.get();
     return sol::make_object(state, ss.str());
 }
 

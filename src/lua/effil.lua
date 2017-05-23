@@ -27,6 +27,15 @@ local api = {
     channel = capi.channel
 }
 
+api.type = function (something)
+    local t = type(something)
+    if (t ~= "userdata") then
+        return t
+    else
+        return capi.userdata_type(something)
+    end
+end
+
 local function run_thread(config, f, ...)
     return capi.thread(config.path, config.cpath, config.managed, config.step, f, ...)
 end
