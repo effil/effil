@@ -30,9 +30,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g0 -DNDEBUG")
 #----------
 # TESTS ---
 #----------
-
 FILE(GLOB TEST_SOURCES tests/cpp/*.cpp tests/cpp/*.h)
-FILE(GLOB LUA_TEST_SOURCES tests/lua/run_tests.lua)
+FILE(GLOB LUA_TEST_SOURCES libs/u-test/u-test.lua tests/lua/*.lua)
 set(GTEST_DIR libs/gtest/googletest)
 
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})

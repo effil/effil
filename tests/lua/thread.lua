@@ -1,51 +1,51 @@
-local effil = require 'effil'
+require "bootstrap-tests"
 
-TestThread = {tearDown = tearDown }
+test.thread.tear_down = default_tear_down
 
-function TestThread:testWait()
+test.thread.wait = function ()
     local thread = effil.thread(function() print 'Effil is not that tower' end)()
     local status = thread:wait()
-    test.assertNil(thread:get())
-    test.assertEquals(status, "completed")
-    test.assertEquals(thread:status(), "completed")
+    test.is_nil(thread:get())
+    test.equal(status, "completed")
+    test.equal(thread:status(), "completed")
 end
 
-function TestThread:testMultipleWaitGet()
+test.thread.multiple_wait_get = function ()
     local thread = effil.thread(function() return "test value" end)()
     local status1 = thread:wait()
     local status2 = thread:wait()
-    test.assertEquals(status1, "completed")
-    test.assertEquals(status2, status1)
+    test.equal(status1, "completed")
+    test.equal(status2, status1)
 
     local value = thread:get()
-    test.assertEquals(value, "test value")
+    test.equal(value, "test value")
 end
 
-function TestThread:testTimedGet()
+test.thread.timed_get = function ()
     local thread = effil.thread(function()
         require('effil').sleep(2)
         return "-_-"
     end)()
-    test.assertNil(thread:get(1))
-    test.assertEquals(thread:get(2), "-_-")
+    test.is_nil(thread:get(1))
+    test.equal(thread:get(2), "-_-")
 end
 
-function TestThread:testTimedWait()
+test.thread.timed_get = function ()
     local thread = effil.thread(function()
         require('effil').sleep(2)
         return 8
     end)()
 
     local status = thread:wait(1)
-    test.assertEquals(status, "running")
+    test.equal(status, "running")
 
     local value = thread:get(2, "s")
-    test.assertEquals(value, 8);
+    test.equal(value, 8);
 
-    test.assertEquals(thread:status(), "completed")
+    test.equal(thread:status(), "completed")
 end
 
-function TestThread:testAsyncWait()
+test.thread.async_wait = function()
     local thread = effil.thread( function()
         require('effil').sleep(1)
     end)()
@@ -55,11 +55,11 @@ function TestThread:testAsyncWait()
         iter = iter + 1
     end
 
-    test.assertTrue(iter > 10)
-    test.assertEquals(thread:status(), "completed")
+    test.is_true(iter > 10)
+    test.equal(thread:status(), "completed")
 end
 
-function TestThread:testDetached()
+test.thread.detached = function ()
     local st = effil.table()
 
     for i = 1, 32 do
@@ -73,20 +73,20 @@ function TestThread:testDetached()
     effil.sleep(1)
 
     for i = 1, 32 do
-        test.assertEquals(st[i], i)
+        test.equal(st[i], i)
     end
 end
 
-function TestThread:testCancel()
+test.thread.cancel = function ()
     local thread = effil.thread(function()
         while true do end
     end)()
 
-    test.assertTrue(thread:cancel())
-    test.assertEquals(thread:status(), "canceled")
+    test.is_true(thread:cancel())
+    test.equal(thread:status(), "canceled")
 end
 
-function TestThread:testAsyncCancel()
+test.thread.async_cancel = function ()
     local thread_runner = effil.thread(
         function()
             local startTime = os.time()
@@ -98,11 +98,11 @@ function TestThread:testAsyncCancel()
     sleep(2) -- let thread starts working
     thread:cancel(0)
 
-    test.assertTrue(wait(2, function() return thread:status() ~= 'running' end))
-    test.assertEquals(thread:status(), 'canceled')
+    test.is_true(wait(2, function() return thread:status() ~= 'running' end))
+    test.equal(thread:status(), 'canceled')
 end
 
-function TestThread:testPauseResumeCancel()
+test.thread.pause_resume_cancel = function ()
     local data = effil.table()
     data.value = 0
     local thread = effil.thread(
@@ -112,20 +112,20 @@ function TestThread:testPauseResumeCancel()
             end
         end
     )(data)
-    test.assertTrue(wait(2, function() return data.value > 100 end))
-    test.assertTrue(thread:pause())
-    test.assertEquals(thread:status(), "paused")
+    test.is_true(wait(2, function() return data.value > 100 end))
+    test.is_true(thread:pause())
+    test.equal(thread:status(), "paused")
 
     local savedValue = data.value
     sleep(1)
-    test.assertEquals(data.value, savedValue)
+    test.equal(data.value, savedValue)
 
     thread:resume()
-    test.assertTrue(wait(5, function() return (data.value - savedValue) > 100 end))
-    test.assertTrue(thread:cancel())
+    test.is_true(wait(5, function() return (data.value - savedValue) > 100 end))
+    test.is_true(thread:cancel())
 end
 
-function TestThread:testPauseCancel()
+test.thread.pause_cancel = function ()
     local data = effil.table()
     data.value = 0
     local thread = effil.thread(
@@ -136,17 +136,17 @@ function TestThread:testPauseCancel()
         end
     )(data)
 
-    test.assertTrue(wait(2, function() return data.value > 100 end))
+    test.is_true(wait(2, function() return data.value > 100 end))
     thread:pause(0)
-    test.assertTrue(wait(2, function() return thread:status() == "paused" end))
+    test.is_true(wait(2, function() return thread:status() == "paused" end))
     local savedValue = data.value
     sleep(1)
-    test.assertEquals(data.value, savedValue)
+    test.equal(data.value, savedValue)
 
-    test.assertTrue(thread:cancel(0))
+    test.is_true(thread:cancel(0))
 end
 
-function TestThread:testAsyncPauseResumeCancel()
+test.thread.async_pause_resume_cancel = function ()
     local data = effil.table()
     data.value = 0
     local thread = effil.thread(
@@ -157,21 +157,21 @@ function TestThread:testAsyncPauseResumeCancel()
         end
     )(data)
 
-    test.assertTrue(wait(2, function() return data.value > 100 end))
+    test.is_true(wait(2, function() return data.value > 100 end))
     thread:pause()
 
     local savedValue = data.value
     sleep(1)
-    test.assertEquals(data.value, savedValue)
+    test.equal(data.value, savedValue)
 
     thread:resume()
-    test.assertTrue(wait(5, function() return (data.value - savedValue) > 100 end))
+    test.is_true(wait(5, function() return (data.value - savedValue) > 100 end))
 
     thread:cancel(0)
-    test.assertTrue(wait(5, function() return thread:status() == "canceled" end))
+    test.is_true(wait(5, function() return thread:status() == "canceled" end))
 end
 
-function TestThread:testCheckThreadReturns()
+test.thread.returns = function ()
     local share = effil.table()
     share.value = "some value"
 
@@ -184,36 +184,35 @@ function TestThread:testCheckThreadReturns()
     local status = thread:wait()
     local returns = { thread:get() }
 
-    log "Check values"
-    test.assertEquals(status, "completed")
+    test.equal(status, "completed")
 
-    test.assertNumber(returns[1])
-    test.assertEquals(returns[1], 100500)
+    test.is_number(returns[1])
+    test.equal(returns[1], 100500)
 
-    test.assertString(returns[2])
-    test.assertEquals(returns[2], "string value")
+    test.is_string(returns[2])
+    test.equal(returns[2], "string value")
 
-    test.assertBoolean(returns[3])
-    test.assertTrue(returns[3])
+    test.is_boolean(returns[3])
+    test.is_true(returns[3])
 
-    test.assertUserdata(returns[4])
-    test.assertEquals(returns[4].value, share.value)
+    test.is_userdata(returns[4])
+    test.equal(returns[4].value, share.value)
 
-    test.assertFunction(returns[5])
-    test.assertEquals(returns[5](11, 89), 100)
+    test.is_function(returns[5])
+    test.equal(returns[5](11, 89), 100)
 end
 
-function TestThread:testTimedCancel()
+test.thread.timed_cancel = function ()
     local thread = effil.thread(function()
         require("effil").sleep(2)
     end)()
-    test.assertFalse(thread:cancel(1))
+    test.is_false(thread:cancel(1))
     thread:wait()
 end
 
-TestThreadWithTable  = {tearDown = tearDown }
+test.thread_with_table.tear_down = default_tear_down
 
-function TestThreadWithTable:testSharedTableTypes()
+test.thread_with_table.types = function ()
     local share = effil.table()
 
     share["number"] = 100500
@@ -232,14 +231,13 @@ function TestThreadWithTable:testSharedTableTypes()
     local thread = thread_factory(share)
     thread:wait()
 
-    log "Check values"
-    test.assertEquals(share["child.number"], share["number"])
-    test.assertEquals(share["child.string"], share["string"])
-    test.assertEquals(share["child.bool"], share["bool"])
-    test.assertEquals(share["child.function"], share["function"](11,45))
+    test.equal(share["child.number"], share["number"])
+    test.equal(share["child.string"], share["string"])
+    test.equal(share["child.bool"], share["bool"])
+    test.equal(share["child.function"], share["function"](11,45))
 end
 
-function TestThreadWithTable:testRecursiveTables()
+test.thread_with_table.recursive = function ()
     local share = effil.table()
 
     local magic_number = 42
@@ -258,16 +256,15 @@ function TestThreadWithTable:testRecursiveTables()
     local thread = thread_factory(share)
     thread:wait()
 
-    log "Check values"
-    test.assertEquals(share["subtable1"]["subtable1"]["magic_number"], magic_number)
-    test.assertEquals(share["subtable1"]["subtable2"]["magic_number"], magic_number)
-    test.assertEquals(share["subtable2"]["magic_number"], magic_number)
-    test.assertEquals(share["magic_number"], nil)
+    test.equal(share["subtable1"]["subtable1"]["magic_number"], magic_number)
+    test.equal(share["subtable1"]["subtable2"]["magic_number"], magic_number)
+    test.equal(share["subtable2"]["magic_number"], magic_number)
+    test.equal(share["magic_number"], nil)
 end
 
-TestThisThread = {tearDown = tearDown }
+test.this_thread.tear_down = default_tear_down
 
-function TestThisThread:testThisThreadFunctions()
+test.this_thread.functions = function ()
     local share = effil.table()
 
     local thread_factory = effil.thread(
@@ -278,24 +275,8 @@ function TestThisThread:testThisThreadFunctions()
     local thread = thread_factory(share)
     thread:get()
 
-    test.assertString(share["child.id"])
-    test.assertNumber(tonumber(share["child.id"]))
-    test.assertNotEquals(share["child.id"], effil.thread_id())
+    test.is_string(share["child.id"])
+    test.is_number(tonumber(share["child.id"]))
+    test.not_equal(share["child.id"], effil.thread_id())
     effil.yield() -- just call it
 end
-
-if WITH_EXTRA_CHECKS then
-
-function TestThisThread:testTime()
-    local function check_time(real_time, use_time, metric)
-        local start_time = os.time()
-        effil.sleep(use_time, metric)
-        test.assertAlmostEquals(os.time(), start_time + real_time, 1)
-    end
-    check_time(4, 4, nil) -- seconds by default
-    check_time(4, 4, 's')
-    check_time(4, 4000, 'ms')
-    check_time(60, 1, 'm')
-end
-
-end -- WITH_EXTRA_CHECKS

@@ -1,12 +1,13 @@
-local effil = require "effil"
+require "bootstrap-tests"
+
 local gc = effil.gc
 
-TestGC = { tearDown = tearDown }
+test.gc.tear_down = default_tear_down
 
-function TestGC:testCleanup()
+test.gc.cleanup = function ()
     collectgarbage()
     gc.collect()
-    test.assertEquals(gc.count(), 1)
+    test.equal(gc.count(), 1)
 
     for i = 0, 10000 do
         local tmp = effil.table()
@@ -14,27 +15,27 @@ function TestGC:testCleanup()
 
     collectgarbage()
     gc.collect()
-    test.assertEquals(gc.count(), 1)
+    test.equal(gc.count(), 1)
 end
 
-function TestGC:testDisableGC()
+test.gc.disable = function ()
     local nobjects = 10000
 
     collectgarbage()
     gc.collect()
-    test.assertEquals(gc.count(), 1)
+    test.equal(gc.count(), 1)
 
     gc.pause()
-    test.assertFalse(gc.enabled())
+    test.is_false(gc.enabled())
 
     for i = 1, nobjects do
         local tmp = effil.table()
     end
 
-    test.assertEquals(gc.count(), nobjects + 1)
+    test.equal(gc.count(), nobjects + 1)
     collectgarbage()
     gc.collect()
-    test.assertEquals(gc.count(), 1)
+    test.equal(gc.count(), 1)
 
     gc.resume()
 end
