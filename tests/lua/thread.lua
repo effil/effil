@@ -169,6 +169,7 @@ test.thread.async_pause_resume_cancel = function ()
 
     thread:cancel(0)
     test.is_true(wait(5, function() return thread:status() == "canceled" end))
+    thread:wait()
 end
 
 test.thread.returns = function ()

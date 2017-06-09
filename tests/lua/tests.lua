@@ -12,5 +12,4 @@ if os.getenv("STRESS") then
     require "thread-stress"
 end
 
--- require "channel_stress"
 test.summary()
