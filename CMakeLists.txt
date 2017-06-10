@@ -16,6 +16,9 @@ FILE(GLOB LUA_SOURCES src/lua/*.lua)
 if(APPLE)
     # Supress warning CMP0042
     set(CMAKE_MACOSX_RPATH 1)
+    set(LIBRARY_EXT dylib)
+else()
+    set(LIBRARY_EXT so)
 endif()
 
 add_library(effil SHARED ${SOURCES})
@@ -30,21 +33,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g0 -DNDEBUG")
 #----------
 # TESTS ---
 #----------
-
 FILE(GLOB TEST_SOURCES tests/cpp/*.cpp tests/cpp/*.h)
-FILE(GLOB LUA_TEST_SOURCES tests/lua/run_tests.lua)
 set(GTEST_DIR libs/gtest/googletest)
+set(LUA_TESTS tests/lua/tests.lua)
 
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})
 add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
 target_link_libraries(tests effil)
-
-#----------
-# INSTALL -
-#----------
-install(FILES ${LUA_SOURCES} ${LUA_TEST_SOURCES}
-        DESTINATION ${CMAKE_BINARY_DIR}
-        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ)
 
 #----------
 # FORMAT  -
@@ -52,3 +47,10 @@ install(FILES ${LUA_SOURCES} ${LUA_TEST_SOURCES}
 add_custom_target( format
         COMMAND clang-format -i ${TEST_SOURCES} ${SOURCES}
 )
+
+#----------
+# INSTALL -
+#----------
+install(FILES ${LUA_TESTS}
+        DESTINATION ${CMAKE_BINARY_DIR}
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ)

@@ -7,3 +7,6 @@
 [submodule "libs/luaunit"]
 	path = libs/luaunit
 	url = https://github.com/bluebird75/luaunit
+[submodule "libs/u-test"]
+	path = libs/u-test
+	url = https://github.com/IUdalov/u-test.git
