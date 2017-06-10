@@ -1,5 +1,7 @@
 #!/usr/bin/env lua
 
+package.path = ";../tests/lua/?.lua;../libs/u-test/?.lua;../src/lua/?.lua"
+
 require "type"
 require "gc"
 require "channel"

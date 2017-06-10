@@ -35,6 +35,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g0 -DNDEBUG")
 #----------
 FILE(GLOB TEST_SOURCES tests/cpp/*.cpp tests/cpp/*.h)
 set(GTEST_DIR libs/gtest/googletest)
+set(LUA_TESTS tests/lua/tests.lua)
 
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})
 add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
@@ -48,22 +49,8 @@ add_custom_target( format
 )
 
 #----------
-# LUA TESTS
+# INSTALL -
 #----------
-set(LUA_PATH "$ENV{LUA_PATH}\;${CMAKE_SOURCE_DIR}/libs/u-test/?.lua\;${CMAKE_SOURCE_DIR}/src/lua/?.lua\;${CMAKE_SOURCE_DIR}/tests/lua/?.lua")
-set(LUA_CPATH "$ENV{LUA_CPATH}\;${CMAKE_BINARY_DIR}/?.${LIBRARY_EXT}")
-
-add_custom_target(lua_tests
-        ${CMAKE_COMMAND} -E env
-        LUA_CPATH="${LUA_CPATH}"
-        LUA_PATH="${LUA_PATH}"
-        lua ${CMAKE_SOURCE_DIR}/tests/lua/tests.lua
-)
-
-add_custom_target(stress_tests
-        ${CMAKE_COMMAND} -E env
-        LUA_CPATH="${LUA_CPATH}"
-        LUA_PATH="${LUA_PATH}"
-        STRESS=1
-        lua ${CMAKE_SOURCE_DIR}/tests/lua/tests.lua
-)
+install(FILES ${LUA_TESTS}
+        DESTINATION ${CMAKE_BINARY_DIR}
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ)
