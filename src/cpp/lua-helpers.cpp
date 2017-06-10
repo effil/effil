@@ -2,32 +2,33 @@
 
 namespace effil {
 
+namespace
+{
+
 std::string luaError(int errCode)
 {
-#define DECL_ERROR(id, mess) \
-    case id: return std::string(mess) + "(" #id ")"
-
     switch(errCode)
     {
-        DECL_ERROR(LUA_ERRSYNTAX, "Invalid syntax");
-        DECL_ERROR(LUA_ERRMEM,    "Memory allocation error");
-        DECL_ERROR(LUA_ERRRUN,    "Execution error");
-        DECL_ERROR(LUA_ERRGCMM,   "Error in __gc method");
-        DECL_ERROR(LUA_ERRERR,    "Recursive error");
+        case LUA_ERRSYNTAX: return "Invalid syntax (LUA_ERRSYNTAX)";
+        case LUA_ERRMEM:    return "Memory allocation error (LUA_ERRMEM)";
+        case LUA_ERRRUN:    return "Execution error (LUA_ERRRUN)";
+        case LUA_ERRGCMM:   return "Error in __gc method (LUA_ERRGCMM)";
+        case LUA_ERRERR:    return "Recursive error (LUA_ERRERR)";
         default: return "Unknown";
     }
-#undef DECL_ERROR
 }
 
-static int dumpMemoryWriter(lua_State*, const void* p, size_t sz, void* ud) {
-    if (ud == nullptr || p == nullptr)
+int dumpMemoryWriter(lua_State*, const void* batch, size_t batchSize, void* storage) {
+    if (storage == nullptr || batch == nullptr)
         return 1;
-    if (sz) {
-        std::string& buff = *reinterpret_cast<std::string*>(ud);
-        const char* newData = reinterpret_cast<const char*>(p);
-        buff.insert(buff.end(), newData, newData + sz);
+    if (batchSize) {
+        std::string& buff = *reinterpret_cast<std::string*>(storage);
+        const char* newData = reinterpret_cast<const char*>(batch);
+        buff.insert(buff.end(), newData, newData + batchSize);
     }
     return 0;
+}
+
 }
 
 std::string dumpFunction(const sol::function& f) {

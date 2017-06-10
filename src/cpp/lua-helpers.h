@@ -6,7 +6,6 @@
 
 namespace effil {
 
-std::string luaError(int errCode);
 std::string dumpFunction(const sol::function& f);
 sol::function loadString(const sol::state_view& lua, const std::string& str);
 std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::string>& period);
