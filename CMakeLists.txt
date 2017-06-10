@@ -24,7 +24,7 @@ endif()
 add_library(effil SHARED ${SOURCES})
 target_link_libraries(effil -lpthread ${LUA_LIBRARY})
 
-set(GENERAL "-std=c++14")
+set(GENERAL "-std=c++14 -DSOL_EXCEPTIONS_SAFE_PROPAGATION")
 set(ENABLE_WARNINGS "-Wall -Wextra -pedantic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL} ${ENABLE_WARNINGS}")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror -O0 -g -UNDEBUG")

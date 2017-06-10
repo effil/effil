@@ -16,8 +16,7 @@ class Thread {
 public:
     Thread(const std::string& path,
            const std::string& cpath,
-           bool managed,
-           unsigned int step,
+           int step,
            const sol::function& function,
            const sol::variadic_args& args);
 

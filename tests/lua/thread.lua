@@ -279,5 +279,45 @@ test.this_thread.functions = function ()
     test.is_string(share["child.id"])
     test.is_number(tonumber(share["child.id"]))
     test.not_equal(share["child.id"], effil.thread_id())
-    effil.yield() -- just call it
+end
+
+test.this_thread.cancel_with_yield = function ()
+    local share = effil.table()
+    local spec = effil.thread(function (share)
+        require('effil').sleep(1)
+        for i=1,10000 do
+           -- Just waiting
+        end
+        share.done = true
+        require("effil").yield()
+        share.afet_yield = true
+    end)
+    spec.step = 0
+    local thr = spec(share)
+
+    test.is_true(thr:cancel())
+    test.equal(thr:status(), "canceled")
+    test.is_true(share.done)
+    test.is_nil(share.afet_yield)
+end
+
+test.this_thread.pause_with_yield = function ()
+    local share = effil.table()
+    local spec = effil.thread(function (share)
+        for i=1,10000 do
+            require("effil").yield()
+        end
+        share.done = true
+        return true
+    end)
+
+    local thr = spec(share)
+
+    thr:pause()
+    test.is_nil(share.done)
+    test.equal(thr:status(), "paused")
+    thr:resume()
+
+    test.is_true(thr:get())
+    test.is_true(share.done)
 end

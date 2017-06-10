@@ -49,11 +49,8 @@ enum class Command {
 
 } // namespace
 
-
 class ThreadHandle {
 public:
-    const bool managed;
-
     Status status;
     StoredArray result;
 
@@ -64,9 +61,8 @@ public:
     Notifier syncPause;
 
 public:
-    ThreadHandle(bool isManaged)
-            : managed(isManaged)
-            , status(Status::Running)
+    ThreadHandle()
+            : status(Status::Running)
             , command_(Command::Run)
             , lua_(std::make_unique<sol::state>()) {
         luaL_openlibs(*lua_);
@@ -171,7 +167,11 @@ std::string threadId() {
     return ss.str();
 }
 
-void yield() { std::this_thread::yield(); }
+void yield() {
+    if (thisThreadHandle)
+        luaHook(nullptr, nullptr);
+    std::this_thread::yield();
+}
 
 void sleep(const sol::optional<int>& duration, const sol::optional<std::string>& period) {
     if (duration)
@@ -182,17 +182,16 @@ void sleep(const sol::optional<int>& duration, const sol::optional<std::string>&
 
 Thread::Thread(const std::string& path,
        const std::string& cpath,
-       bool managed,
-       unsigned int step,
+       int step,
        const sol::function& function,
        const sol::variadic_args& variadicArgs)
-        : handle_(std::make_shared<ThreadHandle>(managed)) {
+        : handle_(std::make_shared<ThreadHandle>()) {
 
     handle_->lua()["package"]["path"] = path;
     handle_->lua()["package"]["cpath"] = cpath;
     handle_->lua().script("require 'effil'");
 
-    if (managed)
+    if (step != 0)
         lua_sethook(handle_->lua(), luaHook, LUA_MASKCOUNT, step);
 
     std::string strFunction = dumpFunction(function);
@@ -264,8 +263,6 @@ StoredArray Thread::get(const sol::optional<int>& duration,
 bool Thread::cancel(const sol::this_state&,
                     const sol::optional<int>& duration,
                     const sol::optional<std::string>& period) {
-    REQUIRE(handle_->managed) << "Unable to cancel: unmanaged thread";
-
     handle_->command(Command::Cancel);
     handle_->pause.notify();
 
@@ -280,8 +277,6 @@ bool Thread::cancel(const sol::this_state&,
 bool Thread::pause(const sol::this_state&,
                    const sol::optional<int>& duration,
                    const sol::optional<std::string>& period) {
-    REQUIRE(handle_->managed) << "Unable to pause: unmanaged thread";
-
     handle_->pause.reset();
     handle_->command(Command::Pause);
 
@@ -294,8 +289,6 @@ bool Thread::pause(const sol::this_state&,
 }
 
 void Thread::resume() {
-    REQUIRE(handle_->managed) <<  "Unable to resume: unmanaged thread";
-
     handle_->command(Command::Run);
     handle_->syncPause.reset();
     handle_->pause.notify();
