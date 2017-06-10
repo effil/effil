@@ -50,10 +50,7 @@ public:
     template <typename SolObject>
     FunctionHolder(SolObject luaObject) noexcept {
         sol::state_view lua(luaObject.lua_state());
-        sol::function dumper = lua["string"]["dump"];
-        if (!dumper.valid())
-            throw Exception() << "Invalid string.dump()";
-        function_ = dumper(luaObject);
+        function_ = dumpFunction(luaObject);
     }
 
     bool rawCompare(const BaseHolder* other) const noexcept final {
@@ -61,10 +58,7 @@ public:
     }
 
     sol::object unpack(sol::this_state state) const final {
-        sol::state_view lua((lua_State*)state);
-        sol::function loader = lua["loadstring"];
-        REQUIRE(loader.valid()) << "Invalid loadstring()";
-        sol::function result = loader(function_);
+        sol::function result = loadString(state, function_);
         // The result of restaring always is valid function.
         assert(result.valid());
         return sol::make_object(state, result);
