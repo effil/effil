@@ -26,13 +26,17 @@ int dumpMemoryWriter(lua_State*, const void* batch, size_t batchSize, void* stor
     return 0;
 }
 
-} // namespacce
+} // namespace
 
 std::string dumpFunction(const sol::function& f) {
     sol::state_view lua(f.lua_state());
     sol::stack::push(lua, f);
     std::string result;
+#ifdef LUA_53
+    int ret = lua_dump(lua, dumpMemoryWriter, &result, 0 /* not strip debug info*/);
+#else
     int ret = lua_dump(lua, dumpMemoryWriter, &result);
+#endif
     REQUIRE(ret == LUA_OK) << "Unable to dump Lua function: " << luaError(ret);
     sol::stack::remove(lua, -1, 1);
     return result;

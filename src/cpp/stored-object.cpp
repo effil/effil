@@ -138,7 +138,17 @@ StoredObject fromSolObject(const SolObject& luaObject) {
         case sol::type::boolean:
             return std::make_unique<PrimitiveHolder<bool>>(luaObject);
         case sol::type::number:
-            return std::make_unique<PrimitiveHolder<double>>(luaObject);
+        {
+#ifdef LUA_53
+            sol::stack::push(luaObject.lua_state(), luaObject);
+            int isInterger = lua_isinteger(luaObject.lua_state(), -1);
+            sol::stack::pop<sol::object>(luaObject.lua_state());
+            if (isInterger)
+                return std::make_unique<PrimitiveHolder<lua_Integer>>(luaObject);
+            else
+#endif // LUA_53
+                return std::make_unique<PrimitiveHolder<lua_Number>>(luaObject);
+        }
         case sol::type::string:
             return std::make_unique<PrimitiveHolder<std::string>>(luaObject);
         case sol::type::lightuserdata:
@@ -177,7 +187,9 @@ StoredObject fromSolObject(const SolObject& luaObject) {
 
 StoredObject createStoredObject(bool value) { return std::make_unique<PrimitiveHolder<bool>>(value); }
 
-StoredObject createStoredObject(double value) { return std::make_unique<PrimitiveHolder<double>>(value); }
+StoredObject createStoredObject(lua_Number value) { return std::make_unique<PrimitiveHolder<lua_Number>>(value); }
+
+StoredObject createStoredObject(lua_Integer value) { return std::make_unique<PrimitiveHolder<lua_Integer>>(value); }
 
 StoredObject createStoredObject(const std::string& value) {
     return std::make_unique<PrimitiveHolder<std::string>>(value);
@@ -202,6 +214,8 @@ sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
 sol::optional<bool> storedObjectToBool(const StoredObject& sobj) { return getPrimitiveHolderData<bool>(sobj); }
 
 sol::optional<double> storedObjectToDouble(const StoredObject& sobj) { return getPrimitiveHolderData<double>(sobj); }
+
+sol::optional<LUA_INDEX_TYPE> storedObjectToIndexType(const StoredObject& sobj) { return getPrimitiveHolderData<LUA_INDEX_TYPE>(sobj); }
 
 sol::optional<std::string> storedObjectToString(const StoredObject& sobj) {
     return getPrimitiveHolderData<std::string>(sobj);

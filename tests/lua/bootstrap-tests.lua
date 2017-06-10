@@ -1,6 +1,9 @@
 effil = require "effil"
 test = require "u-test"
 
+local major, minor = _VERSION:match("Lua (%d).(%d)")
+LUA_VERSION = major * 10 + minor
+
 function default_tear_down()
     collectgarbage()
     effil.gc.collect()
@@ -33,4 +36,8 @@ end
 
 function sleep(timeInSec, silent)
     wait(timeInSec, nil, true)
+end
+
+if LUA_VERSION >= 53 then
+    unpack = table.unpack
 end

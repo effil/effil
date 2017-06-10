@@ -208,13 +208,13 @@ sol::object SharedTable::luaLength(sol::this_state state) {
     DEFFINE_METAMETHOD_CALL_0("__len");
     std::lock_guard<SpinMutex> g(data_->lock);
     size_t len = 0u;
-    sol::optional<double> value;
-    auto iter = data_->entries.find(createStoredObject(static_cast<double>(1)));
+    sol::optional<LUA_INDEX_TYPE> value;
+    auto iter = data_->entries.find(createStoredObject(static_cast<LUA_INDEX_TYPE>(1)));
     if (iter != data_->entries.end()) {
         do {
             ++len;
             ++iter;
-        } while ((iter != data_->entries.end()) && (value = storedObjectToDouble(iter->first)) &&
+        } while ((iter != data_->entries.end()) && (value = storedObjectToIndexType(iter->first)) &&
                  (static_cast<size_t>(value.value()) == len + 1));
     }
     return sol::make_object(state, len);
@@ -244,9 +244,9 @@ SharedTable::PairsIterator SharedTable::luaPairs(sol::this_state state) {
         sol::make_object(state, *this));
 }
 
-std::pair<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable table, sol::optional<unsigned long> key) {
+std::pair<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable table, sol::optional<LUA_INDEX_TYPE> key) {
     size_t index = key ? key.value() + 1 : 1;
-    auto objKey = createStoredObject(static_cast<double>(index));
+    auto objKey = createStoredObject(static_cast<LUA_INDEX_TYPE>(index));
     sol::object value = table.get(objKey, lua);
     if (!value.valid())
         return std::pair<sol::object, sol::object>(sol::nil, sol::nil);

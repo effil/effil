@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils.h"
 #include "garbage-collector.h"
 
 #include <sol.hpp>
@@ -34,14 +35,17 @@ struct StoredObjectLess {
 };
 
 StoredObject createStoredObject(bool);
-StoredObject createStoredObject(double);
+StoredObject createStoredObject(lua_Number);
+StoredObject createStoredObject(lua_Integer);
 StoredObject createStoredObject(const std::string&);
 StoredObject createStoredObject(const char*);
 StoredObject createStoredObject(const sol::object&);
 StoredObject createStoredObject(const sol::stack_object&);
 
+
 sol::optional<bool> storedObjectToBool(const StoredObject&);
 sol::optional<double> storedObjectToDouble(const StoredObject&);
+sol::optional<LUA_INDEX_TYPE> storedObjectToIndexType(const StoredObject&);
 sol::optional<std::string> storedObjectToString(const StoredObject&);
 
 } // effil
