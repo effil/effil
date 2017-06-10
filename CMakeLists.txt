@@ -50,8 +50,8 @@ add_custom_target( format
 #----------
 # LUA TESTS
 #----------
-set(LUA_PATH "${CMAKE_SOURCE_DIR}/libs/u-test/?.lua\;${CMAKE_SOURCE_DIR}/src/lua/?.lua\;${CMAKE_SOURCE_DIR}/tests/lua/?.lua")
-set(LUA_CPATH "${CMAKE_BINARY_DIR}/?.${LIBRARY_EXT}")
+set(LUA_PATH "$ENV{LUA_PATH}\;${CMAKE_SOURCE_DIR}/libs/u-test/?.lua\;${CMAKE_SOURCE_DIR}/src/lua/?.lua\;${CMAKE_SOURCE_DIR}/tests/lua/?.lua")
+set(LUA_CPATH "$ENV{LUA_CPATH}\;${CMAKE_BINARY_DIR}/?.${LIBRARY_EXT}")
 
 add_custom_target(lua_tests
         ${CMAKE_COMMAND} -E env
