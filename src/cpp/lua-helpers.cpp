@@ -2,13 +2,10 @@
 
 namespace effil {
 
-namespace
-{
+namespace {
 
-std::string luaError(int errCode)
-{
-    switch(errCode)
-    {
+std::string luaError(int errCode) {
+    switch(errCode) {
         case LUA_ERRSYNTAX: return "Invalid syntax (LUA_ERRSYNTAX)";
         case LUA_ERRMEM:    return "Memory allocation error (LUA_ERRMEM)";
         case LUA_ERRRUN:    return "Execution error (LUA_ERRRUN)";
@@ -29,7 +26,7 @@ int dumpMemoryWriter(lua_State*, const void* batch, size_t batchSize, void* stor
     return 0;
 }
 
-}
+} // namespacce
 
 std::string dumpFunction(const sol::function& f) {
     sol::state_view lua(f.lua_state());
