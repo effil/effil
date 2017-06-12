@@ -310,7 +310,7 @@ test.this_thread.pause_with_yield = function ()
         share.done = true
         return true
     end)
-
+    spec.step = 0
     local thr = spec(share)
 
     thr:pause()
