@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
-set -e
+#FIXME:
+#set -e
 
-for build_type in debug release; do
-    mkdir -p $build_type
-    (cd $build_type && cmake -DCMAKE_BUILD_TYPE=$build_type $@ .. && make -j4 install)
-    (cd $build_type && ./tests && STRESS=1 lua tests.lua)
+PADDING="===================="
+GRADLE="./gradlew --no-daemon"
+
+for lua_version in 5.2 5.3; do
+    for build_type in debug release; do
+        echo $PADDING
+        echo "lua version: $lua_version"
+        echo "build type: $build_type"
+        echo $PADDING
+        $GRADLE clean
+        $GRADLE cpptests_$build_type luatests_$build_type -PUSE_LUA=$lua_version
+        build/$build_type/tests       # Run C++ tests
+        (cd build && ./lua tests.lua) # Run lua tests
+    done
 done
