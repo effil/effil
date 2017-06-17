@@ -150,6 +150,10 @@ model {
             cppCompiler.args "-std=c++14", "-Wall", "-Wextra", "-pedantic"
             cppCompiler.define "SOL_EXCEPTIONS_SAFE_PROPAGATION"
             linker.args "-lreadline"
+            
+            if (osName == "linux")
+                linker.args "-lpthread"
+            
             if (buildType == buildTypes.debug) {
                 cppCompiler.args "-g", "-O0", "-Werror"
             } else {
