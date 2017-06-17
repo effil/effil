@@ -20,7 +20,7 @@ def luaArchives = [
 
 def luaMacro = [
     "5.3" : ["LUA_COMPAT_5_2"],
-    "5.2" : ["LUA_COMPAT_AL"],
+    "5.2" : ["LUA_COMPAT_ALL"],
     "5.1" : []]
 
 def luaOsMacro = [
