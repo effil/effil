@@ -152,7 +152,7 @@ model {
             linker.args "-lreadline"
             
             if (osName == "linux")
-                linker.args "-lpthread"
+                linker.args "-lpthread", "-ldl"
             
             if (buildType == buildTypes.debug) {
                 cppCompiler.args "-g", "-O0", "-Werror"

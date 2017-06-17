@@ -3,7 +3,7 @@
 #set -e
 
 PADDING="===================="
-GRADLE="./gradlew --no-daemon"
+GRADLE="./gradlew --no-daemon  --console plain"
 
 for lua_version in 5.2 5.3; do
     for build_type in debug release; do
