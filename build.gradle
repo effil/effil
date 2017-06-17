@@ -14,11 +14,16 @@ def getParam(propName, defaultValue = "") {
 }
 
 def luaArchives = [
-            "5.3" : "http://www.lua.org/ftp/lua-5.3.4.tar.gz",
-            "5.2" : "http://www.lua.org/ftp/lua-5.2.4.tar.gz",
-            "5.1" : "http://www.lua.org/ftp/lua-5.1.4.tar.gz"]
+    "5.3" : "http://www.lua.org/ftp/lua-5.3.4.tar.gz",
+    "5.2" : "http://www.lua.org/ftp/lua-5.2.4.tar.gz",
+    "5.1" : "http://www.lua.org/ftp/lua-5.1.4.tar.gz"]
 
 def luaMacro = [
+    "5.3" : ["LUA_COMPAT_5_2"],
+    "5.2" : ["LUA_COMPAT_AL"],
+    "5.1" : []]
+
+def luaOsMacro = [
     darwin: "LUA_USE_MACOSX",
     linux: "LUA_USE_LINUX",
     windows: "LUA_WIN"
@@ -146,11 +151,16 @@ model {
 
     binaries {
         all {
-            cCompiler.define luaMacro[osName]
+            cCompiler.define luaOsMacro[osName]
             cppCompiler.args "-std=c++14", "-Wall", "-Wextra", "-pedantic"
             cppCompiler.define "SOL_EXCEPTIONS_SAFE_PROPAGATION"
             linker.args "-lreadline"
             
+            luaMacro[luaVersion].each { macro ->
+                cCompiler.define macro
+                cppCompiler.define macro
+            }
+
             if (osName == "linux")
                 linker.args "-lpthread", "-ldl"
             

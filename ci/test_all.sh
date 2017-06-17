@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-#FIXME:
-#set -e
+set -e
 
 PADDING="===================="
 GRADLE="./gradlew --no-daemon  --console plain"
