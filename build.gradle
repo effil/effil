@@ -169,6 +169,7 @@ model {
             } else {
                 cCompiler.args "-O2"
                 cppCompiler.args "-O3"
+                cppCompiler.define "NDEBUG"
             }
         }
     }

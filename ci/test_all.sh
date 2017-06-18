@@ -4,7 +4,7 @@ set -e
 PADDING="===================="
 GRADLE="./gradlew --no-daemon  --console plain"
 
-for lua_version in 5.2 5.3; do
+for lua_version in 5.2; do # TODO: add 5.3, 5.1
     for build_type in debug release; do
         echo $PADDING
         echo "lua version: $lua_version"
