@@ -18,7 +18,13 @@ sol::object createThread(const sol::this_state& lua,
     return sol::make_object(lua, std::make_shared<Thread>(path, cpath, step, function, args));
 }
 
-sol::object createTable(sol::this_state lua) {
+sol::object createTable(sol::this_state lua, const sol::optional<sol::object>& tbl) {
+    if (tbl)
+    {
+        REQUIRE(tbl->get_type() == sol::type::table) << "Unexpected type for effil.table, table expected got: "
+                                                     << lua_typename(lua, (int)tbl->get_type());
+        return createStoredObject(*tbl)->unpack(lua);
+    }
     return sol::make_object(lua, GC::instance().create<SharedTable>());
 }
 

@@ -2,6 +2,16 @@ require "bootstrap-tests"
 
 test.shared_table.tear_down = default_tear_down
 
+test.shared_table.constructor = function ()
+    local share = effil.table {
+        key = "value"
+    }
+    test.equal(share.key, "value")
+    test.equal(pcall(effil.table, ""), false)
+    test.equal(pcall(effil.table, 22), false)
+    test.equal(pcall(effil.table, effil.table()), false)
+end
+
 test.shared_table.pairs = function ()
     local share = effil.table()
     local data = { 0, 0, 0, ["key1"] = 0, ["key2"] = 0, ["key3"] = 0 }
