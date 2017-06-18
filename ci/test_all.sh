@@ -13,6 +13,6 @@ for lua_version in 5.2; do # TODO: add 5.3, 5.1
         $GRADLE clean
         $GRADLE cpptests_$build_type luatests_$build_type -PUSE_LUA=$lua_version
         build/$build_type/tests       # Run C++ tests
-        (cd build && ./lua tests.lua) # Run lua tests
+        (cd build && STRESS=1 ./lua tests.lua) # Run lua tests
     done
 done
