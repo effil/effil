@@ -1,3 +1,7 @@
 image: Visual Studio 2015
 
-build: ci/test_all.bat
+build: off
+
+test_script:
+- cmd: >-
+    ci/test_all.bat
