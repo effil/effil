@@ -1,0 +1,207 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+apply plugin : 'c'
+apply plugin : 'cpp'
+
+buildDir = "build"
+
+def getParam(propName, defaultValue = "") {
+    if (rootProject.hasProperty(propName))
+        return rootProject."$propName"
+    if (System.env."$propName")
+        return System.env."$propName"
+    return defaultValue
+}
+
+def luaArchives = [
+    "5.3" : "http://www.lua.org/ftp/lua-5.3.4.tar.gz",
+    "5.2" : "http://www.lua.org/ftp/lua-5.2.4.tar.gz",
+    "5.1" : "http://www.lua.org/ftp/lua-5.1.4.tar.gz"]
+
+def luaMacro = [
+    "5.3" : ["LUA_COMPAT_5_2"],
+    "5.2" : ["LUA_COMPAT_ALL"],
+    "5.1" : []]
+
+def luaOsMacro = [
+    darwin: "LUA_USE_MACOSX",
+    linux: "LUA_USE_LINUX",
+    windows: "LUA_WIN"
+]
+
+def osName = {
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) return "windows"
+    else if (Os.isFamily(Os.FAMILY_MAC)) return "darwin"
+    return "linux" }()
+
+def luaVersion = getParam("USE_LUA", "5.2")
+def luaSourcesArchive = new File("$buildDir/lua-${luaVersion}.tar.gz")
+def luaSources = new File("$buildDir/lua-${luaVersion}")
+
+task downloadLua {
+    inputs.property "version", luaVersion
+    outputs.file luaSourcesArchive
+
+    doLast {
+        def archiveUrl = luaArchives[luaVersion]
+        if (!archiveUrl)
+            throw new Exception("No such lua version $luaVersion")
+
+        buildDir.mkdirs()
+        luaSources.delete()
+        new URL(archiveUrl).withInputStream {
+            i -> luaSourcesArchive.withOutputStream{ it << i }
+        }
+    }
+}
+
+task unpackLua(dependsOn: downloadLua) {
+    ext.headerDir = luaSources
+    ext.sourceDir = luaSources
+    inputs.file luaSourcesArchive
+    outputs.dir luaSources
+
+    doLast {
+        def tmp = new File("$luaSources-tmp")
+        copy {
+            from tarTree(resources.gzip(luaSourcesArchive))
+            into tmp
+        }
+        luaSources.delete()
+        new File("$tmp/${file(tmp).list()[0]}").renameTo(luaSources)
+    }
+}
+
+model {
+    buildTypes {
+        debug
+        release
+    }
+    components {
+        luabase(NativeLibrarySpec) {
+            sources {
+            c {
+                source {
+                    srcDir luaSources
+                    include "**/*.c"
+                    exclude "**/luac.c", "**/lua.c"
+                }
+
+                exportedHeaders {
+                    srcDir luaSources
+                    include "**/*.h", "**/*.hpp"
+                }
+                generatedBy unpackLua
+            }
+                cpp.exportedHeaders.srcDir "$luaSources/src"
+            }
+        } 
+
+        lua(NativeExecutableSpec) { 
+            sources {
+                luaC(CSourceSet) {
+                    source {
+                        srcDir luaSources
+                        include "**/lua.c"
+                        lib library: "luabase", linkage: "shared"
+                    }
+                    exportedHeaders {
+                        srcDir luaSources
+                        include "**/*.h"
+                    }
+                    generatedBy unpackLua
+                }
+            }
+        }
+
+        effil(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDir "src/cpp"
+                        include "**/*.cpp"
+                        lib library: "luabase", linkage: "shared"
+                    }
+                    exportedHeaders {
+                        srcDirs "src/cpp", "libs/sol/single/sol"
+                        include "**/*.h"
+                    }
+                }
+            }
+        }
+
+        tests(NativeExecutableSpec) {
+            sources {
+                cpp {
+                    def gtestDir = "libs/gtest/googletest"
+                    source {
+                        srcDirs "tests/cpp", gtestDir
+                        include "**/*.cpp", "**/gtest-all.cc"
+                        lib library: "effil", linkage: "shared"
+                        lib library: "luabase", linkage: "shared"
+                    }
+                    exportedHeaders {
+                        srcDirs "tests/cpp", "$gtestDir/include", gtestDir
+                        include "**/*.h"
+                    }
+                }
+            }
+        }
+    }
+
+    binaries {
+        all {
+            cCompiler.define luaOsMacro[osName]
+            cppCompiler.define "SOL_EXCEPTIONS_SAFE_PROPAGATION"
+            luaMacro[luaVersion].each { macro ->
+                cCompiler.define macro
+                cppCompiler.define macro
+            }
+
+            if (osName != "windows") {
+                cppCompiler.args "-std=c++14", "-Wall", "-Wextra", "-pedantic"
+                linker.args "-lreadline"
+                
+                if (osName == "linux")
+                    linker.args "-lpthread", "-ldl"
+                
+                if (buildType == buildTypes.debug) {
+                    cppCompiler.args "-g", "-O0", "-Werror"
+                } else {
+                    cCompiler.args "-O2"
+                    cppCompiler.args "-O3"
+                    cppCompiler.define "NDEBUG"
+                }
+            }
+        }
+    }
+
+    tasks {
+        ["debug", "release"].each { type ->
+            "effil_$type"(Copy) {
+                def libeffil = $.binaries.findAll {
+                    it instanceof SharedLibraryBinary \
+                    && it.buildType.name == type \
+                    && it.component.name == "effil" }.first()
+                dependsOn libeffil
+
+                from libeffil.sharedLibraryFile
+                into "$buildDir"
+            }
+
+            "cpptests_$type"(Copy) {
+                dependsOn "installTests${type.capitalize()}Executable"
+                from "$buildDir/install/tests/$type"
+                into "$buildDir/$type"
+            }
+
+            "luatests_$type"(Copy) {
+                dependsOn "effil_$type"
+                dependsOn "installLua${type.capitalize()}Executable"
+                from "$buildDir/install/lua/$type"
+                from "tests/lua/tests.lua"
+                into "$buildDir"
+            }
+        }
+    }
+}
