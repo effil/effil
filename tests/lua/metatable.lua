@@ -66,7 +66,7 @@ test.metatable.binary_op = function (metatable, metamethod, op, exp_value)
     testTable.was_called = false
     testTable.value = "left"
     operand.value = "right"
-    local left_operand, right_operand = unpack({testTable, operand})
+    local left_operand, right_operand = table.unpack({testTable, operand})
     test.equal(op(left_operand, right_operand),
         exp_value == nil and "left_right" or exp_value)
     test.is_true(testTable.was_called)

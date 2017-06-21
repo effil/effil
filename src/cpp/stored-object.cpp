@@ -139,14 +139,14 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<PrimitiveHolder<bool>>(luaObject);
         case sol::type::number:
         {
-#ifdef LUA_53
+#if LUA_VERSION_NUM == 503
             sol::stack::push(luaObject.lua_state(), luaObject);
             int isInterger = lua_isinteger(luaObject.lua_state(), -1);
             sol::stack::pop<sol::object>(luaObject.lua_state());
             if (isInterger)
                 return std::make_unique<PrimitiveHolder<lua_Integer>>(luaObject);
             else
-#endif // LUA_53
+#endif // Lua5.3
                 return std::make_unique<PrimitiveHolder<lua_Number>>(luaObject);
         }
         case sol::type::string:

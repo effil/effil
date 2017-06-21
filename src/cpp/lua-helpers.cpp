@@ -32,7 +32,7 @@ std::string dumpFunction(const sol::function& f) {
     sol::state_view lua(f.lua_state());
     sol::stack::push(lua, f);
     std::string result;
-#ifdef LUA_53
+#if LUA_VERSION_NUM == 503
     int ret = lua_dump(lua, dumpMemoryWriter, &result, 0 /* not strip debug info*/);
 #else
     int ret = lua_dump(lua, dumpMemoryWriter, &result);
