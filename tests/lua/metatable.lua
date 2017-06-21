@@ -66,7 +66,7 @@ test.metatable.binary_op = function (metatable, metamethod, op, exp_value)
     testTable.was_called = false
     testTable.value = "left"
     operand.value = "right"
-    local left_operand, right_operand = unpack({testTable, operand})
+    local left_operand, right_operand = table.unpack({testTable, operand})
     test.equal(op(left_operand, right_operand),
         exp_value == nil and "left_right" or exp_value)
     test.is_true(testTable.was_called)
@@ -112,6 +112,8 @@ test_unary_op("len",      function(a) return #a end)
 
 test.shared_table_with_metatable.tear_down = default_tear_down
 
+if LUA_VERSION > 51 then
+
 test.shared_table_with_metatable.iterators = function (iterator_type)
     local share = effil.table()
     local iterator = iterator_type
@@ -148,6 +150,8 @@ end
 
 test.shared_table_with_metatable.iterators("pairs")
 test.shared_table_with_metatable.iterators("ipairs")
+
+end -- LUA_VERSION > 51
 
 test.shared_table_with_metatable.as_shared_table = function()
     local share = effil.table()

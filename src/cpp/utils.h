@@ -6,6 +6,16 @@
 
 #include <sol.hpp>
 
+#if LUA_VERSION_NUM < 501 || LUA_VERSION_NUM > 503
+#   error Unsupported Lua version
+#endif
+
+#if LUA_VERSION_NUM == 503
+#   define LUA_INDEX_TYPE lua_Integer
+#else
+#   define LUA_INDEX_TYPE lua_Number
+#endif
+
 namespace effil {
 
 class Exception : public sol::error {

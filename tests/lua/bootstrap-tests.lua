@@ -1,6 +1,9 @@
 effil = require "effil"
 test = require "u-test"
 
+local major, minor = _VERSION:match("Lua (%d).(%d)")
+LUA_VERSION = major * 10 + minor
+
 function default_tear_down()
     collectgarbage()
     effil.gc.collect()
