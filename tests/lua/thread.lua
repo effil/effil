@@ -3,7 +3,10 @@ require "bootstrap-tests"
 test.thread.tear_down = default_tear_down
 
 test.thread.wait = function ()
-    local thread = effil.thread(function() print 'Effil is not that tower' end)()
+    local thread = effil.thread(function()
+        print 'Effil is not that tower'
+        return nil end)()
+
     local status = thread:wait()
     test.is_nil(thread:get())
     test.equal(status, "completed")
