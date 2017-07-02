@@ -37,3 +37,8 @@ end
 function sleep(timeInSec, silent)
     wait(timeInSec, nil, true)
 end
+
+
+if not table.unpack then
+    table.unpack = unpack
+end
