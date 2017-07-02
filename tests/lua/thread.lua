@@ -3,7 +3,10 @@ require "bootstrap-tests"
 test.thread.tear_down = default_tear_down
 
 test.thread.wait = function ()
-    local thread = effil.thread(function() print 'Effil is not that tower' end)()
+    local thread = effil.thread(function()
+        print 'Effil is not that tower'
+        return nil end)()
+
     local status = thread:wait()
     test.is_nil(thread:get())
     test.equal(status, "completed")
@@ -77,10 +80,20 @@ test.thread.detached = function ()
     end
 end
 
+-- FIXME: what is it for?
 test.thread.cancel = function ()
-    local thread = effil.thread(function()
-        while true do end
-    end)()
+    local thread = effil.thread(
+        jit ~= nil and
+            function()
+                while true do
+                    require("effil").yield()
+                end
+            end
+        or
+            function()
+                while true do end
+            end
+    )()
 
     test.is_true(thread:cancel())
     test.equal(thread:status(), "canceled")

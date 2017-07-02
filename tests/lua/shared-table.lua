@@ -12,6 +12,8 @@ test.shared_table.constructor = function ()
     test.equal(pcall(effil.table, effil.table()), false)
 end
 
+if LUA_VERSION > 51 then
+
 test.shared_table.pairs = function ()
     local share = effil.table()
     local data = { 0, 0, 0, ["key1"] = 0, ["key2"] = 0, ["key3"] = 0 }
@@ -40,6 +42,8 @@ test.shared_table.pairs = function ()
         test.equal(v, 2)
     end
 end
+
+end -- LUA_VERSION > 51
 
 test.shared_table.length = function ()
     local share = effil.table()
