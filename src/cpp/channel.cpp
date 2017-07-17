@@ -7,7 +7,8 @@ namespace effil {
 void Channel::getUserType(sol::state_view& lua) {
     sol::usertype<Channel> type("new", sol::no_constructor,
         "push",  &Channel::push,
-        "pop",  &Channel::pop
+        "pop",  &Channel::pop,
+        "size", &Channel::size
     );
     sol::stack::push(lua, type);
     sol::stack::pop<sol::object>(lua);
@@ -63,6 +64,11 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
     }
     data_->channel_.pop();
     return ret;
+}
+
+size_t Channel::size() {
+    std::lock_guard<std::mutex> lock(data_->lock_);
+    return data_->channel_.size();
 }
 
 } // namespace effil
