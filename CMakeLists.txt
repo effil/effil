@@ -13,9 +13,6 @@ FILE(GLOB LUA_SOURCES src/lua/*.lua)
 if(APPLE)
     # Supress warning CMP0042
     set(CMAKE_MACOSX_RPATH 1)
-    set(LIBRARY_EXT dylib)
-else()
-    set(LIBRARY_EXT so)
 endif()
 
 add_library(effil SHARED ${SOURCES})
