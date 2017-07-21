@@ -62,11 +62,10 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "table", createTable,
             "rawset", SharedTable::luaRawSet,
             "rawget", SharedTable::luaRawGet,
-            "size", SharedTable::luaSize,
+            "table_size", SharedTable::luaSize,
             "setmetatable", SharedTable::luaSetMetatable,
             "getmetatable", SharedTable::luaGetMetatable,
             "G", sol::make_object(lua, globalTable),
-            "getmetatable", SharedTable::luaGetMetatable,
             "gc", GC::getLuaApi(lua),
             "channel", createChannel,
             "userdata_type", userdataType

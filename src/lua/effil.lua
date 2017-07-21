@@ -17,7 +17,6 @@ local api = {
     thread_id = capi.thread_id,
     sleep = capi.sleep,
     yield = capi.yield,
-    size = capi.size,
     rawget = capi.rawget,
     rawset = capi.rawset,
     setmetatable = capi.setmetatable,
@@ -33,6 +32,17 @@ api.type = function (something)
         return t
     else
         return capi.userdata_type(something)
+    end
+end
+
+api.size = function (something)
+    local t = api.type(something)
+    if t == "effil.table" then
+        return capi.table_size(something)
+    elseif t == "effil.channel" then
+        return something:size()
+    else
+        error("Unsupported type " .. t .. " for effil.size()")
     end
 end
 

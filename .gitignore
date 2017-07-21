@@ -2,3 +2,4 @@
 .work_dir
 build
 *.user
+cmake-*

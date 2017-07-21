@@ -13,9 +13,6 @@ FILE(GLOB LUA_SOURCES src/lua/*.lua)
 if(APPLE)
     # Supress warning CMP0042
     set(CMAKE_MACOSX_RPATH 1)
-    set(LIBRARY_EXT dylib)
-else()
-    set(LIBRARY_EXT so)
 endif()
 
 add_library(effil SHARED ${SOURCES})
@@ -37,13 +34,6 @@ set(LUA_TESTS tests/lua/tests.lua)
 include_directories(${GTEST_DIR}/include ${GTEST_DIR})
 add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
 target_link_libraries(tests effil ${LUA_LIBRARY})
-
-#----------
-# FORMAT  -
-#----------
-add_custom_target( format
-        COMMAND clang-format -i ${TEST_SOURCES} ${SOURCES}
-)
 
 #----------
 # INSTALL -
