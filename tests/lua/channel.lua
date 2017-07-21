@@ -7,11 +7,14 @@ test.channel.capacity_usage = function()
 
     test.is_true(chan:push(14))
     test.is_true(chan:push(88))
+    test.equal(chan:size(), 2)
+
     test.is_false(chan:push(1488))
 
     test.equal(chan:pop(), 14)
     test.equal(chan:pop(), 88)
     test.is_nil(chan:pop(0))
+    test.equal(chan:size(), 0)
 
     test.is_true(chan:push(14, 88), true)
     local ret1, ret2 = chan:pop()

@@ -16,6 +16,7 @@ public:
     StoredArray pop(const sol::optional<int>& duration,
                      const sol::optional<std::string>& period);
 
+    size_t size();
 protected:
     struct SharedData {
         std::mutex lock_;
