@@ -36,13 +36,6 @@ add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
 target_link_libraries(tests effil ${LUA_LIBRARY})
 
 #----------
-# FORMAT  -
-#----------
-add_custom_target( format
-        COMMAND clang-format -i ${TEST_SOURCES} ${SOURCES}
-)
-
-#----------
 # INSTALL -
 #----------
 install(FILES ${LUA_TESTS}
