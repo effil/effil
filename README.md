@@ -201,7 +201,7 @@ All operations can be bloking or non blocking.
 
 Metrics:
 - `ms` - milliseconds;
-- `s` - seconds;
+- `s` - seconds (default);
 - `m` - minutes;
 - `h` - hours.
 
