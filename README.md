@@ -6,7 +6,18 @@ It allows to spawn native threads and safe data exchange.
 Effil has been designed to provide clear and simple API for lua developers including threads, channels and shared tables.
 
 Effil supports lua 5.1, 5.2, 5.3 and LuaJIT.
-Requires C++14 compiler compliance. Tested with GCC 5, clang 3.8 and Visual Studio 2015.
+Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visual Studio 2015.
+
+## Table Of Contents
+* [How to install](#how-to-install)
+* [Quick guide](#quick-guide)
+* [API Reference](#api-reference)
+    * [effil.thread](#effilthread)
+    * [effil.table](#effiltable)
+    * [effil.channel](#effilchannel)
+    * [effil.thread_id](#effilthread_id)
+    * [effil.yield](#effilyield)
+    * [effil.sleep](#effilsleeptime-metric)
 
 ## How to install
 ### Build from src on Linux and Mac
@@ -15,9 +26,9 @@ Requires C++14 compiler compliance. Tested with GCC 5, clang 3.8 and Visual Stud
 3. Copy effil.lua and libeffil.so/libeffil.dylib to your project.
 
 ### From lua rocks
-Coming soon.
+`luarocks install effil`
 
-## Quick guide for impatient
+## Quick guide
 As you may now there are not much script
 languages with **real** multithreading support
 (Lua/Python/Ruby and etc has global interpreter lock aka GIL).
@@ -25,13 +36,17 @@ Effil solves this problem by running independent Lua VM
 in separate native thread and provides robust communicating primitives
 for creating threads (VM instances) and data sharing.
 
-Effil library provides two major functions:
+Effil library provides three major functions:
 1. `effil.thread(action)` - function which creates threads.
 2. `effil.table` - table that persist in all threads and behaves just like regular lua table.
-3. Bunch og utilities to handle threads and tables.
+2. `effil.channel` - channel to send and receive data between threads.
+3. Bunch of utilities to handle threads and tables.
 
-## Examples
-### Spawn the thread
+### Examples
+<details>
+   <summary><b>Spawn the thread</b></summary>
+   <p>
+
 ```lua
 local effil = require("effil")
 
@@ -45,10 +60,16 @@ local thr = effil.thread(bark)("Sparky")
 -- wait for completion
 thr:wait()
 ```
+
 **Output:**
 `Sparky barks from another thread!`
+   </p>
+</details>
 
-### Shareing data with effil.channel
+<details>
+   <summary><b>Sharing data with effil.channel</b></summary>
+   <p>
+
 ```lua
 local effil = require("effil")
 
@@ -94,8 +115,13 @@ pop 3
 pop 4
 pop 5
 ```
+   </p>
+</details>
 
-### Sharing data with effil.table
+<details>
+   <summary><b>Sharing data with effil.table</b></summary>
+   <p>
+
 ```lua
 local effil = require("effil")
 
@@ -135,25 +161,88 @@ From github.com downloaded 20 bytes, content: "I am form github.com"
 From luarocks.org downloaded 22 bytes, content: "I am form luarocks.org"
 From ya.ru downloaded 15 bytes, content: "I am form ya.ru"
 ```
+   </p>
+</details>
 
 ## API Reference
-Effil provides:
-- `effil.thread`
-- `effil.table`
-- `effil.channel`
-- set of helper functions.
-
-#### Implementation
-All effil features implemented in C++ with great help of [sol2](https://github.com/ThePhD/sol2).
-It requires C++14 compliance (GCC 4.9, Visual Studio 2015 and clang 3.?).
 
 ### effil.thread
-#### Overview
 `effil.thread` is a way to create thread. Threads can be stopped, paused, resumed and canceled.
-All operation with threads can be synchronous (with or without timeout) or asynchronous. 
+All operation with threads can be synchronous (with timeout or infinite) or asynchronous.
 Each thread runs with its own lua state.
-**Do not run function with upvalues in `effil.thread`**  
+**Do not run function with upvalues in `effil.thread`**
 Use `effil.table` and `effil.channel` to transmit data over threads.
+
+#### `runner = effil.thread(func)`
+Creates thread runner. Runner spawn new thread for each invocation. 
+*input* 
+**func** - any Lua function without upvalues
+*output* 
+**runner** - [thread runner](#thread-runner) object to configure and run a new thread
+
+### Thread runner
+Allows to configure and run a new thread.
+#### `thread = runner(...)`
+Run captured function with specified arguments in separate thread and returns [thread handle](#thread-handle).
+*input*
+Any number of arguments required by captured function.
+*output*
+[Thread handle](#thread-handle) object.
+#### `runner.path`
+Is a Lua `package.path` value for new state. Default value inherits `package.path` form parent state.
+#### `runner.cpath`
+Is a Lua `package.cpath` value for new state. Default value inherits `package.cpath` form parent state.
+#### `runner.step`
+Number of lua instructions lua between cancelation points (where thread can be stopped or paused). Default value is 200. If this values is 0 then thread uses only [explicit cancelation points](#effilyield).
+
+### Thread handle
+Thread handle provides API for interation with child thread.
+
+#### `thread:status()`
+Returns thread status.
+*output*
+String values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`
+#### `thread:get(time, metric)`
+Waits for thread completion and returns function result or nothing in case of error.
+*input*
+Operation timeout in terms of [time metrics](#time-metrics)
+*output*
+Results of captured function invocation or nothing in case of error.
+#### `thred:wait(time, metric)`
+Waits for thread completion and returns thread status.
+*input*
+Operation timeout in terms of [time metrics](#time-metrics)
+*output*
+Returns status of thread. See the list of possible [statuses](#threadstatus)
+#### `thred:cancel(time, metric)`
+Interrupts thread execution. Once this function was invoked a 'cancellation' flag  is set and thread can be stopped sometime in the future (even after this function call done). To be sure that thread is stopped invoke this function with infinite timeout. Cancellation of finished thread will do nothing and return `true`.
+*input*
+Operation timeout in terms of [time metrics](#time-metrics)
+*output*
+Returns `true` if thread was stopped or `false`.
+#### `thr:pause(time, metric)`
+Pauses thread. Once this function was invoked a 'pause' flag  is set and thread can be paused sometime in the future (even after this function call done). To be sure that thread is paused invoke this function with infinite timeout.
+*input*
+Operation timeout in terms of [time metrics](#time-metrics)
+*output*
+Returns `true` if thread was paused or `false`.
+#### `thread:resume()`
+Resumes paused thread. Function resumes thread immediately if it was paused. Function has no input and output parameters.
+
+### Time metrics:
+All operations which use time metrics can be bloking or non blocking and use following API:
+`(time, metric)` where `metric` is time interval like and `time` is a number of intervals.
+
+Example:
+- `thr:get()` - infinitely wait for thread completion.
+- `thr:get(0)` - non blocking get, just check is thread finished and return
+- `thr:get(50, "ms")` - blocking wait for 50 milliseconds.
+
+List of available time intervals:
+- `ms` - milliseconds;
+- `s` - seconds (default);
+- `m` - minutes;
+- `h` - hours.
 
 #### Example
 ```lua
@@ -170,45 +259,13 @@ print(thr1:get()) -- get result
 print(thr2:get()) -- get result
 ```
 
-#### API
-`runner = effil.threas(f)` - creates thread runner. Runner spawn new thread for each invocation.  
-#### Thread runner
-- `runner.path` - `package.path` value for new state. Default value inherits `package.path` form parent state.
-- `runner.path` - `package.cpath` value for new state. Default value inherits `package.cpath` form parent state.
-- `runner.step` - number of lua instructions lua between cancelation points. Default value is 200. Spawn unstopable threads when value is equal to 0.    
-- `thr = runner(arg1, arg2, arg3)` - run captured function with this args in separate thread and returns handle.
-
-#### Thread handle
-Thread handle provides API for interation with shild thread.
-- You can use `effil.table` and `effil.channel` share this handles between threads.
-- You can call any handle methods from multiple threads.
-- You don't need to save this handle if you do not want to communicate with thread. 
- 
-
-All functions:
-- `thr:status()` - return thread status. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`
-- `thr:get(time, metric)` - waits for thread completion and returns function result or `nil` in case of error.
-- `thr:wait(time, metric)` - waits for thread completion and returns thread status with error message is `"failed"`.
-- `thr:cancel(time, metric)` - interrupt thread execution.
-- `thr:pause(time, metric)` - pause thread.
-- `thr:resume(time, metric)` - resume thred.
-
-All operations can be bloking or non blocking.
-- `thr:get()` - blocking wait for thread completion.
-- `thr:get(0)` - non blocking get.
-- `thr:get(50, "ms")` - blocking wait for 50 milliseconds.
-- `the:get(1)` - blocking wait for 1 second.
-
-Metrics:
-- `ms` - milliseconds;
-- `s` - seconds (default);
-- `m` - minutes;
-- `h` - hours.
-
-#### Thread helpers
-`effil.thread_id()` - unique string thread id. 
-`effil.yield()` - explicit cancellation point.
-`effil.sleep(time, metric)` - suspend current thread. `metric` is optional and default is seconds.
+### Thread helpers
+#### `effil.thread_id()`
+Returns unique string id for *current* thread.
+#### `effil.yield()`
+Explicit cancellation point. Function checks *cancellation* or *pausing* flags of current thread and if it's required it performs corresponding actions (cancel or pause thread).
+#### `effil.sleep(time, metric)`
+Suspend current thread using [time metrics](#time-metrics).
 
 ### effil.table
 #### Overview
