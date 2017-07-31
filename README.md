@@ -8,6 +8,8 @@ Effil has been designed to provide clear and simple API for lua developers inclu
 Effil supports lua 5.1, 5.2, 5.3 and LuaJIT.
 Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visual Studio 2015.
 
+Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for more information
+
 ## Table Of Contents
 * [How to install](#how-to-install)
 * [Quick guide](#quick-guide)
