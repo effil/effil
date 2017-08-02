@@ -16,6 +16,7 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
 * [API Reference](#api-reference)
     * [effil.thread()](#effilthread)
     * [Thread runner](#thread-runner)
+      * [runner()](#thread--runner)
       * [runner.path](#runnerpath)
       * [runner.cpath](#runnercpath)
       * [runner.step]($runnerstep)
