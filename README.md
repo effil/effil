@@ -14,12 +14,42 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
 * [How to install](#how-to-install)
 * [Quick guide](#quick-guide)
 * [API Reference](#api-reference)
-    * [effil.thread](#effilthread)
-    * [effil.table](#effiltable)
-    * [effil.channel](#effilchannel)
-    * [effil.thread_id](#effilthread_id)
-    * [effil.yield](#effilyield)
-    * [effil.sleep](#effilsleeptime-metric)
+    * [effil.thread()](#effilthread)
+    * [Thread runner](#thread-runner)
+      * [runner.path](#runnerpath)
+      * [runner.cpath](#runnercpath)
+      * [runner.step]($runnerstep)
+    * [Thread handle](#thread-handle)
+      * [thread:status()](#threadstatus)
+      * [thread:get()](#threadgettime-metric)
+      * [thread:wait()](#threadwaittime-metric)
+      * [thread:cancel()](#threadcanceltime-metric)
+      * [thread:pause()](#threadpausetime-metric)
+      * [thread:resume()](#threadresume)
+    * [Thread helpers](#thread-helpers)
+      * [effil.thread_id()](#effilthread_id)
+      * [effil.yield()](#effilyield)
+      * [effil.sleep()](#effilsleeptime-metric)
+    * [effil.table()](#effiltable)
+      * [effil.size()](#size--effilsizetbl)
+      * [effil.setmetatable()](#tbl--effilsetmetatabletbl-mtbl)
+      * [effil.getmetatable()](#mtbl--effilgetmetatabletbl)
+      * [effil.rawset()](#tbl--effilrawsettbl-key-value)
+      * [effil.rawget()](#value--effilrawgettbl-key)
+    * [effil.channel()](#effilchannel)
+      * [channel:push()](#channelpush)
+      * [channel:pop()](#channelpoptime-metric)
+      * [channel:size()](#channelsize)
+    * [effil.G](#effilg)
+    * [effil.type()](#effiltype)
+    * [effil.gc](#effilgc)
+      * [effil.gc.collect()](#effilgccollect)
+      * [effil.gc.count()](#effilgccount)
+      * [effil.gc.step()](#effilgcstep)
+      * [effil.gc.pause()](#effilgcpause)
+      * [effil.gc.resume()](#effilgcresume)
+      * [effil.gc.enabled()](#effilgcenabled)
+    * [Time metrics](#time-metrics)
 
 # How to install
 ### Build from src on Linux and Mac
@@ -238,30 +268,7 @@ Pauses thread. Once this function was invoked a 'pause' flag  is set and thread 
 ### `thread:resume()`
 Resumes paused thread. Function resumes thread immediately if it was paused. Function has no input and output parameters.
 
-## Time metrics:
-All operations which use time metrics can be bloking or non blocking and use following API:
-`(time, metric)` where `metric` is time interval like and `time` is a number of intervals.
-
-Example:
-- `thread:get()` - infinitely wait for thread completion.
-- `thread:get(0)` - non blocking get, just check is thread finished and return
-- `thread:get(50, "ms")` - blocking wait for 50 milliseconds.
-
-List of available time intervals:
-- `ms` - milliseconds;
-- `s` - seconds (default);
-- `m` - minutes;
-- `h` - hours.
-
-## Thread helpers
-### `effil.thread_id()`
-Returns unique string id for *current* thread.
-### `effil.yield()`
-Explicit cancellation point. Function checks *cancellation* or *pausing* flags of current thread and if it's required it performs corresponding actions (cancel or pause thread).
-### `effil.sleep(time, metric)`
-Suspend current thread using [time metrics](#time-metrics).
-
-## Thread usage examples
+### Thread usage examples
 <details>
    <summary><b>Simple example</b></summary>
    <p>
@@ -281,9 +288,30 @@ print(thread:get()) -- wait for thread completion and get the result
    </p>
 </details>
 
+## Thread helpers
+### `effil.thread_id()`
+Gives unique identifier.
+
+**output**:  returns unique string id for *current* thread.
+
+### `effil.yield()`
+Explicit cancellation point. Function checks *cancellation* or *pausing* flags of current thread and if it's required it performs corresponding actions (cancel or pause thread).
+
+### `effil.sleep(time, metric)`
+Suspend current thread.
+
+**input**:  [time metrics](#time-metrics) arguments.
+
 ## effil.table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.
 All operations with shared table are thread safe. **Shared table stores** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Shared table doesn't store** lua threads (coroutines) or arbitrary userdata. See examples of shared table usage [here](#shared-table-usage-examples)
+
+### Notes: shared tables usage
+
+Use **Shared tables with regular tables**. If you want to store regular table in shared table, effil will implicitly dump origin table into new shared table. **Shared tables always stores subtables as shared tables.**
+
+Use **Shared tables with functions**. If you want to store function in shared table, effil will implicitly dump this function and saves it in internal representation as string. Thus, all upvalues will be lost. **Do not store function with upvalues in shared tables**.
+
 
 ### `table = effil.table()`
 Creates new **empty** shared table.
@@ -339,13 +367,7 @@ Gets table value without invoking metamethod `__index`. Similar to standard [raw
 
 **output**: returns required `value` stored under a specified `key`
 
-## Notes: shared tables usage
-
-Use **Shared tables with regular tables**. If you want to store regular table in shared table, effil will implicitly dump origin table into new shared table. **Shared tables always stores subtables as shared tables.**
-
-Use **Shared tables with functions**. If you want to store function in shared table, effil will implicitly dump this function and saves it in internal representation as string. Thus, all upvalues will be lost. **Do not store function with upvalues in shared tables**.
-
-## Shared table usage examples
+### Shared table usage examples
 <details>
    <summary><b>Simple example</b></summary>
    <p>
@@ -372,18 +394,25 @@ end
 effil.G.key == "value"
 ```
 
-## `effil.type`
-Use  to deffer effil.table for other userdata.
-```lua
-effil.type(effil.channel()) == "effil.channel"
-effil.type(effil.table()) == "effil.table"
-effil.type(effil.thread()) == "effil.thread"
-```
-
 ## effil.channel
 `effil.channel` is a way to sequentially exchange data between effil threads. It allows push values from one thread and pop them from another. All operations with channels are thread safe. **Channel passes** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Channel doesn't pass** lua threads (coroutines) or arbitrary userdata.
 
-#### Example
+### `channel = effil.channel(capacity)`
+Channel capacity. If `capacity` equals to `0` size of channel is unlimited. Default capacity is `0`.
+
+### `channel:push()`
+Push value. Returns `true` if value fits channel capacity, `false` otherwise. Supports multiple values.
+
+### `channel:pop()`
+Pop value. If value is not present, wait for the value.
+
+### `channel:pop(time, metric)`
+Pop value with timeout. If time equals `0` then pop asynchronously.
+
+### `channel:size()`
+Get actual size of channel.
+
+### Example
 ```lua
 local effil = require "effil"
 
@@ -397,55 +426,63 @@ assert("Wow" == s)
 assert(chan:size() == 1)
 ```
 
-#### API
-- `chan = effil.channel(capacity)` - channel capacity. If `capacity` equals to `0` size of channel is unlimited. Default capacity is `0`.
-- `chan:push()` - push value. Returns `true` if value fits channel capacity, `false` otherwise. Supports multiple values.
-- `chan:pop()` - pop value. If value is not present, wait for the value.
-- `chan:pop(time, metric)` - pop value with timeout. If time equals `0` then pop asynchronously.
-- `chan:size()` - get actual size of channel.
+## `effil.type`
+Threads, channels and tables are userdata. Thus, `type()` will return `userdata` for any type. If you want to detect type more precisely use `effil.type`. It behaves like regular `type()`, but it can detect effil specific userdata. There is a list of extra types:
 
-#### Metrics
-- `ms` - milliseconds;
-- `s` - seconds;
-- `m` - minutes;
-- `h` - hours.
+```Lua
+effil.type(effil.thread()) == "effil.thread"
+effil.type(effil.table()) == "effil.table"
+effil.type(effil.channel() == "effil.channel"
+```
 
-### effil.type
-Threads, channels and tables are userdata.
-Thus, `type()` will return `userdata` for any type.
-If you want to detect type more precisely use `effil.type`.
-It behaves like regular `type()`, but it can detect effil specific userdata.
-There is a list of extra types:
-- `effil.type(effil.thread()) == "effil.thread"`
-- `effil.type(effil.table()) == "effil.table"`
-- `effil.type(effil.channel() == "effil.channel"`
+## effil.gc
+Effil provides custom garbage collector for `effil.table` and `effil.table`. It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
 
-### effil.gc
-#### Overview
-Effil provides custom garbage collector for `effil.table` and `effil.table`.
-It allows safe manage cyclic references for tables and channels in multiple threads.
-However it may cause extra memory usage. 
-`effil.gc` provides a set of method configure effil garbage collector.
-But, usually you don't need to configure it.
-
-#### Garbage collection trigger
+### Garbage collection trigger
 Garbage collection may occur with new effil object creation (table or channel).
 Frequency of triggering configured by GC step.
 For example, if Gc step is 200, then each 200'th object creation trigger GC.    
 
-#### API
-- `effil.gc.collect()` - force garbage collection, however it doesn't guarantee deletion of all effil objects.
-- `effil.gc.count()` - show number of allocated shared tables and channels. Minimum value is 1, `effil.G` is always present. 
-- `effil.gc.step()` - get GC step. Default is `200`.
-- `effi.gc.step(value)` - set GC step and get previous value. 
-- `effil.gc.pause()` - pause GC.
-- `effil.gc.resume()` - resume GC.
-- `effil.gc.enabled()` - get GC state.
+### `effil.gc.collect()`
+Force garbage collection, however it doesn't guarantee deletion of all effil objects.
 
-#### How to cleanup all dereferenced objects 
+### `effil.gc.count()`
+Show number of allocated shared tables and channels. Minimum value is 1, `effil.G` is always present. 
+
+### `effil.gc.step()`
+Get GC step. Default is `200`.
+
+### `effi.gc.step(value)`
+Set GC step and get previous value. 
+
+### `effil.gc.pause()`
+Pause GC.
+
+### `effil.gc.resume()`
+Resume GC.
+
+### `effil.gc.enabled()`
+Get GC state.
+
+### How to cleanup all dereferenced objects 
 Each thread represented as separate state with own garbage collector.
 Thus, objects will be deleted eventually.
 Effil objects itself also managed by GC and uses `__gc` userdata metamethod as deserializer hook.
 To force objects deletion:
 1. invoke `collectgarbage()` in all threads.
 2. invoke `effil.gc.collect()` in any thread.
+
+## Time metrics:
+All operations which use time metrics can be bloking or non blocking and use following API:
+`(time, metric)` where `metric` is time interval like and `time` is a number of intervals.
+
+Example:
+- `thread:get()` - infinitely wait for thread completion.
+- `thread:get(0)` - non blocking get, just check is thread finished and return
+- `thread:get(50, "ms")` - blocking wait for 50 milliseconds.
+
+List of available time intervals:
+- `ms` - milliseconds;
+- `s` - seconds (default);
+- `m` - minutes;
+- `h` - hours.
