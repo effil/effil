@@ -37,19 +37,19 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
       * [effil.getmetatable()](#mtbl--effilgetmetatabletbl)
       * [effil.rawset()](#tbl--effilrawsettbl-key-value)
       * [effil.rawget()](#value--effilrawgettbl-key)
+    * [effil.G](#effilg)
     * [effil.channel()](#effilchannel)
       * [channel:push()](#channelpush)
       * [channel:pop()](#channelpoptime-metric)
       * [channel:size()](#channelsize)
-    * [effil.G](#effilg)
     * [effil.type()](#effiltype)
     * [effil.gc](#effilgc)
       * [effil.gc.collect()](#effilgccollect)
-      * [effil.gc.count()](#effilgccount)
-      * [effil.gc.step()](#effilgcstep)
+      * [effil.gc.count()](#count--effilgccount)
+      * [effil.gc.step()](#old_value--effilgcstepnew_value)
       * [effil.gc.pause()](#effilgcpause)
       * [effil.gc.resume()](#effilgcresume)
-      * [effil.gc.enabled()](#effilgcenabled)
+      * [effil.gc.enabled()](#enabled--effilgcenabled)
     * [Time metrics](#time-metrics)
 
 # How to install
@@ -444,34 +444,39 @@ Garbage collection may occur with new effil object creation (table or channel).
 Frequency of triggering configured by GC step.
 For example, if Gc step is 200, then each 200'th object creation trigger GC.    
 
-### `effil.gc.collect()`
-Force garbage collection, however it doesn't guarantee deletion of all effil objects.
-
-### `effil.gc.count()`
-Show number of allocated shared tables and channels. Minimum value is 1, `effil.G` is always present. 
-
-### `effil.gc.step()`
-Get GC step. Default is `200`.
-
-### `effi.gc.step(value)`
-Set GC step and get previous value. 
-
-### `effil.gc.pause()`
-Pause GC.
-
-### `effil.gc.resume()`
-Resume GC.
-
-### `effil.gc.enabled()`
-Get GC state.
-
 ### How to cleanup all dereferenced objects 
 Each thread represented as separate state with own garbage collector.
 Thus, objects will be deleted eventually.
 Effil objects itself also managed by GC and uses `__gc` userdata metamethod as deserializer hook.
 To force objects deletion:
-1. invoke `collectgarbage()` in all threads.
+1. invoke standard `collectgarbage()` in all threads.
 2. invoke `effil.gc.collect()` in any thread.
+
+### `effil.gc.collect()`
+Force garbage collection, however it doesn't guarantee deletion of all effil objects.
+
+### `count = effil.gc.count()`
+Show number of allocated shared tables and channels.
+
+**output**: returns current number of allocated objects. Minimum value is 1, `effil.G` is always present. 
+
+### `old_value = effil.gc.step(new_value)`
+Get/set GC step. Default is `200`.
+
+**input**: `new_value` is optional value of step to set. If it's `nil` then function will just return a current value.
+
+**output**: `old_value` is current (if `new_value == nil`) or previous (if `new_value ~= nil`) value of step.
+
+### `effil.gc.pause()`
+Pause GC. Garbage collecting will not be performed automatically. Function does not have any *input* or *output*
+
+### `effil.gc.resume()`
+Resume GC. Enable automatic garbage collecting.
+
+### `enabled = effil.gc.enabled()`
+Get GC state.
+
+**output**: return `true` if automatic garbage collecting is enabled or `false` otherwise. By default returns `true`.
 
 ## Time metrics:
 All operations which use time metrics can be bloking or non blocking and use following API:
