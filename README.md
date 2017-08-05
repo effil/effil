@@ -1,5 +1,5 @@
 # Effil
-[![Build Status](https://travis-ci.org/loud-hound/effil.svg?branch=master)](https://travis-ci.org/loud-hound/effil)
+[![Build Status](https://travis-ci.org/effil/effil.svg?branch=master)](https://travis-ci.org/loud-hound/effil)
 
 Effil is a lua module for multithreading support.
 It allows to spawn native threads and safe data exchange.
