@@ -188,10 +188,10 @@ print("Thread result: " .. ret)
 **Output:**
 ```
 first value
-100500.0
-1.0
-2.0
-Thread result: 3.0
+100500
+1
+2
+Thread result: 3
 ```
    </p>
 </details>
