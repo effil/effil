@@ -134,6 +134,7 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
         // to release all resources as soon as possible
         handle->destroyLua();
         handle->completion.notify();
+        handle->syncPause.notify();
     });
 
     assert(handle);
@@ -277,6 +278,8 @@ bool Thread::cancel(const sol::this_state&,
 bool Thread::pause(const sol::this_state&,
                    const sol::optional<int>& duration,
                    const sol::optional<std::string>& period) {
+    if (handle_->completion.check())
+        return false;
     handle_->pause.reset();
     handle_->command(Command::Pause);
 
@@ -289,6 +292,8 @@ bool Thread::pause(const sol::this_state&,
 }
 
 void Thread::resume() {
+    if (handle_->completion.check())
+        return;
     handle_->command(Command::Run);
     handle_->syncPause.reset();
     handle_->pause.notify();
