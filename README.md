@@ -1,5 +1,5 @@
 # Effil
-[![Build Status](https://travis-ci.org/effil/effil.svg?branch=master)](https://travis-ci.org/loud-hound/effil)
+[![Build Status](https://travis-ci.org/effil/effil.svg?branch=master)](https://travis-ci.org/effil/effil)
 
 Effil is a lua module for multithreading support.
 It allows to spawn native threads and safe data exchange.
@@ -13,6 +13,7 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
 # Table Of Contents
 * [How to install](#how-to-install)
 * [Quick guide](#quick-guide)
+* [Important notes](#important-notes)
 * [API Reference](#api-reference)
     * [effil.thread()](#effilthread)
     * [Thread runner](#thread-runner)
@@ -21,22 +22,24 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
       * [runner.cpath](#runnercpath)
       * [runner.step]($runnerstep)
     * [Thread handle](#thread-handle)
-      * [thread:status()](#threadstatus)
-      * [thread:get()](#threadgettime-metric)
+      * [thread:status()](#status-err--threadstatus)
+      * [thread:get()](#--threadgettime-metric)
       * [thread:wait()](#threadwaittime-metric)
       * [thread:cancel()](#threadcanceltime-metric)
       * [thread:pause()](#threadpausetime-metric)
       * [thread:resume()](#threadresume)
     * [Thread helpers](#thread-helpers)
-      * [effil.thread_id()](#effilthread_id)
+      * [effil.thread_id()](#id--effilthread_id)
       * [effil.yield()](#effilyield)
       * [effil.sleep()](#effilsleeptime-metric)
     * [effil.table()](#effiltable)
-      * [effil.size()](#size--effilsizetbl)
-      * [effil.setmetatable()](#tbl--effilsetmetatabletbl-mtbl)
-      * [effil.getmetatable()](#mtbl--effilgetmetatabletbl)
-      * [effil.rawset()](#tbl--effilrawsettbl-key-value)
-      * [effil.rawget()](#value--effilrawgettbl-key)
+      * [__newindex: table[key] = value](#tablekey--value)
+      * [__index: value = table[key]](#value--tablekey)
+    * [effil.setmetatable()](#tbl--effilsetmetatabletbl-mtbl)
+    * [effil.getmetatable()](#mtbl--effilgetmetatabletbl)
+    * [effil.rawset()](#tbl--effilrawsettbl-key-value)
+    * [effil.rawget()](#value--effilrawgettbl-key)
+    * [effil.size()](#size--effilsizetbl)
     * [effil.G](#effilg)
     * [effil.channel()](#effilchannel)
       * [channel:push()](#channelpush)
@@ -54,7 +57,7 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
 
 # How to install
 ### Build from src on Linux and Mac
-1. `git clone git@github.com:loud-hound/effil.git effil && cd effil`
+1. `git clone git@github.com:effil/effil.git effil && cd effil`
 2. `mkdir build && cd build && make -j4 install`
 3. Copy effil.lua and libeffil.so/libeffil.dylib to your project.
 
@@ -107,7 +110,7 @@ thr:wait()
 ```lua
 local effil = require("effil")
 
--- channel allow to push date in one thread and pop in other
+-- channel allow to push data in one thread and pop in other
 local channel = effil.channel()
 
 -- writes some numbers to channel
@@ -157,46 +160,60 @@ pop 5
    <p>
 
 ```lua
-local effil = require("effil")
+effil = require("effil")
 
 -- effil.table transfers data between threads
 -- and behaves like regualr lua table
-local storage = effil.table {}
+local storage = effil.table { string_field = "first value" }
+storage.numeric_field = 100500
+storage.function_field = function(a, b) return a + b end
+storage.table_field = { fist = 1, second = 2 }
 
-function download_file(storage, url)
-    local restult =  {}
-    restult.downloaded = true
-    restult.content = "I am form " .. url
-    restult.bytes = #restult.content
-    storage[url] = restult
+function check_shared_table(storage)
+   print(storage.string_field)
+   print(storage.numeric_field)
+   print(storage.table_field.first)
+   print(storage.table_field.second)
+   return storage.function_field(1, 2)
 end
 
--- capture download function
-local downloader = effil.thread(download_file)
-local downloads = effil.table {}
-for _, url in pairs({"luarocks.org", "ya.ru", "github.com" }) do
-    -- run downloads in separate threads
-    -- each invocation creates separate thread
-    downloads[#downloads + 1] = downloader(storage, url)
-end
+local thr = effil.thread(check_shared_table)(storage)
+local ret = thr:get()
+print("Thread result: " .. ret)
 
-for _, download in pairs(downloads) do
-    download:wait()
-end
-
-for url, result in pairs(storage) do
-    print('From ' .. url .. ' downloaded ' ..
-            result.bytes .. ' bytes, content: "' .. result.content  .. '"')
-end
 ```
 **Output:**
 ```
-From github.com downloaded 20 bytes, content: "I am form github.com"
-From luarocks.org downloaded 22 bytes, content: "I am form luarocks.org"
-From ya.ru downloaded 15 bytes, content: "I am form ya.ru"
+first value
+100500.0
+1.0
+2.0
+Thread result: 3.0
 ```
    </p>
 </details>
+
+# Important notes
+Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`. In all cases Effil uses a common data handling principle:
+ - Primitive types are transmitted 'as is': `nil`, `boolean`, `number`, `string`
+ - Functions are dumped using [`string.dump`](#https://www.lua.org/manual/5.3/manual.html#pdf-string.dump) method and currently **it does not support function upvalues**
+ - **Userdata and threads** are not supported. You can extend *userdata* support using C++ API of library but it's not documented for right now. 
+ - Tables are serialized into `effil.table` recursively. So, any Lua table becomes a `effil.table`. Table serialization may take a lot of time on a big table, so, it's better to put your data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
+```Lua
+-- Example #1
+t = {}
+for i = 1, 100 do
+   t[i] = i
+end
+shared_table = effil.table(t)
+
+-- Example #2
+t = effil.table()
+for i = 1, 100 do
+   t[i] = i
+end
+```
+In the example #1 we created a regular table, fill it and pass to `effil.table` constructor. In this case Effil needs to go through all table fields one more time. Another way is example #2 where we firstly created `eiffel.table` and after that we put data right to `effil.table`. The 2nd way pretty much faster try to follow this principle.
 
 # API Reference
 
@@ -205,7 +222,7 @@ From ya.ru downloaded 15 bytes, content: "I am form ya.ru"
 All operation with threads can be synchronous (with timeout or infinite) or asynchronous.
 Each thread runs with its own lua state.
 **Do not run function with upvalues in** `effil.thread`. Use `effil.table` and `effil.channel` to transmit data over threads.
-See example of thread usage [here](#thread-usage-example).
+See example of thread usage [here](#examples).
 
 ### `runner = effil.thread(func)`
 Creates thread runner. Runner spawns new thread for each invocation. 
@@ -231,14 +248,16 @@ Is a Lua `package.cpath` value for new state. Default value inherits `package.cp
 Number of lua instructions lua between cancelation points (where thread can be stopped or paused). Default value is 200. If this values is 0 then thread uses only [explicit cancelation points](#effilyield).
 
 ## Thread handle
-Thread handle provides API for interation with child thread.
+Thread handle provides API for interaction with child thread.
 
-### `thread:status()`
+### `status, err = thread:status()`
 Returns thread status.
 
-**output**: String values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`
+**output**:
+- `status` - string values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`
+- `err` - error description occurred in separate thread. This value is specified only if thread status == `"failed"`
 
-### `thread:get(time, metric)`
+### `... = thread:get(time, metric)`
 Waits for thread completion and returns function result or nothing in case of error.
 
 **input**: Operation timeout in terms of [time metrics](#time-metrics)
@@ -250,50 +269,30 @@ Waits for thread completion and returns thread status.
 
 **input**: Operation timeout in terms of [time metrics](#time-metrics)
 
-**output**: Returns status of thread. See the list of possible [statuses](#threadstatus)
+**output**: Returns status of thread. The output is the same as [`thread:status()`](#status-err--threadstatus)
 
 ### `thread:cancel(time, metric)`
-Interrupts thread execution. Once this function was invoked a 'cancellation' flag  is set and thread can be stopped sometime in the future (even after this function call done). To be sure that thread is stopped invoke this function with infinite timeout. Cancellation of finished thread will do nothing and return `true`.
+Interrupts thread execution. Once this function was invoked 'cancellation' flag  is set and thread can be stopped sometime in the future (even after this function call done). To be sure that thread is stopped invoke this function with infinite timeout. Cancellation of finished thread will do nothing and return `true`.
 
 **input**: Operation timeout in terms of [time metrics](#time-metrics)
 
 **output**: Returns `true` if thread was stopped or `false`.
 
 ### `thread:pause(time, metric)`
-Pauses thread. Once this function was invoked a 'pause' flag  is set and thread can be paused sometime in the future (even after this function call done). To be sure that thread is paused invoke this function with infinite timeout.
+Pauses thread. Once this function was invoked 'pause' flag  is set and thread can be paused sometime in the future (even after this function call done). To be sure that thread is paused invoke this function with infinite timeout.
 
 **input**: Operation timeout in terms of [time metrics](#time-metrics)
 
-**output**: Returns `true` if thread was paused or `false`.
+**output**: Returns `true` if thread was paused or `false`. If the thread is completed function will return `false`
 
 ### `thread:resume()`
-Resumes paused thread. Function resumes thread immediately if it was paused. Function has no input and output parameters.
-
-### Thread usage examples
-<details>
-   <summary><b>Simple example</b></summary>
-   <p>
-
-```lua
-effil = require "effil"
-
-function greeting(name)
-    return "Hello, " .. name
-end
-
-runner = effil.thread(greeting) -- capture function to thread runner
-thread = runner("Sparky") -- run thread with specific argument
-
-print(thread:get()) -- wait for thread completion and get the result
-```
-   </p>
-</details>
+Resumes paused thread. Function resumes thread immediately if it was paused. This function does nothing for completed thread. Function has no input and output parameters.
 
 ## Thread helpers
-### `effil.thread_id()`
+### `id = effil.thread_id()`
 Gives unique identifier.
 
-**output**:  returns unique string id for *current* thread.
+**output**:  returns unique string `id` for *current* thread.
 
 ### `effil.yield()`
 Explicit cancellation point. Function checks *cancellation* or *pausing* flags of current thread and if it's required it performs corresponding actions (cancel or pause thread).
@@ -305,7 +304,7 @@ Suspend current thread.
 
 ## effil.table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.
-All operations with shared table are thread safe. **Shared table stores** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Shared table doesn't store** lua threads (coroutines) or arbitrary userdata. See examples of shared table usage [here](#shared-table-usage-examples)
+All operations with shared table are thread safe. **Shared table stores** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Shared table doesn't store** lua threads (coroutines) or arbitrary userdata. See examples of shared table usage [here](#examples)
 
 ### Notes: shared tables usage
 
@@ -313,27 +312,27 @@ Use **Shared tables with regular tables**. If you want to store regular table in
 
 Use **Shared tables with functions**. If you want to store function in shared table, effil will implicitly dump this function and saves it in internal representation as string. Thus, all upvalues will be lost. **Do not store function with upvalues in shared tables**.
 
-
-### `table = effil.table()`
+### `table = effil.table(tbl)`
 Creates new **empty** shared table.
 
-**output**: new instance of empty shared table
+**input**: `tbl` - is *optional* parameter, it can be only regular Lua table which entries will be **copied** to shared table.
 
-### `table = effil.table(tbl)`
-Creates new shared table and fill it with values from table `tbl`.
+**output**: new instance of empty shared table. It can be empty or not, depending on `tbl` content.
 
-**input**: `tbl` is regular Lua table which entries will be **copied** to shared table.
+### `table[key] = value` 
+Set a new key of table with specified value.
 
-**output**: new instance of shared table. It can be empty or not, depending on `tbl` content.
+**input**:
+- `key` - any value of supported type. See the list of [supported types](#important-notes)
+- `value` - any value of supported type. See the list of [supported types](#important-notes)
 
-### `size = effil.size(tbl)`
-Returns number of entries in shared table.
+### `value = table[key]` 
+Get a value from table with specified key.
 
-**input**: `tbl` is [shared table](#effiltable) or [channel](#effilchannel) Lua table which entries will be **copied** to shared table.
+**input**: `key` - any value of supported type. See the list of [supported types](#important-notes)
+**output**: `value` - any value of supported type. See the list of [supported types](#important-notes)
 
-**output**: new instance of shared table
-
-### `tbl = effil.setmetatable(tbl, mtbl)`
+## `tbl = effil.setmetatable(tbl, mtbl)`
 Sets a new metatable to shared table. Similar to standard [setmetatable](https://www.lua.org/manual/5.3/manual.html#pdf-setmetatable).
 
 **input**:
@@ -342,45 +341,38 @@ Sets a new metatable to shared table. Similar to standard [setmetatable](https:/
 
 **output**: just returns `tbl` with a new *metatable* value similar to standard Lua *setmetatable* method.
 
-### `mtbl = effil.getmetatable(tbl)`
+## `mtbl = effil.getmetatable(tbl)`
 Returns current metatable. Similar to standard [getmetatable](https://www.lua.org/manual/5.3/manual.html#pdf-getmetatable)
 
 **input**: `tbl` should be shared table. 
 
 **output**: returns *metatable* of specified shared table. Returned table always has type `effil.table`. Default metatable is `nil`.
 
-### `tbl = effil.rawset(tbl, key, value)`
+## `tbl = effil.rawset(tbl, key, value)`
 Set table entry without invoking metamethod `__newindex`. Similar to standard [rawset](https://www.lua.org/manual/5.3/manual.html#pdf-rawset)
 
 **input**:
 - `tbl` is shared table. 
-- `key` - key of table to override. The key can be of any supported type.
-- `value` - value to set. The value can be of any supported type.
+- `key` - key of table to override. The key can be of any [supported type](#important-notes).
+- `value` - value to set. The value can be of any [supported type](#important-notes).
 
 **output**: returns the same shared table `tbl`
 
-### `value = effil.rawget(tbl, key)`
+## `value = effil.rawget(tbl, key)`
 Gets table value without invoking metamethod `__index`. Similar to standard [rawget](https://www.lua.org/manual/5.3/manual.html#pdf-rawget)
 
 **input**:
 - `tbl` is shared table. 
-- `key` - key of table to receive a specific value. The key can be of any supported type.
+- `key` - key of table to receive a specific value. The key can be of any [supported type](#important-notes).
 
 **output**: returns required `value` stored under a specified `key`
 
-### Shared table usage examples
-<details>
-   <summary><b>Simple example</b></summary>
-   <p>
+## `size = effil.size(tbl)`
+Returns number of entries in shared table.
 
-```lua
-local effil = require "effil"
-local pets = effil.table()
-pets.sparky = effil.table { says = "wof" }
-assert(pets.sparky.says == "wof")
-```
-   </p>
-</details>
+**input**: `tbl` is [shared table](#effiltable) or [channel](#effilchannel) Lua table which entries will be **copied** to shared table.
+
+**output**: new instance of shared table
 
 ## `effil.G`
 Is a global predefined shared table. This table always present in any thread (any Lua state).
