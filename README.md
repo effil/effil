@@ -418,7 +418,7 @@ effil.type(effil.channel() == "effil.channel"
 ```
 
 ## Garbage collector
-Effil provides custom garbage collector for `effil.table` and `effil.table`. It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
+Effil provides custom garbage collector for `effil.table` and `effil.channel`. It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
 
 ### Garbage collection trigger
 Garbage collection may occur with new effil object creation (table or channel).
