@@ -15,7 +15,8 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
 * [Quick guide](#quick-guide)
 * [Important notes](#important-notes)
 * [API Reference](#api-reference)
-    * [effil.thread()](#effilthread)
+   * [Thread](#thread)
+      * [effil.thread()](#runner--effilthreadfunc)
     * [Thread runner](#thread-runner)
       * [runner()](#thread--runner)
       * [runner.path](#runnerpath)
@@ -32,20 +33,22 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
       * [effil.thread_id()](#id--effilthread_id)
       * [effil.yield()](#effilyield)
       * [effil.sleep()](#effilsleeptime-metric)
-    * [effil.table()](#effiltable)
+    * [Table](#table)
+      * [effil.table()](#table--effiltabletbl)
       * [__newindex: table[key] = value](#tablekey--value)
       * [__index: value = table[key]](#value--tablekey)
-    * [effil.setmetatable()](#tbl--effilsetmetatabletbl-mtbl)
-    * [effil.getmetatable()](#mtbl--effilgetmetatabletbl)
-    * [effil.rawset()](#tbl--effilrawsettbl-key-value)
-    * [effil.rawget()](#value--effilrawgettbl-key)
-    * [effil.size()](#size--effilsizetbl)
-    * [effil.G](#effilg)
-    * [effil.channel()](#effilchannel)
+      * [effil.setmetatable()](#tbl--effilsetmetatabletbl-mtbl)
+      * [effil.getmetatable()](#mtbl--effilgetmetatabletbl)
+      * [effil.rawset()](#tbl--effilrawsettbl-key-value)
+      * [effil.rawget()](#value--effilrawgettbl-key)
+      * [effil.G](#effilg)
+    * [Channel](#channel)
+      * [effil.channel()](#channel--effilchannelcapacity)
       * [channel:push()](#channelpush)
       * [channel:pop()](#channelpoptime-metric)
       * [channel:size()](#channelsize)
     * [effil.type()](#effiltype)
+    * [effil.size()](#size--effilsizetbl)
     * [effil.gc](#effilgc)
       * [effil.gc.collect()](#effilgccollect)
       * [effil.gc.count()](#count--effilgccount)
@@ -217,7 +220,7 @@ In the example #1 we created a regular table, fill it and pass to `effil.table` 
 
 # API Reference
 
-## effil.thread
+## Thread
 `effil.thread` is a way to create thread. Threads can be stopped, paused, resumed and canceled.
 All operation with threads can be synchronous (with timeout or infinite) or asynchronous.
 Each thread runs with its own lua state.
@@ -302,7 +305,7 @@ Suspend current thread.
 
 **input**:  [time metrics](#time-metrics) arguments.
 
-## effil.table
+## Table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.
 All operations with shared table are thread safe. **Shared table stores** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Shared table doesn't store** lua threads (coroutines) or arbitrary userdata. See examples of shared table usage [here](#examples)
 
@@ -332,7 +335,7 @@ Get a value from table with specified key.
 **input**: `key` - any value of supported type. See the list of [supported types](#important-notes)
 **output**: `value` - any value of supported type. See the list of [supported types](#important-notes)
 
-## `tbl = effil.setmetatable(tbl, mtbl)`
+### `tbl = effil.setmetatable(tbl, mtbl)`
 Sets a new metatable to shared table. Similar to standard [setmetatable](https://www.lua.org/manual/5.3/manual.html#pdf-setmetatable).
 
 **input**:
@@ -341,14 +344,14 @@ Sets a new metatable to shared table. Similar to standard [setmetatable](https:/
 
 **output**: just returns `tbl` with a new *metatable* value similar to standard Lua *setmetatable* method.
 
-## `mtbl = effil.getmetatable(tbl)`
+### `mtbl = effil.getmetatable(tbl)`
 Returns current metatable. Similar to standard [getmetatable](https://www.lua.org/manual/5.3/manual.html#pdf-getmetatable)
 
 **input**: `tbl` should be shared table. 
 
 **output**: returns *metatable* of specified shared table. Returned table always has type `effil.table`. Default metatable is `nil`.
 
-## `tbl = effil.rawset(tbl, key, value)`
+### `tbl = effil.rawset(tbl, key, value)`
 Set table entry without invoking metamethod `__newindex`. Similar to standard [rawset](https://www.lua.org/manual/5.3/manual.html#pdf-rawset)
 
 **input**:
@@ -358,7 +361,7 @@ Set table entry without invoking metamethod `__newindex`. Similar to standard [r
 
 **output**: returns the same shared table `tbl`
 
-## `value = effil.rawget(tbl, key)`
+### `value = effil.rawget(tbl, key)`
 Gets table value without invoking metamethod `__index`. Similar to standard [rawget](https://www.lua.org/manual/5.3/manual.html#pdf-rawget)
 
 **input**:
@@ -367,14 +370,7 @@ Gets table value without invoking metamethod `__index`. Similar to standard [raw
 
 **output**: returns required `value` stored under a specified `key`
 
-## `size = effil.size(tbl)`
-Returns number of entries in shared table.
-
-**input**: `tbl` is [shared table](#effiltable) or [channel](#effilchannel) Lua table which entries will be **copied** to shared table.
-
-**output**: new instance of shared table
-
-## `effil.G`
+### `effil.G`
 Is a global predefined shared table. This table always present in any thread (any Lua state).
 ```lua
 effil = require "effil"
@@ -387,7 +383,7 @@ end
 effil.G.key == "value"
 ```
 
-## effil.channel
+## Channel
 `effil.channel` is a way to sequentially exchange data between effil threads. It allows push values from one thread and pop them from another. All operations with channels are thread safe. **Channel passes** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Channel doesn't pass** lua threads (coroutines) or arbitrary userdata.
 
 ### `channel = effil.channel(capacity)`
@@ -418,6 +414,13 @@ assert(1 == n)
 assert("Wow" == s)
 assert(chan:size() == 1)
 ```
+
+## `size = effil.size(tbl)`
+Returns number of entries in shared table.
+
+**input**: `tbl` is [shared table](#effiltable) or [channel](#effilchannel) Lua table which entries will be **copied** to shared table.
+
+**output**: new instance of shared table
 
 ## `effil.type`
 Threads, channels and tables are userdata. Thus, `type()` will return `userdata` for any type. If you want to detect type more precisely use `effil.type`. It behaves like regular `type()`, but it can detect effil specific userdata. There is a list of extra types:
