@@ -49,7 +49,7 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
       * [channel:size()](#channelsize)
     * [effil.type()](#effiltype)
     * [effil.size()](#size--effilsizetbl)
-    * [effil.gc](#effilgc)
+    * [Garbage collector](#garbage-collector)
       * [effil.gc.collect()](#effilgccollect)
       * [effil.gc.count()](#count--effilgccount)
       * [effil.gc.step()](#old_value--effilgcstepnew_value)
@@ -417,7 +417,7 @@ effil.type(effil.table()) == "effil.table"
 effil.type(effil.channel() == "effil.channel"
 ```
 
-## effil.gc
+## Garbage collector
 Effil provides custom garbage collector for `effil.table` and `effil.table`. It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
 
 ### Garbage collection trigger
