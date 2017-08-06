@@ -384,7 +384,7 @@ effil.G.key == "value"
 ```
 
 ## Channel
-`effil.channel` is a way to sequentially exchange data between effil threads. It allows push values from one thread and pop them from another. All operations with channels are thread safe. **Channel passes** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Channel doesn't pass** lua threads (coroutines) or arbitrary userdata.
+`effil.channel` is a way to sequentially exchange data between effil threads. It allows push values from one thread and pop them from another. All operations with channels are thread safe. **Channel passes** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Channel doesn't pass** lua threads (coroutines) or arbitrary userdata. See examples of channel usage [here](#examples)
 
 ### `channel = effil.channel(capacity)`
 Channel capacity. If `capacity` equals to `0` size of channel is unlimited. Default capacity is `0`.
@@ -400,20 +400,6 @@ Pop value with timeout. If time equals `0` then pop asynchronously.
 
 ### `channel:size()`
 Get actual size of channel.
-
-### Example
-```lua
-local effil = require "effil"
-
-local chan = effil.channel()
-chan:push(1, "Wow")
-chan:push(2, "Bark")
-
-local n, s = chan:pop()
-assert(1 == n)
-assert("Wow" == s)
-assert(chan:size() == 1)
-```
 
 ## `size = effil.size(tbl)`
 Returns number of entries in shared table.
