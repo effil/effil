@@ -24,6 +24,11 @@ enum class Status {
     Failed
 };
 
+bool isFinishStatus(Status stat)
+{
+    return stat == Status::Canceled || stat == Status::Completed || stat == Status::Failed;
+}
+
 std::string statusToString(Status status) {
     switch (status) {
         case Status::Running:
@@ -54,12 +59,6 @@ public:
     Status status;
     StoredArray result;
 
-    Notifier completion;
-    // on thread resume
-    Notifier pause;
-    // used only with sync pause
-    Notifier syncPause;
-
 public:
     ThreadHandle()
             : status(Status::Running)
@@ -68,13 +67,43 @@ public:
         luaL_openlibs(*lua_);
     }
 
-    Command command() const { return command_; }
+    Command getCommand() const { return command_; }
 
-    void command(Command cmd) {
-        std::lock_guard<SpinMutex> lock(commandMutex_);
-        if (command_ == Command::Cancel)
+    void putCommand(Command cmd) {
+        if (isFinishStatus(status))
             return;
+
+        std::lock_guard<SpinMutex> lock(commandMutex_);
         command_ = cmd;
+        actionNotifier_.reset();
+        commandNotifier_.notify();
+    }
+
+    void changeStatus(Status stat)
+    {
+        status = stat;
+        commandNotifier_.reset();
+        actionNotifier_.notify();
+    }
+
+    template <typename T>
+    Status waitForStatusChange(const sol::optional<T>& time)
+    {
+        if (time)
+            actionNotifier_.waitFor(time);
+        else
+            actionNotifier_.wait();
+        return status;
+    }
+
+    template <typename T>
+    Command waitForCommandChange(const sol::optional<T>& time)
+    {
+        if (time)
+            commandNotifier_.waitFor(time);
+        else
+            commandNotifier_.wait();
+        return command_;
     }
 
     sol::state& lua() {
@@ -87,6 +116,8 @@ public:
 private:
     SpinMutex commandMutex_;
     Command command_;
+    Notifier actionNotifier_;
+    Notifier commandNotifier_;
 
     std::unique_ptr<sol::state> lua_;
 };
@@ -97,17 +128,20 @@ static thread_local ThreadHandle* thisThreadHandle = nullptr;
 
 void luaHook(lua_State*, lua_Debug*) {
     assert(thisThreadHandle);
-    switch (thisThreadHandle->command()) {
+    switch (thisThreadHandle->getCommand()) {
         case Command::Run:
             break;
         case Command::Cancel:
             throw LuaHookStopException();
         case Command::Pause: {
-            thisThreadHandle->status = Status::Paused;
-            thisThreadHandle->syncPause.notify();
-            thisThreadHandle->pause.wait();
-            if (thisThreadHandle->command() == Command::Run)
-                thisThreadHandle->status = Status::Running;
+            thisThreadHandle->changeStatus(Status::Paused);
+            Command cmd;
+            do
+            {
+                cmd = thisThreadHandle->waitForCommandChange();
+            } while(cmd != Command::Run || cmd != Command::Cancel);
+            if (cmd == Command::Run)
+                thisThreadHandle->changeStatus(Status::Running);
             else
                 throw LuaHookStopException();
             break;
@@ -235,20 +269,23 @@ std::pair<sol::object, sol::object> Thread::status(const sol::this_state& lua) {
     }
 }
 
-bool Thread::waitFor(const sol::optional<int>& duration,
-             const sol::optional<std::string>& period) {
-    if (!duration) { // sync version
-        handle_->completion.wait();
-        return true;
-    } else { // async version
-        return handle_->completion.waitFor(fromLuaTime(*duration, period));
-    }
+sol::optional<std::chrono::milliseconds> toOptionalTime(const sol::optional<int>& duration,
+                                                        const sol::optional<std::string>& period)
+{
+    if (duration)
+        return fromLuaTime(duration, period);
+    else
+        return sol::optional<std::chrono::milliseconds>();
 }
 
 std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
                                                  const sol::optional<int>& duration,
                                                  const sol::optional<std::string>& period) {
-    waitFor(duration, period);
+    Status stat;
+    do
+    {
+        stat = handle_->waitForStatusChange(toOptionalTime(*duration, period));
+    } while(!isFinishStatus(stat));
     return status(lua);
 }
 
@@ -264,39 +301,21 @@ StoredArray Thread::get(const sol::optional<int>& duration,
 bool Thread::cancel(const sol::this_state&,
                     const sol::optional<int>& duration,
                     const sol::optional<std::string>& period) {
-    handle_->command(Command::Cancel);
-    handle_->pause.notify();
-
-    if (handle_->status == Status::Running) {
-        return waitFor(duration, period);
-    } else {
-        handle_->completion.wait();
-        return true;
-    }
+    handle_->putCommand(Command::Cancel);
+    Status status = handle_->waitForStatusChange(toOptionalTime(*duration, period));
+    return isFinishStatus(status);
 }
 
 bool Thread::pause(const sol::this_state&,
                    const sol::optional<int>& duration,
                    const sol::optional<std::string>& period) {
-    if (handle_->completion.check())
-        return false;
-    handle_->pause.reset();
-    handle_->command(Command::Pause);
-
-    if (!duration) { // sync wait
-        handle_->syncPause.wait();
-        return true;
-    } else { // async wait
-        return handle_->syncPause.waitFor(fromLuaTime(*duration, period));
-    }
+    handle_->putCommand(Command::Pause);
+    Status status = handle_->waitForStatusChange(toOptionalTime(*duration, period));
+    return status == Status::Paused;
 }
 
 void Thread::resume() {
-    if (handle_->completion.check())
-        return;
-    handle_->command(Command::Run);
-    handle_->syncPause.reset();
-    handle_->pause.notify();
+    handle_->putCommand(Command::Run);
 }
 
 } // effil
