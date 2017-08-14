@@ -73,7 +73,6 @@ public:
         if (isFinishStatus(status))
             return;
 
-        std::lock_guard<SpinMutex> lock(commandMutex_);
         command_ = cmd;
         actionNotifier_.reset();
         commandNotifier_.notify();
@@ -84,13 +83,15 @@ public:
         status = stat;
         commandNotifier_.reset();
         actionNotifier_.notify();
+        if (isFinishStatus(stat))
+            completionNotifier_.notify();
     }
 
     template <typename T>
     Status waitForStatusChange(const sol::optional<T>& time)
     {
         if (time)
-            actionNotifier_.waitFor(time);
+            actionNotifier_.waitFor(*time);
         else
             actionNotifier_.wait();
         return status;
@@ -100,10 +101,24 @@ public:
     Command waitForCommandChange(const sol::optional<T>& time)
     {
         if (time)
-            commandNotifier_.waitFor(time);
+            commandNotifier_.waitFor(*time);
         else
             commandNotifier_.wait();
         return command_;
+    }
+
+    template <typename T>
+    bool waitForCompletion(const sol::optional<T>& time)
+    {
+        if (time)
+        {
+            return completionNotifier_.waitFor(*time);
+        }
+        else
+        {
+            completionNotifier_.wait();
+            return true;
+        }
     }
 
     sol::state& lua() {
@@ -114,15 +129,17 @@ public:
     void destroyLua() { lua_.reset(); }
 
 private:
-    SpinMutex commandMutex_;
     Command command_;
     Notifier actionNotifier_;
     Notifier commandNotifier_;
+    Notifier completionNotifier_;
 
     std::unique_ptr<sol::state> lua_;
 };
 
 namespace  {
+
+const sol::optional<std::chrono::milliseconds> NoTimeout;
 
 static thread_local ThreadHandle* thisThreadHandle = nullptr;
 
@@ -138,8 +155,8 @@ void luaHook(lua_State*, lua_Debug*) {
             Command cmd;
             do
             {
-                cmd = thisThreadHandle->waitForCommandChange();
-            } while(cmd != Command::Run || cmd != Command::Cancel);
+                cmd = thisThreadHandle->waitForCommandChange(NoTimeout);
+            } while(cmd != Command::Run && cmd != Command::Cancel);
             if (cmd == Command::Run)
                 thisThreadHandle->changeStatus(Status::Running);
             else
@@ -167,8 +184,6 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
         // Let's destroy accociated state
         // to release all resources as soon as possible
         handle->destroyLua();
-        handle->completion.notify();
-        handle->syncPause.notify();
     });
 
     assert(handle);
@@ -183,13 +198,13 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
             StoredObject store = createStoredObject(iter.get<sol::object>());
             handle->result.emplace_back(std::move(store));
         }
-        handle->status = Status::Completed;
+        handle->changeStatus(Status::Completed);
     } catch (const LuaHookStopException&) {
-        handle->status = Status::Canceled;
+        handle->changeStatus(Status::Canceled);
     } catch (const sol::error& err) {
         DEBUG << "Failed with msg: " << err.what() << std::endl;
         handle->result.emplace_back(createStoredObject(err.what()));
-        handle->status = Status::Failed;
+        handle->changeStatus(Status::Failed);
     }
 }
 
@@ -273,7 +288,7 @@ sol::optional<std::chrono::milliseconds> toOptionalTime(const sol::optional<int>
                                                         const sol::optional<std::string>& period)
 {
     if (duration)
-        return fromLuaTime(duration, period);
+        return fromLuaTime(*duration, period);
     else
         return sol::optional<std::chrono::milliseconds>();
 }
@@ -281,18 +296,13 @@ sol::optional<std::chrono::milliseconds> toOptionalTime(const sol::optional<int>
 std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
                                                  const sol::optional<int>& duration,
                                                  const sol::optional<std::string>& period) {
-    Status stat;
-    do
-    {
-        stat = handle_->waitForStatusChange(toOptionalTime(*duration, period));
-    } while(!isFinishStatus(stat));
+    handle_->waitForCompletion(toOptionalTime(duration, period));
     return status(lua);
 }
 
 StoredArray Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
-    bool completed = waitFor(duration, period);
-    if (completed && handle_->status == Status::Completed)
+    if (handle_->waitForCompletion(toOptionalTime(duration, period)))
         return handle_->result;
     else
         return StoredArray();
@@ -302,7 +312,7 @@ bool Thread::cancel(const sol::this_state&,
                     const sol::optional<int>& duration,
                     const sol::optional<std::string>& period) {
     handle_->putCommand(Command::Cancel);
-    Status status = handle_->waitForStatusChange(toOptionalTime(*duration, period));
+    Status status = handle_->waitForStatusChange(toOptionalTime(duration, period));
     return isFinishStatus(status);
 }
 
@@ -310,7 +320,7 @@ bool Thread::pause(const sol::this_state&,
                    const sol::optional<int>& duration,
                    const sol::optional<std::string>& period) {
     handle_->putCommand(Command::Pause);
-    Status status = handle_->waitForStatusChange(toOptionalTime(*duration, period));
+    Status status = handle_->waitForStatusChange(toOptionalTime(duration, period));
     return status == Status::Paused;
 }
 

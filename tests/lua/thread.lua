@@ -156,7 +156,7 @@ test.thread.pause_cancel = function ()
     sleep(1)
     test.equal(data.value, savedValue)
 
-    test.is_true(thread:cancel(0))
+    test.is_true(thread:cancel(1))
 end
 
 test.thread.async_pause_resume_cancel = function ()
