@@ -171,25 +171,25 @@ private:
 void runThread(std::shared_ptr<ThreadHandle> handle,
                std::string strFunction,
                effil::StoredArray arguments) {
-
-    ScopeGuard reportComplete([=](){
-        DEBUG << "Finished " << std::endl;
-        // Let's destroy accociated state
-        // to release all resources as soon as possible
-        handle->destroyLua();
-    });
-
     assert(handle);
     thisThreadHandle = handle.get();
 
     try {
-        sol::function userFuncObj = loadString(handle->lua(), strFunction);
-        sol::function_result results = userFuncObj(std::move(arguments));
-        (void)results; // just leave all returns on the stack
-        sol::variadic_args args(handle->lua(), -lua_gettop(handle->lua()));
-        for (const auto& iter : args) {
-            StoredObject store = createStoredObject(iter.get<sol::object>());
-            handle->result.emplace_back(std::move(store));
+        {
+            ScopeGuard reportComplete([=](){
+                DEBUG << "Finished " << std::endl;
+                // Let's destroy accociated state
+                // to release all resources as soon as possible
+                handle->destroyLua();
+            });
+            sol::function userFuncObj = loadString(handle->lua(), strFunction);
+            sol::function_result results = userFuncObj(std::move(arguments));
+            (void)results; // just leave all returns on the stack
+            sol::variadic_args args(handle->lua(), -lua_gettop(handle->lua()));
+            for (const auto& iter : args) {
+                StoredObject store = createStoredObject(iter.get<sol::object>());
+                handle->result.emplace_back(std::move(store));
+            }
         }
         handle->changeStatus(Status::Completed);
     } catch (const LuaHookStopException&) {
