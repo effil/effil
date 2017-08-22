@@ -8,8 +8,6 @@ Effil has been designed to provide clear and simple API for lua developers inclu
 Effil supports lua 5.1, 5.2, 5.3 and LuaJIT.
 Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visual Studio 2015.
 
-Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for more information
-
 # Table Of Contents
 * [How to install](#how-to-install)
 * [Quick guide](#quick-guide)
@@ -60,9 +58,10 @@ Read the [docs](https://github.com/loud-hound/effil/blob/master/README.md) for m
 
 # How to install
 ### Build from src on Linux and Mac
-1. `git clone git@github.com:effil/effil.git effil && cd effil`
-2. `mkdir build && cd build && make -j4 install`
-3. Copy effil.lua and libeffil.so/libeffil.dylib to your project.
+1. `git clone git@github.com:effil/effil.git effil`
+2. `cd effil && mkdir build && cd build`
+3. `cmake .. && make install`
+4. Copy effil.lua and libeffil.so/libeffil.dylib to your project.
 
 ### From lua rocks
 `luarocks install effil`
@@ -303,7 +302,7 @@ Explicit cancellation point. Function checks *cancellation* or *pausing* flags o
 ### `effil.sleep(time, metric)`
 Suspend current thread.
 
-**input**:  [time metrics](#time-metrics) arguments.
+**input**: [time metrics](#time-metrics) arguments.
 
 ## Table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.
@@ -333,6 +332,7 @@ Set a new key of table with specified value.
 Get a value from table with specified key.
 
 **input**: `key` - any value of supported type. See the list of [supported types](#important-notes)
+
 **output**: `value` - any value of supported type. See the list of [supported types](#important-notes)
 
 ### `tbl = effil.setmetatable(tbl, mtbl)`
@@ -380,26 +380,38 @@ function job()
    effil.G.key = "value"
 end
 
-effil.G.key == "value"
+effil.thread(job)():wait()
+print(effil.G.key) -- will print "value"
 ```
 
 ## Channel
 `effil.channel` is a way to sequentially exchange data between effil threads. It allows push values from one thread and pop them from another. All operations with channels are thread safe. **Channel passes** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Channel doesn't pass** lua threads (coroutines) or arbitrary userdata. See examples of channel usage [here](#examples)
 
 ### `channel = effil.channel(capacity)`
-Channel capacity. If `capacity` equals to `0` size of channel is unlimited. Default capacity is `0`.
+Creates a new channel.
 
-### `channel:push()`
-Push value. Returns `true` if value fits channel capacity, `false` otherwise. Supports multiple values.
+**input**: optional *capacity* of channel. If `capacity` equals to `0` or to `nil` size of channel is unlimited. Default capacity is `0`.
 
-### `channel:pop()`
-Pop value. If value is not present, wait for the value.
+**output**: returns a new instance of channel.
 
-### `channel:pop(time, metric)`
-Pop value with timeout. If time equals `0` then pop asynchronously.
+### `pushed = channel:push(...)`
+Pushes value to channel.
 
-### `channel:size()`
-Get actual size of channel.
+**input**: any number of values of [supported types](#important-notes). Multiple values are considered as a single channel message so one *push* to channel decreases capacity by one.
+
+**output**: `pushed` is equal to `true` if value(-s) fits channel capacity, `false` otherwise.
+
+### `... = channel:pop(time, metric)`
+Pop value(-s) from channel. Removes values from channel and returns them. If the channel is empty wait for any value appearance.
+
+**input**: waiting timeout in terms of [time metrics](#time-metrics) (used only if channel is empty).
+
+**output**: variable amount of values which were pushed by a single [channel:push()](#pushed--channelpush) call.
+
+### `size = channel:size()`
+Get actual amount of messages in channel.
+
+**output**: amount of messages in channel.
 
 ## `size = effil.size(tbl)`
 Returns number of entries in shared table.
