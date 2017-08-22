@@ -44,7 +44,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visua
       * [effil.channel()](#channel--effilchannelcapacity)
       * [channel:push()](#pushed--channelpush)
       * [channel:pop()](#--channelpoptime-metric)
-      * [channel:size()](#--channelsize)
+      * [channel:size()](#size--channelsize)
     * [effil.type()](#effiltype)
     * [effil.size()](#size--effilsizetbl)
     * [Garbage collector](#garbage-collector)
