@@ -78,8 +78,7 @@ public:
         commandNotifier_.notify();
     }
 
-    void changeStatus(Status stat)
-    {
+    void changeStatus(Status stat) {
         status = stat;
         commandNotifier_.reset();
         actionNotifier_.notify();
@@ -88,8 +87,7 @@ public:
     }
 
     template <typename T>
-    Status waitForStatusChange(const sol::optional<T>& time)
-    {
+    Status waitForStatusChange(const sol::optional<T>& time) {
         if (time)
             actionNotifier_.waitFor(*time);
         else
@@ -98,8 +96,7 @@ public:
     }
 
     template <typename T>
-    Command waitForCommandChange(const sol::optional<T>& time)
-    {
+    Command waitForCommandChange(const sol::optional<T>& time) {
         if (time)
             commandNotifier_.waitFor(*time);
         else
@@ -108,14 +105,11 @@ public:
     }
 
     template <typename T>
-    bool waitForCompletion(const sol::optional<T>& time)
-    {
-        if (time)
-        {
+    bool waitForCompletion(const sol::optional<T>& time) {
+        if (time) {
             return completionNotifier_.waitFor(*time);
         }
-        else
-        {
+        else {
             completionNotifier_.wait();
             return true;
         }
@@ -153,8 +147,7 @@ void luaHook(lua_State*, lua_Debug*) {
         case Command::Pause: {
             thisThreadHandle->changeStatus(Status::Paused);
             Command cmd;
-            do
-            {
+            do {
                 cmd = thisThreadHandle->waitForCommandChange(NoTimeout);
             } while(cmd != Command::Run && cmd != Command::Cancel);
             if (cmd == Command::Run)
