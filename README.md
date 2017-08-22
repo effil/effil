@@ -19,7 +19,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visua
       * [runner()](#thread--runner)
       * [runner.path](#runnerpath)
       * [runner.cpath](#runnercpath)
-      * [runner.step]($runnerstep)
+      * [runner.step](#runnerstep)
     * [Thread handle](#thread-handle)
       * [thread:status()](#status-err--threadstatus)
       * [thread:get()](#--threadgettime-metric)
@@ -197,7 +197,7 @@ Thread result: 3
 
 # Important notes
 Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`. In all cases Effil uses a common data handling principle:
- - Primitive types are transmitted 'as is': `nil`, `boolean`, `number`, `string`
+ - Primitive types are transmitted 'as is' by copy: `nil`, `boolean`, `number`, `string`
  - Functions are dumped using [`string.dump`](#https://www.lua.org/manual/5.3/manual.html#pdf-string.dump) method and currently **it does not support function upvalues**
  - **Userdata and threads** are not supported. You can extend *userdata* support using C++ API of library but it's not documented for right now. 
  - Tables are serialized into `effil.table` recursively. So, any Lua table becomes a `effil.table`. Table serialization may take a lot of time on a big table, so, it's better to put your data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
@@ -473,7 +473,7 @@ Get GC state.
 **output**: return `true` if automatic garbage collecting is enabled or `false` otherwise. By default returns `true`.
 
 ## Time metrics:
-All operations which use time metrics can be bloking or non blocking and use following API:
+All operations which use time metrics can be blocking or non blocking and use following API:
 `(time, metric)` where `metric` is time interval like and `time` is a number of intervals.
 
 Example:
