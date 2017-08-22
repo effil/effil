@@ -385,7 +385,7 @@ print(effil.G.key) -- will print "value"
 ```
 
 ## Channel
-`effil.channel` is a way to sequentially exchange data between effil threads. It allows push values from one thread and pop them from another. All operations with channels are thread safe. **Channel passes** primitive types (number, boolean, string), function, table, light userdata and effil based userdata. **Channel doesn't pass** lua threads (coroutines) or arbitrary userdata. See examples of channel usage [here](#examples)
+`effil.channel` is a way to sequentially exchange data between effil threads. It allows to push message from one thread and pop  it from another. Channel's **message** is a set of values of [supported types](#important-notes). All operations with channels are thread safe. See examples of channel usage [here](#examples)
 
 ### `channel = effil.channel(capacity)`
 Creates a new channel.
@@ -395,14 +395,14 @@ Creates a new channel.
 **output**: returns a new instance of channel.
 
 ### `pushed = channel:push(...)`
-Pushes value to channel.
+Pushes message to channel.
 
 **input**: any number of values of [supported types](#important-notes). Multiple values are considered as a single channel message so one *push* to channel decreases capacity by one.
 
 **output**: `pushed` is equal to `true` if value(-s) fits channel capacity, `false` otherwise.
 
 ### `... = channel:pop(time, metric)`
-Pop value(-s) from channel. Removes values from channel and returns them. If the channel is empty wait for any value appearance.
+Pop message from channel. Removes value(-s) from channel and returns them. If the channel is empty wait for any value appearance.
 
 **input**: waiting timeout in terms of [time metrics](#time-metrics) (used only if channel is empty).
 
@@ -412,6 +412,7 @@ Pop value(-s) from channel. Removes values from channel and returns them. If the
 Get actual amount of messages in channel.
 
 **output**: amount of messages in channel.
+
 
 ## `size = effil.size(tbl)`
 Returns number of entries in shared table.
