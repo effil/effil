@@ -70,18 +70,20 @@ public:
     Command getCommand() const { return command_; }
 
     void putCommand(Command cmd) {
+        std::unique_lock<std::mutex> lock(stateLock_);
         if (isFinishStatus(status))
             return;
 
         command_ = cmd;
-        actionNotifier_.reset();
+        statusNotifier_.reset();
         commandNotifier_.notify();
     }
 
     void changeStatus(Status stat) {
+        std::unique_lock<std::mutex> lock(stateLock_);
         status = stat;
         commandNotifier_.reset();
-        actionNotifier_.notify();
+        statusNotifier_.notify();
         if (isFinishStatus(stat))
             completionNotifier_.notify();
     }
@@ -89,9 +91,9 @@ public:
     template <typename T>
     Status waitForStatusChange(const sol::optional<T>& time) {
         if (time)
-            actionNotifier_.waitFor(*time);
+            statusNotifier_.waitFor(*time);
         else
-            actionNotifier_.wait();
+            statusNotifier_.wait();
         return status;
     }
 
@@ -124,9 +126,10 @@ public:
 
 private:
     Command command_;
-    Notifier actionNotifier_;
+    Notifier statusNotifier_;
     Notifier commandNotifier_;
     Notifier completionNotifier_;
+    std::mutex stateLock_;
 
     std::unique_ptr<sol::state> lua_;
 };
@@ -295,7 +298,7 @@ std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
 
 StoredArray Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
-    if (handle_->waitForCompletion(toOptionalTime(duration, period)))
+    if (handle_->waitForCompletion(toOptionalTime(duration, period)) && handle_->status == Status::Completed)
         return handle_->result;
     else
         return StoredArray();
