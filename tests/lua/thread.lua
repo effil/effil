@@ -98,7 +98,6 @@ test.thread.cancel = function ()
     test.is_true(thread:cancel())
     test.equal(thread:status(), "canceled")
 end
-
 test.thread.async_cancel = function ()
     local thread_runner = effil.thread(
         function()
@@ -335,38 +334,35 @@ test.this_thread.pause_with_yield = function ()
     test.is_true(share.done)
 end
 
+local function worker(cmd)
+    eff = require("effil")
+    while not cmd.need_to_stop do
+        eff.yield()
+    end
+    return true
+end
+
+local function call_pause(thr)
+    -- 'pause()' may hang infinitelly, so lets to run it in separate thread
+    thr:pause()
+    return true
+end
+
+-- Regress test to check hanging when invoke pause on canceled thread
+test.this_thread.pause_on_canceled_thread = function ()
+    local worker_thread = effil.thread(worker)({ need_to_stop = false})
+    effil.sleep(1, 's')
+    worker_thread:cancel()
+    test.equal(worker_thread:wait(2, "s"), "canceled")
+    test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
+end
+
 -- Regress test to check hanging when invoke pause on finished thread
 test.this_thread.pause_on_finished_thread = function ()
-    local function worker(cmd)
-        eff = require("effil")
-        while not cmd.need_to_stop do
-            eff.yield()
-        end
-        return true
-    end
-
-    local function call_pause(thr)
-        -- 'pause()' may hang infinitelly, so lets to run it in separate thread
-        thr:pause()
-        return true
-    end
-
-    do
-        -- Call 'pause' after 'cancel'
-        local worker_thread = effil.thread(worker)({ need_to_stop = false})
-        effil.sleep(1, 's')
-        worker_thread:cancel()
-        test.equal(worker_thread:wait(2, "s"), "canceled")
-        test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
-    end
-
-    do
-        -- Call 'pause' after regular thread completion
-        local cmd = effil.table({ need_to_stop = false})
-        local worker_thread = effil.thread(worker)(cmd)
-        effil.sleep(1, 's')
-        cmd.need_to_stop = true
-        test.is_true(worker_thread:get(2, "s"))
-        test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
-    end
+    local cmd = effil.table({ need_to_stop = false})
+    local worker_thread = effil.thread(worker)(cmd)
+    effil.sleep(1, 's')
+    cmd.need_to_stop = true
+    test.is_true(worker_thread:get(2, "s"))
+    test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
 end

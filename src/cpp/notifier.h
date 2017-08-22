@@ -33,10 +33,6 @@ public:
         return notified_;
     }
 
-    bool check() {
-        return notified_;
-    }
-
     void reset() {
         notified_ = false;
     }
