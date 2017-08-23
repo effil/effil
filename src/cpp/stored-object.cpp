@@ -74,14 +74,14 @@ public:
     template <typename SolType>
     GCObjectHolder(const SolType& luaObject) {
         assert(luaObject.template is<T>());
-        handle_ = luaObject.template as<T>().handle();
-        strongRef_ = GC::instance().get<GCObject>(handle_);
+        strongRef_ = luaObject.template as<T>();
+        handle_ = strongRef_->handle();
         assert(GC::instance().has(handle_));
     }
 
     GCObjectHolder(GCObjectHandle handle)
             : handle_(handle) {
-        strongRef_ = GC::instance().get<GCObject>(handle_);
+        strongRef_ = GC::instance().get<T>(handle_);
     }
 
     bool rawCompare(const BaseHolder* other) const final {
@@ -100,7 +100,7 @@ public:
 
 private:
     GCObjectHandle handle_;
-    sol::optional<GCObject> strongRef_;
+    sol::optional<T> strongRef_;
 };
 
 // This class is used as a storage for visited sol::tables

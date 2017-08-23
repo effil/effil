@@ -22,9 +22,9 @@ public:
             : refs_(new std::set<GCObjectHandle>) {}
     GCObject(const GCObject& init) = default;
     GCObject(GCObject&& init) = default;
+    GCObject& operator=(const GCObject& init) = default;
     virtual ~GCObject() = default;
 
-    GCObject& operator=(const GCObject& init) = default;
 
     GCObjectHandle handle() const noexcept { return reinterpret_cast<GCObjectHandle>(refs_.get()); }
     size_t instances() const noexcept { return refs_.use_count(); }

@@ -22,6 +22,7 @@ public:
     SharedTable();
     SharedTable(SharedTable&&) = default;
     SharedTable(const SharedTable& init);
+    SharedTable& operator=(const SharedTable&) = default;
     virtual ~SharedTable() = default;
 
     static void getUserType(sol::state_view& lua);
