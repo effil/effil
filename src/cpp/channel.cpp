@@ -36,6 +36,7 @@ bool Channel::push(const sol::variadic_args& args) {
         auto obj = createStoredObject(arg.get<sol::object>());
         if (obj->gcHandle())
             refs_->insert(obj->gcHandle());
+        obj->releaseStrongReference();
         array.emplace_back(obj);
     }
     if (data_->channel_.empty())
