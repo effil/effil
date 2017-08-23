@@ -3,10 +3,10 @@
 
 Effil is a lua module for multithreading support.
 It allows to spawn native threads and safe data exchange.
-Effil has been designed to provide clear and simple API for lua developers including threads, channels and shared tables.
+Effil has been designed to provide clear and simple API for lua developers.
 
 Effil supports lua 5.1, 5.2, 5.3 and LuaJIT.
-Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visual Studio 2015.
+Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual Studio 2015.
 
 # Table Of Contents
 * [How to install](#how-to-install)
@@ -67,17 +67,12 @@ Requires C++14 compiler compliance. Tested with GCC 4.9/5.3, clang 3.8 and Visua
 `luarocks install effil`
 
 # Quick guide
-As you may now there are not much script
-languages with **real** multithreading support
-(Lua/Python/Ruby and etc has global interpreter lock aka GIL).
-Effil solves this problem by running independent Lua VM
-in separate native thread and provides robust communicating primitives
-for creating threads (VM instances) and data sharing.
+As you may now there are not much script languages with **real** multithreading support (Lua/Python/Ruby and etc has global interpreter lock aka GIL). Effil solves this problem by running independent Lua VM instances in separate native threads and provides robust communicating primitives for creating threads and data sharing.
 
-Effil library provides three major functions:
-1. `effil.thread` - function which creates threads.
-2. `effil.table` - table that persist in all threads and behaves just like regular lua table.
-3. `effil.channel` - channel to send and receive data between threads.
+Effil library provides three major abstractions:
+1. `effil.thread` - provides API for threads management.
+2. `effil.table` - provides API for tables management. Tables can be shared between threads.
+3. `effil.channel` - provides First-In-First-Out container for sequential data exchange.
 
 And bunch of utilities to handle threads and tables as well.
 
@@ -196,11 +191,11 @@ Thread result: 3
 </details>
 
 # Important notes
-Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`. In all cases Effil uses a common data handling principle:
+Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`.
  - Primitive types are transmitted 'as is' by copy: `nil`, `boolean`, `number`, `string`
- - Functions are dumped using [`string.dump`](#https://www.lua.org/manual/5.3/manual.html#pdf-string.dump) method and currently **it does not support function upvalues**
- - **Userdata and threads** are not supported. You can extend *userdata* support using C++ API of library but it's not documented for right now. 
- - Tables are serialized into `effil.table` recursively. So, any Lua table becomes a `effil.table`. Table serialization may take a lot of time on a big table, so, it's better to put your data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
+ - Functions are dumped using [`string.dump`](#https://www.lua.org/manual/5.3/manual.html#pdf-string.dump) and currently **it does not support upvalues**
+ - **Userdata and Lua threads (coroutines)** are not supported.
+ - Tables are serialized to `effil.table` recursively. So, any Lua table becomes `effil.table`. Table serialization may take a lot of time for big table. Thus, it's better to put data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
 ```Lua
 -- Example #1
 t = {}
@@ -215,14 +210,15 @@ for i = 1, 100 do
    t[i] = i
 end
 ```
-In the example #1 we created a regular table, fill it and pass to `effil.table` constructor. In this case Effil needs to go through all table fields one more time. Another way is example #2 where we firstly created `eiffel.table` and after that we put data right to `effil.table`. The 2nd way pretty much faster try to follow this principle.
+In the example #1 we create regular table, fill it and convert it to `effil.table`. In this case Effil needs to go through all table fields one more time. Another way is example #2 where we firstly created `effil.table` and after that we put data directly to `effil.table`. The 2nd way pretty much faster try to follow this principle.
 
 # API Reference
 
 ## Thread
-`effil.thread` is a way to create thread. Threads can be stopped, paused, resumed and canceled.
-All operation with threads can be synchronous (with timeout or infinite) or asynchronous.
+`effil.thread` is the way to create a thread. Threads can be stopped, paused, resumed and canceled.
+All operation with threads can be synchronous (with optional timeout) or asynchronous.
 Each thread runs with its own lua state.
+
 **Do not run function with upvalues in** `effil.thread`. Use `effil.table` and `effil.channel` to transmit data over threads.
 See example of thread usage [here](#examples).
 
@@ -250,14 +246,14 @@ Is a Lua `package.cpath` value for new state. Default value inherits `package.cp
 Number of lua instructions lua between cancelation points (where thread can be stopped or paused). Default value is 200. If this values is 0 then thread uses only [explicit cancelation points](#effilyield).
 
 ## Thread handle
-Thread handle provides API for interaction with child thread.
+Thread handle provides API for interaction with thread.
 
 ### `status, err = thread:status()`
 Returns thread status.
 
 **output**:
-- `status` - string values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`
-- `err` - error description occurred in separate thread. This value is specified only if thread status == `"failed"`
+- `status` - string values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`.
+- `err` - error message, if any. This value is specified only if thread status == `"failed"`.
 
 ### `... = thread:get(time, metric)`
 Waits for thread completion and returns function result or nothing in case of error.
