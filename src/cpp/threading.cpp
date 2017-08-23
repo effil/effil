@@ -128,10 +128,11 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
                std::string strFunction,
                effil::StoredArray arguments) {
 
-    ScopeGuard reportComplete([=](){
+    ScopeGuard reportComplete([handle, &arguments](){
         DEBUG << "Finished " << std::endl;
         // Let's destroy accociated state
         // to release all resources as soon as possible
+        arguments.clear();
         handle->destroyLua();
         handle->completion.notify();
     });
