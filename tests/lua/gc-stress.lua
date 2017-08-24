@@ -36,8 +36,5 @@ test.gc_stress.create_and_collect_in_parallel = function ()
         test.equal(threads[i]:wait(), "completed")
     end
 
-    collectgarbage()
-    effil.gc.collect()
-
     test.equal(effil.gc.count(), 1)
 end

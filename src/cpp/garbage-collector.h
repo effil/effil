@@ -25,7 +25,6 @@ public:
     GCObject& operator=(const GCObject& init) = default;
     virtual ~GCObject() = default;
 
-
     GCObjectHandle handle() const noexcept { return reinterpret_cast<GCObjectHandle>(refs_.get()); }
     size_t instances() const noexcept { return refs_.use_count(); }
     const std::set<GCObjectHandle>& refers() const { return *refs_; }
