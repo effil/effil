@@ -298,6 +298,16 @@ size_t SharedTable::luaSize(SharedTable& stable) {
     return stable.data_->entries.size();
 }
 
+SharedTable::PairsIterator SharedTable::globLuaPairs(sol::this_state state, SharedTable& obj)
+{
+    return obj.luaPairs(state);
+}
+
+SharedTable::PairsIterator SharedTable::globLuaIPairs(sol::this_state state, SharedTable& obj)
+{
+    return obj.luaIPairs(state);
+}
+
 #undef DEFFINE_METAMETHOD_CALL_0
 #undef DEFFINE_METAMETHOD_CALL
 #undef PROXY_METAMETHOD_IMPL
