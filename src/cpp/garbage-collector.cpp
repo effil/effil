@@ -1,6 +1,7 @@
 #include "garbage-collector.h"
 
 #include "utils.h"
+#include "lua-helpers.h"
 
 #include <cassert>
 
@@ -64,11 +65,12 @@ sol::table GC::exportAPI(sol::state_view& lua) {
     api["pause"] = [] { instance().pause(); };
     api["resume"] = [] { instance().resume(); };
     api["enabled"] = [] { return instance().enabled(); };
-    api["step"] = [](sol::optional<int> newStep){
+    api["step"] = [](const sol::stack_object& newStep){
         auto previous = instance().step();
-        if (newStep) {
-            REQUIRE(*newStep <= 0) << "gc.step have to be > 0";
-            instance().step(static_cast<size_t>(*newStep));
+        if (newStep.valid()) {
+            REQUIRE(newStep.get_type() == sol::type::number) << "bad argument #1 to 'effil.gc.step' (number expected, got " << luaTypename(newStep) << ")";
+            REQUIRE(newStep.as<int>() >= 0) << "effil.gc.step: invalid capacity value = " << newStep.as<int>();
+            instance().step(newStep.as<size_t>());
         }
         return previous;
     };

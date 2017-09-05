@@ -49,6 +49,7 @@ private:
 } // effil
 
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
+#define RETHROW_WITH_PREFIX(preff) catch(const effil::Exception& err) { throw effil::Exception() << preff << ": " << err.what(); }
 
 #ifdef NDEBUG
 #define DEBUG if (false) std::cout

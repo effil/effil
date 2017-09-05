@@ -14,10 +14,11 @@ void Channel::exportAPI(sol::state_view& lua) {
     sol::stack::pop<sol::object>(lua);
 }
 
-Channel::Channel(sol::optional<int> capacity) : data_(std::make_shared<SharedData>()) {
-    if (capacity) {
-        REQUIRE(capacity.value() >= 0) << "Invalid capacity value = " << capacity.value();
-        data_->capacity_ = static_cast<size_t>(capacity.value());
+Channel::Channel(const sol::stack_object& capacity) : data_(std::make_shared<SharedData>()){
+    if (capacity.valid()) {
+        REQUIRE(capacity.get_type() == sol::type::number) << "bad argument #1 to 'effil.channel' (number expected, got " << luaTypename(capacity) << ")";
+        REQUIRE(capacity.as<int>() >= 0) << "effil.channel: invalid capacity value = " << capacity.as<int>();
+        data_->capacity_ = capacity.as<size_t>();
     }
     else {
         data_->capacity_ = 0;
@@ -33,11 +34,13 @@ bool Channel::push(const sol::variadic_args& args) {
         return false;
     effil::StoredArray array;
     for (const auto& arg : args) {
-        auto obj = createStoredObject(arg.get<sol::object>());
-
-        addReference(obj->gcHandle());
-        obj->releaseStrongReference();
-        array.emplace_back(obj);
+        try {
+            auto obj = createStoredObject(arg.get<sol::object>());
+            addReference(obj->gcHandle());
+            obj->releaseStrongReference();
+            array.emplace_back(obj);
+        }
+        RETHROW_WITH_PREFIX("effil.channel:push");
     }
     if (data_->channel_.empty())
         data_->cv_.notify_one();

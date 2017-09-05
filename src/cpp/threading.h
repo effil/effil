@@ -8,7 +8,7 @@ namespace effil {
 // Lua this thread API
 std::string threadId();
 void yield();
-void sleep(const sol::optional<int>&, const sol::optional<std::string>&);
+void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
 
 class ThreadHandle;
 

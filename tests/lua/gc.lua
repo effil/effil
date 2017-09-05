@@ -47,7 +47,7 @@ test.gc.store_same_value = function()
         c:push(a)
     end
 
-    local c = effil.channel {}
+    local c = effil.channel()
     fill(c)
 
     c:pop()
