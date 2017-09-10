@@ -59,8 +59,8 @@ public:
     static sol::object luaRawGet(const SharedTable& stable, const sol::stack_object& key, sol::this_state state);
     static SharedTable luaRawSet(SharedTable& stable, const sol::stack_object& key, const sol::stack_object& value);
     static size_t luaSize(SharedTable& stable);
-    static PairsIterator globLuaPairs(sol::this_state state, SharedTable& obj);
-    static PairsIterator globLuaIPairs(sol::this_state state, SharedTable& obj);
+    static PairsIterator globalLuaPairs(sol::this_state state, SharedTable& obj);
+    static PairsIterator globalLuaIPairs(sol::this_state state, SharedTable& obj);
 
 private:
     PairsIterator getNext(const sol::object& key, sol::this_state lua);

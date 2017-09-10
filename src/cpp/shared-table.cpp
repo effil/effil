@@ -298,13 +298,11 @@ size_t SharedTable::luaSize(SharedTable& stable) {
     return stable.data_->entries.size();
 }
 
-SharedTable::PairsIterator SharedTable::globLuaPairs(sol::this_state state, SharedTable& obj)
-{
+SharedTable::PairsIterator SharedTable::globalLuaPairs(sol::this_state state, SharedTable& obj) {
     return obj.luaPairs(state);
 }
 
-SharedTable::PairsIterator SharedTable::globLuaIPairs(sol::this_state state, SharedTable& obj)
-{
+SharedTable::PairsIterator SharedTable::globalLuaIPairs(sol::this_state state, SharedTable& obj) {
     return obj.luaIPairs(state);
 }
 
