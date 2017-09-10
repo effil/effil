@@ -112,9 +112,7 @@ test_unary_op("len",      function(a) return #a end)
 
 test.shared_table_with_metatable.tear_down = default_tear_down
 
-if LUA_VERSION > 51 then
-
-test.shared_table_with_metatable.iterators = function (iterator_type)
+test.shared_table_with_metatable.iterators = function (iterator_type, iterator_trigger)
     local share = effil.table()
     local iterator = iterator_type
     effil.setmetatable(share, {
@@ -138,9 +136,10 @@ test.shared_table_with_metatable.iterators = function (iterator_type)
     for i = 1, 100 do
         share[math.random(1000) * 10 - 1] = math.random(1000)
     end
+
     -- Check that *pairs iterator works
     local pow_iter = 1
-    for k,v in _G[iterator](share) do
+    for k,v in _G[iterator_trigger][iterator](share) do
         test.equal(k, pow_iter)
         test.equal(v, share[pow_iter])
         pow_iter = pow_iter * 2
@@ -148,9 +147,12 @@ test.shared_table_with_metatable.iterators = function (iterator_type)
     test.equal(pow_iter, 2 ^ 11)
 end
 
-test.shared_table_with_metatable.iterators("pairs")
-test.shared_table_with_metatable.iterators("ipairs")
+test.shared_table_with_metatable.iterators("pairs", "effil")
+test.shared_table_with_metatable.iterators("ipairs", "effil")
 
+if LUA_VERSION > 51 then
+    test.shared_table_with_metatable.iterators("pairs", "_G")
+    test.shared_table_with_metatable.iterators("ipairs", "_G")
 end -- LUA_VERSION > 51
 
 test.shared_table_with_metatable.as_shared_table = function()
