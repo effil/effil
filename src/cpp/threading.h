@@ -40,9 +40,6 @@ private:
     std::shared_ptr<ThreadHandle> handle_;
 
 private:
-    bool waitFor(const sol::optional<int>& duration,
-                 const sol::optional<std::string>& period);
-private:
     Thread(const Thread&) = delete;
     Thread& operator=(const Thread&) = delete;
 };

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(effil)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif(NOT CMAKE_BUILD_TYPE)
+
 if (NOT LUA_INCLUDE_DIR OR NOT LUA_LIBRARY)
     find_package(Lua REQUIRED)
 endif()
