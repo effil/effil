@@ -23,7 +23,9 @@ local api = {
     getmetatable = capi.getmetatable,
     G = capi.G,
     gc = capi.gc,
-    channel = capi.channel
+    channel = capi.channel,
+    pairs = capi.pairs,
+    ipairs = capi.ipairs
 }
 
 api.type = function (something)

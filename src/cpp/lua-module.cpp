@@ -68,7 +68,9 @@ extern "C" int luaopen_libeffil(lua_State* L) {
             "G", sol::make_object(lua, globalTable),
             "gc", GC::getLuaApi(lua),
             "channel", createChannel,
-            "userdata_type", userdataType
+            "userdata_type", userdataType,
+            "pairs", SharedTable::globalLuaPairs,
+            "ipairs", SharedTable::globalLuaIPairs
     );
     sol::stack::push(lua, publicApi);
     return 1;

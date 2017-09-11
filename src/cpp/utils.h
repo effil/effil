@@ -37,6 +37,15 @@ private:
     std::string message_;
 };
 
+class ScopeGuard {
+public:
+    ScopeGuard(const std::function<void()>& f) : f_(f) {}
+    ~ScopeGuard() { f_(); }
+
+private:
+    std::function<void()> f_;
+};
+
 } // effil
 
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
