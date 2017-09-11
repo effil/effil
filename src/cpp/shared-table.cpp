@@ -54,6 +54,8 @@ void SharedTable::set(StoredObject&& key, StoredObject&& value) {
         refs_->insert(key->gcHandle());
     if (value->gcHandle())
         refs_->insert(value->gcHandle());
+    key->releaseStrongReference();
+    value->releaseStrongReference();
 
     data_->entries[std::move(key)] = std::move(value);
 }

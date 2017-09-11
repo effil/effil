@@ -171,10 +171,11 @@ void runThread(std::shared_ptr<ThreadHandle> handle,
 
     try {
         {
-            ScopeGuard reportComplete([=](){
+            ScopeGuard reportComplete([handle, &arguments](){
                 DEBUG << "Finished " << std::endl;
                 // Let's destroy accociated state
                 // to release all resources as soon as possible
+                arguments.clear();
                 handle->destroyLua();
             });
             sol::function userFuncObj = loadString(handle->lua(), strFunction);

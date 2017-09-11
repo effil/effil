@@ -12,6 +12,7 @@ require "metatable"
 if os.getenv("STRESS") then
     require "channel-stress"
     require "thread-stress"
+    require "gc-stress"
 end
 
 test.summary()
