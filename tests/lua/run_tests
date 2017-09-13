@@ -1,0 +1,21 @@
+#!/usr/bin/env lua
+
+local scripts_path = arg[0]:gsub("/run_tests", "")
+local src_path = scripts_path .. "/../.."
+package.path = ";" .. scripts_path .. "/?.lua;"
+                .. src_path .. "/src/lua/?.lua;"
+                .. src_path .. "/libs/u-test/?.lua"
+
+require "type"
+require "gc"
+require "channel"
+require "thread"
+require "shared-table"
+require "metatable"
+
+if os.getenv("STRESS") then
+    require "channel-stress"
+    require "thread-stress"
+end
+
+test.summary()

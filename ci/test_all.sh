@@ -6,8 +6,8 @@ if [ -z "$LUA_BIN" ]; then
 fi
 
 for build_type in debug release; do
-    mkdir -p $build_type
-    (cd $build_type && cmake -DCMAKE_BUILD_TYPE=$build_type $@ .. && make -j4 install)
+    cmake -H. -B$build_type  -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=$build_type $@
+    cmake --build $build_type --config Release
 
     # FIXME: creation of sol::state with luajit in c++ tests 
     # leads to memory corruption segmentation fault
@@ -18,5 +18,5 @@ for build_type in debug release; do
         echo "C++ tests skipped!"
     fi
 
-    (cd $build_type && $LUA_BIN tests.lua)
+    (cd $build_type && STRESS=1 $LUA_BIN ../tests/lua/run_tests)
 done
