@@ -213,6 +213,9 @@ test.thread.returns = function ()
 
     test.is_function(returns[5])
     test.equal(returns[5](11, 89), 100)
+
+    -- Workaround to get child thread free all return values
+    effil.sleep(2)
 end
 
 test.thread.timed_cancel = function ()
