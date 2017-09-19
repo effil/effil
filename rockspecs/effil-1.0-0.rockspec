@@ -9,9 +9,7 @@ source = {
 description = {
     summary  = "Multithreading library for Lua.",
     detailed = [[
-       Effil is a lua module for multithreading support. It allows to spawn native threads and safe data exchange. Effil has been designed to provide clear and simple API for lua developers.
-
-    Effil supports lua 5.1, 5.2, 5.3 and LuaJIT. Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual Studio 2015.
+       Effil is a lua module for multithreading support. It allows to spawn native threads and provides safe data exchange.
     ]],
     homepage = "http://github.com/loud-hound/effil",
     license  = "MIT"
