@@ -11,7 +11,7 @@ description = {
     detailed = [[
        Effil is a lua module for multithreading support. It allows to spawn native threads and provides safe data exchange.
     ]],
-    homepage = "http://github.com/loud-hound/effil",
+    homepage = "https://github.com/effil/effil",
     license  = "MIT"
 }
 
