@@ -5,6 +5,7 @@ local src_path = scripts_path .. "/../.."
 package.path = ";" .. scripts_path .. "/?.lua;"
                 .. src_path .. "/src/lua/?.lua;"
                 .. src_path .. "/libs/u-test/?.lua"
+package.cpath = "./?.so;" .. package.cpath
 
 require "type"
 require "gc"

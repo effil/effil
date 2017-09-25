@@ -8,7 +8,7 @@
 
 #include <sol.hpp>
 
-#include <unordered_map>
+#include <map>
 #include <memory>
 
 namespace effil {
@@ -23,9 +23,8 @@ public:
     SharedTable(SharedTable&&) = default;
     SharedTable(const SharedTable& init);
     SharedTable& operator=(const SharedTable&) = default;
-    virtual ~SharedTable() = default;
 
-    static void getUserType(sol::state_view& lua);
+    static void exportAPI(sol::state_view& lua);
 
     void set(StoredObject&&, StoredObject&&);
     void rawSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
@@ -63,6 +62,10 @@ public:
     static PairsIterator globalLuaPairs(sol::this_state state, SharedTable& obj);
     static PairsIterator globalLuaIPairs(sol::this_state state, SharedTable& obj);
 
+    GCObjectHandle handle() const override;
+    size_t instances() const override;
+    const std::unordered_set<GCObjectHandle>& refers() const override;
+
 private:
     PairsIterator getNext(const sol::object& key, sol::this_state lua);
 
@@ -71,6 +74,7 @@ private:
         SpinMutex lock;
         DataEntries entries;
         GCObjectHandle metatable;
+        std::unordered_set<GCObjectHandle> refs_;
 
         SharedData() : metatable(GCNull) {}
     };

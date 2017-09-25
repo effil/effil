@@ -35,19 +35,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror -O0 -g -UNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g0 -DNDEBUG")
 
 #----------
-# TESTS ---
-#----------
-if (NOT BUILD_ROCK)
-    FILE(GLOB TEST_SOURCES tests/cpp/*.cpp tests/cpp/*.h)
-    set(GTEST_DIR libs/gtest/googletest)
-    set(LUA_TESTS tests/lua/tests.lua)
-
-    include_directories(${GTEST_DIR}/include ${GTEST_DIR})
-    add_executable(tests ${TEST_SOURCES} ${GTEST_DIR}/src/gtest-all.cc)
-    target_link_libraries(tests effil ${LUA_LIBRARY})
-endif()
-
-#----------
 # INSTALL -
 #----------
 install(FILES src/lua/effil.lua
