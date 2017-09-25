@@ -246,7 +246,7 @@ SharedTable::PairsIterator SharedTable::luaPairs(sol::this_state state) {
         sol::make_object(state, *this));
 }
 
-std::pair<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable table, sol::optional<LUA_INDEX_TYPE> key) {
+std::pair<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable table, const sol::optional<LUA_INDEX_TYPE>& key) {
     size_t index = key ? key.value() + 1 : 1;
     auto objKey = createStoredObject(static_cast<LUA_INDEX_TYPE>(index));
     sol::object value = table.get(objKey, lua);

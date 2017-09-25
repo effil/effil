@@ -220,9 +220,9 @@ end
 
 test.thread.timed_cancel = function ()
     local thread = effil.thread(function()
-        require("effil").sleep(2)
+        require("effil").sleep(4)
     end)()
-    test.is_false(thread:cancel(1))
+    test.is_false(thread:cancel(100, "ms"))
     thread:wait()
 end
 
@@ -317,9 +317,9 @@ test.this_thread.cancel_with_yield = function ()
 end
 
 test.this_thread.pause_with_yield = function ()
-    local share = effil.table()
+    local share = effil.table({stop = false})
     local spec = effil.thread(function (share)
-        for i=1,10000 do
+        while not share.stop do
             require("effil").yield()
         end
         share.done = true
@@ -331,6 +331,9 @@ test.this_thread.pause_with_yield = function ()
     thr:pause()
     test.is_nil(share.done)
     test.equal(thr:status(), "paused")
+    share.stop = true
+    effil.sleep(100, "ms")
+    test.is_nil(share.done)
     thr:resume()
 
     test.is_true(thr:get())

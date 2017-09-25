@@ -49,8 +49,12 @@ std::string userdataType(const sol::object& something) {
 
 } // namespace
 
-extern "C" int luaopen_libeffil(lua_State* L) {
-    sol::state_view lua(L);
+extern "C"
+#ifdef _WIN32
+ __declspec(dllexport)
+#endif
+int luaopen_libeffil(lua_State* L) {
+	sol::state_view lua(L);
     Thread::getUserType(lua);
     SharedTable::getUserType(lua);
     Channel::getUserType(lua);
