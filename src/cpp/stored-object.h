@@ -26,7 +26,6 @@ public:
 
 private:
     BaseHolder(const BaseHolder&) = delete;
-    BaseHolder(BaseHolder&) = delete;
 };
 
 typedef std::shared_ptr<BaseHolder> StoredObject;
