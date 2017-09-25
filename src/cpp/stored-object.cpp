@@ -76,7 +76,6 @@ public:
         assert(luaObject.template is<T>());
         strongRef_ = luaObject.template as<T>();
         handle_ = strongRef_->handle();
-        assert(GC::instance().has(handle_));
     }
 
     GCObjectHolder(GCObjectHandle handle)

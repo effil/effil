@@ -10,19 +10,25 @@ namespace effil {
 class Channel : public GCObject {
 public:
     Channel(sol::optional<int> capacity);
-    static void getUserType(sol::state_view& lua);
+    static void exportAPI(sol::state_view& lua);
 
     bool push(const sol::variadic_args& args);
     StoredArray pop(const sol::optional<int>& duration,
                      const sol::optional<std::string>& period);
 
     size_t size();
+
+    GCObjectHandle handle() const override;
+    size_t instances() const override;
+    const std::unordered_set<GCObjectHandle>& refers() const override;
+
 protected:
     struct SharedData {
         std::mutex lock_;
         std::condition_variable cv_;
         size_t capacity_;
         std::queue<StoredArray> channel_;
+        std::unordered_set<GCObjectHandle> refs_;
     };
 
     std::shared_ptr<SharedData> data_;

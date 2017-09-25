@@ -248,7 +248,7 @@ Thread::Thread(const std::string& path,
     thr.detach();
 }
 
-void Thread::getUserType(sol::state_view& lua) {
+void Thread::exportAPI(sol::state_view& lua) {
     sol::usertype<Thread> type(
             "new", sol::no_constructor,
             "get", &Thread::get,

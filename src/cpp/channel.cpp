@@ -4,7 +4,7 @@
 
 namespace effil {
 
-void Channel::getUserType(sol::state_view& lua) {
+void Channel::exportAPI(sol::state_view& lua) {
     sol::usertype<Channel> type("new", sol::no_constructor,
         "push",  &Channel::push,
         "pop",  &Channel::pop,
@@ -35,7 +35,7 @@ bool Channel::push(const sol::variadic_args& args) {
     for (const auto& arg : args) {
         auto obj = createStoredObject(arg.get<sol::object>());
         if (obj->gcHandle())
-            refs_->insert(obj->gcHandle());
+            data_->refs_.insert(obj->gcHandle());
         obj->releaseStrongReference();
         array.emplace_back(obj);
     }
@@ -61,7 +61,7 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
     auto ret = data_->channel_.front();
     for (const auto& obj: ret) {
         if (obj->gcHandle())
-            refs_->erase(obj->gcHandle());
+            data_->refs_.erase(obj->gcHandle());
     }
     data_->channel_.pop();
     return ret;
@@ -70,6 +70,18 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
 size_t Channel::size() {
     std::lock_guard<std::mutex> lock(data_->lock_);
     return data_->channel_.size();
+}
+
+GCObjectHandle Channel::handle() const {
+    return reinterpret_cast<GCObjectHandle>(data_.get());
+}
+
+size_t Channel::instances() const {
+    return data_.use_count();
+}
+
+const std::unordered_set<GCObjectHandle>& Channel::refers() const {
+    return data_->refs_;
 }
 
 } // namespace effil

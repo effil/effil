@@ -22,7 +22,7 @@ SharedTable::SharedTable(const SharedTable& init)
         : GCObject(init)
         , data_(init.data_) {}
 
-void SharedTable::getUserType(sol::state_view& lua) {
+void SharedTable::exportAPI(sol::state_view& lua) {
     sol::usertype<SharedTable> type("new", sol::no_constructor,
         "__pairs",  &SharedTable::luaPairs,
         "__ipairs", &SharedTable::luaIPairs,
@@ -51,9 +51,9 @@ void SharedTable::set(StoredObject&& key, StoredObject&& value) {
     std::lock_guard<SpinMutex> g(data_->lock);
 
     if (key->gcHandle())
-        refs_->insert(key->gcHandle());
+        data_->refs_.insert(key->gcHandle());
     if (value->gcHandle())
-        refs_->insert(value->gcHandle());
+        data_->refs_.insert(value->gcHandle());
     key->releaseStrongReference();
     value->releaseStrongReference();
 
@@ -81,9 +81,9 @@ void SharedTable::rawSet(const sol::stack_object& luaKey, const sol::stack_objec
         auto it = data_->entries.find(key);
         if (it != data_->entries.end()) {
             if (it->first->gcHandle())
-                refs_->erase(it->first->gcHandle());
+                data_->refs_.erase(it->first->gcHandle());
             if (it->second->gcHandle())
-                refs_->erase(it->second->gcHandle());
+                data_->refs_.erase(it->second->gcHandle());
             data_->entries.erase(it);
         }
 
@@ -270,12 +270,12 @@ SharedTable SharedTable::luaSetMetatable(SharedTable& stable, const sol::stack_o
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
     if (stable.data_->metatable != GCNull)
     {
-        stable.refs_->erase(stable.data_->metatable);
+        stable.data_->refs_.erase(stable.data_->metatable);
         stable.data_->metatable = GCNull;
     }
     if (mt.valid()) {
         stable.data_->metatable = createStoredObject(mt)->gcHandle();
-        stable.refs_->insert(stable.data_->metatable);
+        stable.data_->refs_.insert(stable.data_->metatable);
     }
     return stable;
 }
@@ -311,5 +311,17 @@ SharedTable::PairsIterator SharedTable::globalLuaIPairs(sol::this_state state, S
 #undef DEFFINE_METAMETHOD_CALL_0
 #undef DEFFINE_METAMETHOD_CALL
 #undef PROXY_METAMETHOD_IMPL
+
+GCObjectHandle SharedTable::handle() const {
+    return reinterpret_cast<GCObjectHandle>(data_.get());
+}
+
+size_t SharedTable::instances() const {
+    return data_.use_count();
+}
+
+const std::unordered_set<GCObjectHandle>& SharedTable::refers() const {
+    return data_->refs_;
+}
 
 } // effil
