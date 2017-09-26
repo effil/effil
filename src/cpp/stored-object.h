@@ -7,6 +7,7 @@
 
 namespace effil {
 
+// Represents an interface for lua type stored at C++ code
 class BaseHolder {
 public:
     BaseHolder() = default;

@@ -4,7 +4,7 @@
 
 namespace effil {
 
-void Channel::getUserType(sol::state_view& lua) {
+void Channel::exportAPI(sol::state_view& lua) {
     sol::usertype<Channel> type("new", sol::no_constructor,
         "push",  &Channel::push,
         "pop",  &Channel::pop,
@@ -14,7 +14,7 @@ void Channel::getUserType(sol::state_view& lua) {
     sol::stack::pop<sol::object>(lua);
 }
 
-Channel::Channel(sol::optional<int> capacity) : data_(std::make_shared<SharedData>()){
+Channel::Channel(sol::optional<int> capacity) : data_(std::make_shared<SharedData>()) {
     if (capacity) {
         REQUIRE(capacity.value() >= 0) << "Invalid capacity value = " << capacity.value();
         data_->capacity_ = static_cast<size_t>(capacity.value());
@@ -34,8 +34,8 @@ bool Channel::push(const sol::variadic_args& args) {
     effil::StoredArray array;
     for (const auto& arg : args) {
         auto obj = createStoredObject(arg.get<sol::object>());
-        if (obj->gcHandle())
-            refs_->insert(obj->gcHandle());
+
+        addReference(obj->gcHandle());
         obj->releaseStrongReference();
         array.emplace_back(obj);
     }
@@ -59,10 +59,9 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
     }
 
     auto ret = data_->channel_.front();
-    for (const auto& obj: ret) {
-        if (obj->gcHandle())
-            refs_->erase(obj->gcHandle());
-    }
+    for (const auto& obj: ret)
+        removeReference(obj->gcHandle());
+
     data_->channel_.pop();
     return ret;
 }

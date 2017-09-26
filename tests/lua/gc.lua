@@ -39,3 +39,19 @@ test.gc.disable = function ()
 
     gc.resume()
 end
+
+test.gc.store_same_value = function()
+    local fill = function (c)
+        local a = effil.table {}
+        c:push(a)
+        c:push(a)
+    end
+
+    local c = effil.channel {}
+    fill(c)
+
+    c:pop()
+    collectgarbage()
+    effil.gc.collect()
+    c:pop()[1] = 0
+end

@@ -20,7 +20,7 @@ public:
            const sol::function& function,
            const sol::variadic_args& args);
 
-    static void getUserType(sol::state_view& lua);
+    static void exportAPI(sol::state_view& lua);
 
     std::pair<sol::object, sol::object> status(const sol::this_state& state);
     std::pair<sol::object, sol::object> wait(const sol::this_state& state,

@@ -12,41 +12,29 @@ GC::GC()
         , lastCleanup_(0)
         , step_(200) {}
 
-GCObject* GC::findObject(GCObjectHandle handle) {
-    auto it = objects_.find(handle);
-    if (it == objects_.end()) {
-        DEBUG << "Null handle " << handle << std::endl;
-        return nullptr;
-    }
-    return it->second.get();
-}
-
-bool GC::has(GCObjectHandle handle) const {
-    std::lock_guard<std::mutex> g(lock_);
-    return objects_.find(handle) != objects_.end();
-}
-
 // Here is the naive tri-color marking
 // garbage collecting algorithm implementation.
 void GC::collect() {
     std::lock_guard<std::mutex> g(lock_);
 
-    std::vector<GCObjectHandle> grey;
-    std::map<GCObjectHandle, std::shared_ptr<GCObject>> black;
+    std::unordered_set<GCObjectHandle> grey;
+    std::unordered_map<GCObjectHandle, std::unique_ptr<GCObject>> black;
 
     for (const auto& handleAndObject : objects_)
         if (handleAndObject.second->instances() > 1)
-            grey.push_back(handleAndObject.first);
+            grey.insert(handleAndObject.first);
 
     while (!grey.empty()) {
-        GCObjectHandle handle = grey.back();
-        grey.pop_back();
+        auto it = grey.begin();
+        GCObjectHandle handle = *it;
+        grey.erase(it);
 
-        auto object = objects_[handle];
-        black[handle] = object;
-        for (GCObjectHandle refHandle : object->refers())
-            if (black.find(refHandle) == black.end())
-                grey.push_back(refHandle);
+        black[handle] = std::move(objects_[handle]);
+        for (GCObjectHandle refHandle : black[handle]->refers()) {
+            assert(objects_.count(refHandle));
+            if (black.count(refHandle) == 0 && grey.count(refHandle) == 0)
+                grey.insert(refHandle);
+        }
     }
 
     DEBUG << "Removing " << (objects_.size() - black.size()) << " out of " << objects_.size() << std::endl;
@@ -67,15 +55,13 @@ size_t GC::count() {
 }
 
 GC& GC::instance() {
-    static GC pool;
-    return pool;
+    static GC gc;
+    return gc;
 }
 
-sol::table GC::getLuaApi(sol::state_view& lua) {
+sol::table GC::exportAPI(sol::state_view& lua) {
     sol::table api = lua.create_table_with();
-    api["collect"] = [=] {
-        instance().collect();
-    };
+    api["collect"] = [=] { instance().collect(); };
     api["pause"] = [] { instance().pause(); };
     api["resume"] = [] { instance().resume(); };
     api["enabled"] = [] { return instance().enabled(); };
