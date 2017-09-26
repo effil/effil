@@ -2,7 +2,6 @@
 
 #include "utils.h"
 
-#include <vector>
 #include <cassert>
 
 namespace effil {

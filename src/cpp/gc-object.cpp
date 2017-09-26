@@ -1,5 +1,6 @@
 #include "gc-object.h"
 
+#include <mutex>
 #include <cassert>
 
 namespace effil {
