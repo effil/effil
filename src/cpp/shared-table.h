@@ -68,7 +68,6 @@ private:
         SpinMutex lock;
         DataEntries entries;
         GCObjectHandle metatable;
-        std::unordered_set<GCObjectHandle> refs_;
 
         SharedData() : metatable(GCNull) {}
     };

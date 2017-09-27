@@ -24,7 +24,7 @@ public:
         auto copy = *object;
 
         std::lock_guard<std::mutex> g(lock_);
-        objects_[object->handle()] = std::move(object);
+        objects_.emplace(object->handle(), std::move(object));
         return copy;
     }
 
