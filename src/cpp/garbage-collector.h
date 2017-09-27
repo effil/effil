@@ -54,11 +54,11 @@ private:
 
     void collect();
     size_t size() const;
-    void pause() { enabled_ = false; };
-    void resume() { enabled_ = true; };
+    void pause() { enabled_ = false; }
+    void resume() { enabled_ = true; }
     size_t step() const { return step_; }
     void step(size_t newStep) { step_ = newStep; }
-    bool enabled() { return enabled_; };
+    bool enabled() { return enabled_; }
     size_t count();
 };
 
