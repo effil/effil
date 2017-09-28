@@ -16,7 +16,8 @@ void Channel::exportAPI(sol::state_view& lua) {
 
 Channel::Channel(const sol::stack_object& capacity) : data_(std::make_shared<SharedData>()){
     if (capacity.valid()) {
-        REQUIRE(capacity.get_type() == sol::type::number) << "bad argument #1 to 'effil.channel' (number expected, got " << luaTypename(capacity) << ")";
+        REQUIRE(capacity.get_type() == sol::type::number) << "bad argument #1 to 'effil.channel' (number expected, got "
+                                                          << luaTypename(capacity) << ")";
         REQUIRE(capacity.as<int>() >= 0) << "effil.channel: invalid capacity value = " << capacity.as<int>();
         data_->capacity_ = capacity.as<size_t>();
     }

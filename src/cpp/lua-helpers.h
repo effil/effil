@@ -1,7 +1,5 @@
 #pragma once
 
-//#include "shared-table.h"
-//#include "channel.h"
 #include "stored-object.h"
 #include "utils.h"
 #include <sol.hpp>

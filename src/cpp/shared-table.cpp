@@ -270,14 +270,8 @@ SharedTable::PairsIterator SharedTable::luaIPairs(sol::this_state state) {
 SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt) {
     REQUIRE(isAnyTable(tbl)) << "bad argument #1 to 'effil.setmetatable' (table expected, got " << luaTypename(tbl) << ")";
     REQUIRE(isAnyTable(mt)) << "bad argument #2 to 'effil.setmetatable' (table expected, got " << luaTypename(mt) << ")";
-    SharedTable stable;
-    if (isSharedTable(tbl)) {
-        stable = tbl.as<SharedTable>();
-    }
-    else {
-        const auto sobj = createStoredObject(tbl);
-        stable = GC::instance().get<SharedTable>(sobj->gcHandle());
-    }
+
+    SharedTable stable = GC::instance().get<SharedTable>(createStoredObject(tbl)->gcHandle());
 
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
     if (stable.data_->metatable != GCNull) {

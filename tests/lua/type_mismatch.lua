@@ -37,7 +37,7 @@ test.type_mismatch.unsupported_type = function(wrong_arg_num, func_name, ...)
     basic_type_mismatch_test(err_msg, wrong_arg_num, func_name, ...)
 end
 
-do
+local function generate_tests()
     local function create_object_generator(name, func)
         return setmetatable({ name = name }, {
             __call = func,
@@ -146,12 +146,11 @@ do
     test.type_mismatch.unsupported_type(1, table_get_value_generator, lua_thread)
 end
 
---[[
+-- Put it to function to limit the lifetime of objects
+generate_tests()
 
-test.type_mismatch.check_after_test = function ()
+test.type_mismatch.gc_checks_after_tests = function ()
     collectgarbage()
     effil.gc.collect()
     test.equal(effil.gc.count(), 1)
 end
-
-]]
