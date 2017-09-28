@@ -10,12 +10,12 @@ namespace effil {
 
 class Channel : public GCObject {
 public:
-    Channel(sol::optional<int> capacity);
+    Channel(const sol::stack_object& capacity);
     static void exportAPI(sol::state_view& lua);
 
     bool push(const sol::variadic_args& args);
     StoredArray pop(const sol::optional<int>& duration,
-                     const sol::optional<std::string>& period);
+                    const sol::optional<std::string>& period);
 
     size_t size();
 protected:

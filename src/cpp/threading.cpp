@@ -212,11 +212,18 @@ void yield() {
     std::this_thread::yield();
 }
 
-void sleep(const sol::optional<int>& duration, const sol::optional<std::string>& period) {
-    if (duration)
-        std::this_thread::sleep_for(fromLuaTime(*duration, period));
-    else
+void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {
+    if (duration.valid()) {
+        REQUIRE(duration.get_type() == sol::type::number) << "bad argument #1 to 'effil.sleep' (number expected, got " << luaTypename(duration) << ")";
+        if (metric.valid())
+            REQUIRE(metric.get_type() == sol::type::string) << "bad argument #2 to 'effil.sleep' (string expected, got " << luaTypename(metric) << ")";
+        try {
+            std::this_thread::sleep_for(fromLuaTime(duration.as<int>(), metric.valid() ? metric.as<std::string>() : sol::optional<std::string>()));
+        } RETHROW_WITH_PREFIX("effil.sleep");
+    }
+    else {
         yield();
+    }
 }
 
 Thread::Thread(const std::string& path,
@@ -236,9 +243,11 @@ Thread::Thread(const std::string& path,
     std::string strFunction = dumpFunction(function);
 
     effil::StoredArray arguments;
-    for (const auto& arg : variadicArgs) {
-        arguments.emplace_back(createStoredObject(arg.get<sol::object>()));
-    }
+    try {
+        for (const auto& arg : variadicArgs) {
+            arguments.emplace_back(createStoredObject(arg.get<sol::object>()));
+        }
+    } RETHROW_WITH_PREFIX("effil.thread");
 
     std::thread thr(&runThread,
                     handle_,

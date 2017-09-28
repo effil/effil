@@ -28,23 +28,15 @@ sol::object createTable(sol::this_state lua, const sol::optional<sol::object>& t
     return sol::make_object(lua, GC::instance().create<SharedTable>());
 }
 
-sol::object createChannel(sol::optional<int> capacity, sol::this_state lua) {
+sol::object createChannel(const sol::stack_object& capacity, sol::this_state lua) {
     return sol::make_object(lua, GC::instance().create<Channel>(capacity));
 }
 
 SharedTable globalTable = GC::instance().create<SharedTable>();
 
-std::string userdataType(const sol::object& something) {
-    assert(something.get_type() == sol::type::userdata);
-    if (something.template is<SharedTable>()) {
-        return "effil.table";
-    } else if (something.template is<Channel>()) {
-        return "effil.channel";
-    } else if (something.template is<std::shared_ptr<Thread>>()) {
-        return "effil.thread";
-    } else {
-        return "userdata";
-    }
+std::string getLuaTypename(const sol::stack_object& obj)
+{
+    return luaTypename<>(obj);
 }
 
 } // namespace
@@ -72,7 +64,7 @@ int luaopen_libeffil(lua_State* L) {
             "G", sol::make_object(lua, globalTable),
             "gc", GC::exportAPI(lua),
             "channel", createChannel,
-            "userdata_type", userdataType,
+            "type", getLuaTypename,
             "pairs", SharedTable::globalLuaPairs,
             "ipairs", SharedTable::globalLuaIPairs
     );

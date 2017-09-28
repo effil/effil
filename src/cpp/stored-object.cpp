@@ -185,7 +185,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
         }
         default:
-            throw Exception() << "Unable to store object of that type: " << (int)luaObject.get_type() << "\n";
+            throw Exception() << "unable to store object of " << luaTypename(luaObject) << " type";
     }
     return nullptr;
 }

@@ -14,6 +14,11 @@ bool isSharedTable(const SolObject& obj) {
     return obj.valid() && obj.get_type() == sol::type::userdata && obj.template is<SharedTable>();
 }
 
+template<typename SolObject>
+bool isAnyTable(const SolObject& obj) {
+    return obj.valid() && ((obj.get_type() == sol::type::userdata && obj.template is<SharedTable>()) || obj.get_type() == sol::type::table);
+}
+
 } // namespace
 
 SharedTable::SharedTable() : data_(std::make_shared<SharedData>()) {}
@@ -164,12 +169,16 @@ void SharedTable::luaNewIndex(const sol::stack_object& luaKey, const sol::stack_
             }
         }
     }
-    rawSet(luaKey, luaValue);
+    try {
+        rawSet(luaKey, luaValue);
+    } RETHROW_WITH_PREFIX("effil.table");
 }
 
 sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_state state) {
     DEFFINE_METAMETHOD_CALL("__index", *this, luaKey)
-    return rawGet(luaKey, state);
+    try {
+        return rawGet(luaKey, state);
+    } RETHROW_WITH_PREFIX("effil.table");
 }
 
 StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
@@ -258,8 +267,12 @@ SharedTable::PairsIterator SharedTable::luaIPairs(sol::this_state state) {
  * Lua static API functions
  */
 
-SharedTable SharedTable::luaSetMetatable(SharedTable& stable, const sol::stack_object& mt) {
-    REQUIRE(mt.get_type() == sol::type::table || isSharedTable(mt)) << "Unexpected type of setmetatable argument";
+SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt) {
+    REQUIRE(isAnyTable(tbl)) << "bad argument #1 to 'effil.setmetatable' (table expected, got " << luaTypename(tbl) << ")";
+    REQUIRE(isAnyTable(mt)) << "bad argument #2 to 'effil.setmetatable' (table expected, got " << luaTypename(mt) << ")";
+
+    SharedTable stable = GC::instance().get<SharedTable>(createStoredObject(tbl)->gcHandle());
+
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
     if (stable.data_->metatable != GCNull) {
         stable.removeReference(stable.data_->metatable);
@@ -272,32 +285,50 @@ SharedTable SharedTable::luaSetMetatable(SharedTable& stable, const sol::stack_o
     return stable;
 }
 
-sol::object SharedTable::luaGetMetatable(const SharedTable& stable, const sol::this_state& state) {
+sol::object SharedTable::luaGetMetatable(const sol::stack_object& tbl, sol::this_state state) {
+    REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.getmetatable' (effil.table expected, got " << luaTypename(tbl) << ")";
+    auto& stable = tbl.as<SharedTable>();
+
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
     return stable.data_->metatable == GCNull ? sol::nil :
             sol::make_object(state, GC::instance().get<SharedTable>(stable.data_->metatable));
 }
 
-sol::object SharedTable::luaRawGet(const SharedTable& stable, const sol::stack_object& key, sol::this_state state) {
-    return stable.rawGet(key, state);
+sol::object SharedTable::luaRawGet(const sol::stack_object& tbl, const sol::stack_object& key, sol::this_state state) {
+    REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.rawget' (effil.table expected, got " << luaTypename(tbl) << ")";
+    try {
+        return tbl.as<SharedTable>().rawGet(key, state);
+    } RETHROW_WITH_PREFIX("effil.rawget");
 }
 
-SharedTable SharedTable::luaRawSet(SharedTable& stable, const sol::stack_object& key, const sol::stack_object& value) {
-    stable.rawSet(key, value);
-    return stable;
+SharedTable SharedTable::luaRawSet(const sol::stack_object& tbl, const sol::stack_object& key, const sol::stack_object& value) {
+    REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.rawset' (effil.table expected, got " << luaTypename(tbl) << ")";
+    try {
+        auto& stable = tbl.as<SharedTable>();
+        stable.rawSet(key, value);
+        return stable;
+    } RETHROW_WITH_PREFIX("effil.rawset");
 }
 
-size_t SharedTable::luaSize(SharedTable& stable) {
-    std::lock_guard<SpinMutex> g(stable.data_->lock);
-    return stable.data_->entries.size();
+size_t SharedTable::luaSize(const sol::stack_object& tbl) {
+    REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.size' (effil.table expected, got " << luaTypename(tbl) << ")";
+    try {
+        auto& stable = tbl.as<SharedTable>();
+        std::lock_guard<SpinMutex> g(stable.data_->lock);
+        return stable.data_->entries.size();
+    } RETHROW_WITH_PREFIX("effil.size");
 }
 
-SharedTable::PairsIterator SharedTable::globalLuaPairs(sol::this_state state, SharedTable& obj) {
-    return obj.luaPairs(state);
+SharedTable::PairsIterator SharedTable::globalLuaPairs(sol::this_state state, const sol::stack_object& obj) {
+    REQUIRE(isSharedTable(obj)) << "bad argument #1 to 'effil.pairs' (effil.table expected, got " << luaTypename(obj) << ")";
+    auto& tbl = obj.as<SharedTable>();
+    return tbl.luaPairs(state);
 }
 
-SharedTable::PairsIterator SharedTable::globalLuaIPairs(sol::this_state state, SharedTable& obj) {
-    return obj.luaIPairs(state);
+SharedTable::PairsIterator SharedTable::globalLuaIPairs(sol::this_state state, const sol::stack_object& obj) {
+    REQUIRE(isSharedTable(obj)) << "bad argument #1 to 'effil.ipairs' (effil.table expected, got " << luaTypename(obj) << ")";
+    auto& tbl = obj.as<SharedTable>();
+    return tbl.luaIPairs(state);
 }
 
 #undef DEFFINE_METAMETHOD_CALL_0

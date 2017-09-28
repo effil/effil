@@ -51,13 +51,13 @@ sol::function loadString(const sol::state_view& lua, const std::string& str) {
 std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::string>& period) {
     using namespace std::chrono;
 
-    REQUIRE(duration >= 0) << "Invalid duration interval: " << duration;
+    REQUIRE(duration >= 0) << "invalid duration interval: " << duration;
 
     std::string metric = period ? period.value() : "s";
     if (metric == "ms") return milliseconds(duration);
     else if (metric == "s") return seconds(duration);
     else if (metric == "m") return minutes(duration);
-    else throw sol::error("invalid time identification: " + metric);
+    else throw sol::error("invalid time metric: " + metric);
 }
 
 } // namespace effil
