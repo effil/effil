@@ -14,15 +14,11 @@ bool isSharedTable(const SolObject& obj) {
     return obj.valid() && obj.get_type() == sol::type::userdata && obj.template is<SharedTable>();
 }
 
-}
+} // namespace
 
-SharedTable::SharedTable() : GCObject(), data_(std::make_shared<SharedData>()) {}
+SharedTable::SharedTable() : data_(std::make_shared<SharedData>()) {}
 
-SharedTable::SharedTable(const SharedTable& init)
-        : GCObject(init)
-        , data_(init.data_) {}
-
-void SharedTable::getUserType(sol::state_view& lua) {
+void SharedTable::exportAPI(sol::state_view& lua) {
     sol::usertype<SharedTable> type("new", sol::no_constructor,
         "__pairs",  &SharedTable::luaPairs,
         "__ipairs", &SharedTable::luaIPairs,
@@ -50,10 +46,9 @@ void SharedTable::getUserType(sol::state_view& lua) {
 void SharedTable::set(StoredObject&& key, StoredObject&& value) {
     std::lock_guard<SpinMutex> g(data_->lock);
 
-    if (key->gcHandle())
-        refs_->insert(key->gcHandle());
-    if (value->gcHandle())
-        refs_->insert(value->gcHandle());
+    addReference(key->gcHandle());
+    addReference(value->gcHandle());
+
     key->releaseStrongReference();
     value->releaseStrongReference();
 
@@ -80,10 +75,8 @@ void SharedTable::rawSet(const sol::stack_object& luaKey, const sol::stack_objec
         // in this case object is not obligatory to own data
         auto it = data_->entries.find(key);
         if (it != data_->entries.end()) {
-            if (it->first->gcHandle())
-                refs_->erase(it->first->gcHandle());
-            if (it->second->gcHandle())
-                refs_->erase(it->second->gcHandle());
+            removeReference(it->first->gcHandle());
+            removeReference(it->second->gcHandle());
             data_->entries.erase(it);
         }
 
@@ -266,21 +259,20 @@ SharedTable::PairsIterator SharedTable::luaIPairs(sol::this_state state) {
  */
 
 SharedTable SharedTable::luaSetMetatable(SharedTable& stable, const sol::stack_object& mt) {
-    REQUIRE((!mt.valid()) || mt.get_type() == sol::type::table || isSharedTable(mt)) << "Unexpected type of setmetatable argument";
+    REQUIRE(mt.get_type() == sol::type::table || isSharedTable(mt)) << "Unexpected type of setmetatable argument";
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
-    if (stable.data_->metatable != GCNull)
-    {
-        stable.refs_->erase(stable.data_->metatable);
+    if (stable.data_->metatable != GCNull) {
+        stable.removeReference(stable.data_->metatable);
         stable.data_->metatable = GCNull;
     }
-    if (mt.valid()) {
-        stable.data_->metatable = createStoredObject(mt)->gcHandle();
-        stable.refs_->insert(stable.data_->metatable);
-    }
+
+    stable.data_->metatable = createStoredObject(mt)->gcHandle();
+    stable.addReference(stable.data_->metatable);
+
     return stable;
 }
 
-sol::object SharedTable::luaGetMetatable(const SharedTable& stable, sol::this_state state) {
+sol::object SharedTable::luaGetMetatable(const SharedTable& stable, const sol::this_state& state) {
     std::lock_guard<SpinMutex> lock(stable.data_->lock);
     return stable.data_->metatable == GCNull ? sol::nil :
             sol::make_object(state, GC::instance().get<SharedTable>(stable.data_->metatable));

@@ -6,8 +6,9 @@ test.channel_stress.with_multiple_threads = function ()
     local exchange_channel, result_channel = effil.channel(), effil.channel()
 
     local threads_number = 1000
+    local threads = {}
     for i = 1, threads_number do
-        effil.thread(function(exchange_channel, result_channel, indx)
+        threads[i] = effil.thread(function(exchange_channel, result_channel, indx)
             if indx % 2 == 0 then
                 for i = 1, 10000 do
                     exchange_channel:push(indx .. "_".. i)
@@ -37,6 +38,10 @@ test.channel_stress.with_multiple_threads = function ()
         for iter = 1, 10000 do
             test.is_true(data[thr_id .. "_".. iter])
         end
+    end
+
+    for _, thread in ipairs(threads) do
+        thread:wait()
     end
 end
 

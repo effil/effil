@@ -1,6 +1,6 @@
 #pragma once
 
-#include "garbage-collector.h"
+#include "gc-object.h"
 #include "stored-object.h"
 #include "spin-mutex.h"
 #include "utils.h"
@@ -8,7 +8,7 @@
 
 #include <sol.hpp>
 
-#include <unordered_map>
+#include <map>
 #include <memory>
 
 namespace effil {
@@ -20,12 +20,9 @@ private:
 
 public:
     SharedTable();
-    SharedTable(SharedTable&&) = default;
-    SharedTable(const SharedTable& init);
     SharedTable& operator=(const SharedTable&) = default;
-    virtual ~SharedTable() = default;
 
-    static void getUserType(sol::state_view& lua);
+    static void exportAPI(sol::state_view& lua);
 
     void set(StoredObject&&, StoredObject&&);
     void rawSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
@@ -56,7 +53,7 @@ public:
 
     // Stand alone functions for effil::table available in Lua
     static SharedTable luaSetMetatable(SharedTable& stable, const sol::stack_object& mt);
-    static sol::object luaGetMetatable(const SharedTable& stable, const sol::this_state state);
+    static sol::object luaGetMetatable(const SharedTable& stable, const sol::this_state& state);
     static sol::object luaRawGet(const SharedTable& stable, const sol::stack_object& key, sol::this_state state);
     static SharedTable luaRawSet(SharedTable& stable, const sol::stack_object& key, const sol::stack_object& value);
     static size_t luaSize(SharedTable& stable);

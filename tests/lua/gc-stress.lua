@@ -3,7 +3,6 @@ require "bootstrap-tests"
 test.gc_stress.tear_down = default_tear_down
 
 -- Regress test for simultaneous object creation and removing
--- may cause SIGFAULT, so it's marked as "stress"
 test.gc_stress.create_and_collect_in_parallel = function ()
     function worker()
         effil = require "effil"

@@ -54,10 +54,10 @@ extern "C"
  __declspec(dllexport)
 #endif
 int luaopen_libeffil(lua_State* L) {
-	sol::state_view lua(L);
-    Thread::getUserType(lua);
-    SharedTable::getUserType(lua);
-    Channel::getUserType(lua);
+    sol::state_view lua(L);
+    Thread::exportAPI(lua);
+    SharedTable::exportAPI(lua);
+    Channel::exportAPI(lua);
     sol::table publicApi = lua.create_table_with(
             "thread", createThread,
             "thread_id", threadId,
@@ -70,7 +70,7 @@ int luaopen_libeffil(lua_State* L) {
             "setmetatable", SharedTable::luaSetMetatable,
             "getmetatable", SharedTable::luaGetMetatable,
             "G", sol::make_object(lua, globalTable),
-            "gc", GC::getLuaApi(lua),
+            "gc", GC::exportAPI(lua),
             "channel", createChannel,
             "userdata_type", userdataType,
             "pairs", SharedTable::globalLuaPairs,
