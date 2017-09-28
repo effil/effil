@@ -3,7 +3,7 @@ version = "1.0-0"
 
 source = {
     url = "gitrec+http://github.com/effil/effil",
-    branch = "master"
+    branch = "v1.0-0"
 }
 
 description = {
