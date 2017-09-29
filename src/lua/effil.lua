@@ -41,7 +41,7 @@ end
 --     __call - run thread, can be invoked multiple times
 api.thread = function (f)
     if type(f) ~= "function" then
-        error("bad argument #1 to 'effil.thread' (function expected, got " .. effil.type(f) .. ")")
+        error("bad argument #1 to 'effil.thread' (function expected, got " .. capi.type(f) .. ")")
     end
 
     local thread_config = {
