@@ -15,7 +15,7 @@ sol::object createThread(const sol::this_state& lua,
                          int step,
                          const sol::function& function,
                          const sol::variadic_args& args) {
-    return sol::make_object(lua, std::make_shared<Thread>(path, cpath, step, function, args));
+    return sol::make_object(lua, GC::instance().create<Thread>(path, cpath, step, function, args));
 }
 
 sol::object createTable(sol::this_state lua, const sol::optional<sol::object>& tbl) {
@@ -66,7 +66,8 @@ int luaopen_libeffil(lua_State* L) {
             "channel", createChannel,
             "type", getLuaTypename,
             "pairs", SharedTable::globalLuaPairs,
-            "ipairs", SharedTable::globalLuaIPairs
+            "ipairs", SharedTable::globalLuaIPairs,
+            "allow_table_upvalue", lua_allow_table_upvalue
     );
     sol::stack::push(lua, publicApi);
     return 1;

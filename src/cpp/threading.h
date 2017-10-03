@@ -2,6 +2,7 @@
 
 #include <sol.hpp>
 #include "lua-helpers.h"
+#include "function.h"
 
 namespace effil {
 
@@ -12,7 +13,7 @@ void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
 
 class ThreadHandle;
 
-class Thread {
+class Thread : public GCObject {
 public:
     Thread(const std::string& path,
            const std::string& cpath,
@@ -37,11 +38,9 @@ public:
     void resume();
 
 private:
-    std::shared_ptr<ThreadHandle> handle_;
+    static void runThread(Thread, FunctionObject, effil::StoredArray);
 
-private:
-    Thread(const Thread&) = delete;
-    Thread& operator=(const Thread&) = delete;
+    std::shared_ptr<ThreadHandle> handle_;
 };
 
 } // effil

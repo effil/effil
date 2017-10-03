@@ -122,6 +122,11 @@ local function generate_tests()
             --  effil.gc.step
             test.type_mismatch.input_types_mismatch_p(1, "number", "gc.step", type_instance)
         end
+
+        if typename ~= "boolean" then
+            -- effil.allow_table_upvalue
+            test.type_mismatch.input_types_mismatch(1, "boolean", "allow_table_upvalue", type_instance)
+        end
     end
 
     -- Below presented tests which support everything except coroutines
@@ -149,8 +154,7 @@ end
 -- Put it to function to limit the lifetime of objects
 generate_tests()
 
-test.type_mismatch.gc_checks_after_tests = function ()
-    collectgarbage()
-    effil.gc.collect()
-    test.equal(effil.gc.count(), 1)
+test.type_mismatch.gc_checks_after_tests = function()
+    effil.allow_table_upvalue(true)
+    default_tear_down()
 end

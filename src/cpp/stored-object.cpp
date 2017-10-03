@@ -1,8 +1,8 @@
 #include "stored-object.h"
 #include "channel.h"
-
 #include "threading.h"
 #include "shared-table.h"
+#include "function.h"
 #include "utils.h"
 
 #include <map>
@@ -45,29 +45,6 @@ private:
     StoredType data_;
 };
 
-class FunctionHolder : public BaseHolder {
-public:
-    template <typename SolObject>
-    FunctionHolder(SolObject luaObject) noexcept {
-        sol::state_view lua(luaObject.lua_state());
-        function_ = dumpFunction(luaObject);
-    }
-
-    bool rawCompare(const BaseHolder* other) const noexcept final {
-        return function_ < static_cast<const FunctionHolder*>(other)->function_;
-    }
-
-    sol::object unpack(sol::this_state state) const final {
-        sol::function result = loadString(state, function_);
-        // The result of restaring always is valid function.
-        assert(result.valid());
-        return sol::make_object(state, result);
-    }
-
-private:
-    std::string function_;
-};
-
 template<typename T>
 class GCObjectHolder : public BaseHolder {
 public:
@@ -87,7 +64,7 @@ public:
         return handle_ < static_cast<const GCObjectHolder<T>*>(other)->handle_;
     }
 
-    sol::object unpack(sol::this_state state) const final {
+    sol::object unpack(sol::this_state state) const override {
         return sol::make_object(state, GC::instance().get<T>(handle_));
     }
 
@@ -103,9 +80,20 @@ public:
         }
     }
 
-private:
+protected:
     GCObjectHandle handle_;
     sol::optional<T> strongRef_;
+};
+
+class FunctionHolder : public GCObjectHolder<FunctionObject> {
+public:
+    template <typename SolType>
+    FunctionHolder(const SolType& luaObject) : GCObjectHolder<FunctionObject>(luaObject) {}
+    FunctionHolder(GCObjectHandle handle) : GCObjectHolder(handle) {}
+
+    sol::object unpack(sol::this_state state) const final {
+        return GC::instance().get<FunctionObject>(handle_).loadFunction(state);
+    }
 };
 
 // This class is used as a storage for visited sol::tables
@@ -171,12 +159,16 @@ StoredObject fromSolObject(const SolObject& luaObject) {
                 return std::make_unique<GCObjectHolder<SharedTable>>(luaObject);
             else if (luaObject.template is<Channel>())
                 return std::make_unique<GCObjectHolder<Channel>>(luaObject);
-            else if (luaObject.template is<std::shared_ptr<Thread>>())
-                return std::make_unique<PrimitiveHolder<std::shared_ptr<Thread>>>(luaObject);
+            else if (luaObject.template is<FunctionObject>())
+                return std::make_unique<FunctionHolder>(luaObject);
+            else if (luaObject.template is<Thread>())
+                return std::make_unique<GCObjectHolder<Thread>>(luaObject);
             else
                 throw Exception() << "Unable to store userdata object\n";
-        case sol::type::function:
-            return std::make_unique<FunctionHolder>(luaObject);
+        case sol::type::function: {
+            FunctionObject func = GC::instance().create<FunctionObject>(luaObject);
+            return std::make_unique<FunctionHolder>(func.handle());
+        }
         case sol::type::table: {
             sol::table luaTable = luaObject;
             // Tables pool is used to store tables.

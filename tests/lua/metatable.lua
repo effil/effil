@@ -9,7 +9,7 @@ test.metatable.tear_down = function (metatable)
     if type(metatable) == "table" then
         test.equal(effil.gc.count(), 1)
     else
-        test.equal(effil.gc.count(), 2)
+        test.equal(effil.gc.count(), 3)
     end
 end
 

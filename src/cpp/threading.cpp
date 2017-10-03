@@ -163,42 +163,46 @@ void luaHook(lua_State*, lua_Debug*) {
     }
 }
 
-void runThread(std::shared_ptr<ThreadHandle> handle,
-               std::string strFunction,
+} // namespace
+
+void Thread::runThread(Thread thread,
+               FunctionObject function,
                effil::StoredArray arguments) {
-    assert(handle);
-    thisThreadHandle = handle.get();
+    thisThreadHandle = thread.handle_.get();
+    assert(thisThreadHandle != nullptr);
 
     try {
         {
-            ScopeGuard reportComplete([handle, &arguments](){
+            ScopeGuard reportComplete([thread, &arguments](){
                 DEBUG << "Finished " << std::endl;
                 // Let's destroy accociated state
                 // to release all resources as soon as possible
                 arguments.clear();
-                handle->destroyLua();
+                thread.handle_->destroyLua();
             });
-            sol::function userFuncObj = loadString(handle->lua(), strFunction);
+            sol::function userFuncObj = function.loadFunction(thread.handle_->lua());
             sol::function_result results = userFuncObj(std::move(arguments));
             (void)results; // just leave all returns on the stack
-            sol::variadic_args args(handle->lua(), -lua_gettop(handle->lua()));
+            sol::variadic_args args(thread.handle_->lua(), -lua_gettop(thread.handle_->lua()));
             for (const auto& iter : args) {
                 StoredObject store = createStoredObject(iter.get<sol::object>());
-                handle->result().emplace_back(std::move(store));
+                if (store->gcHandle() != nullptr)
+                {
+                    store->releaseStrongReference();
+                    thread.addReference(store->gcHandle());
+                }
+                thread.handle_->result().emplace_back(std::move(store));
             }
         }
-        handle->changeStatus(Status::Completed);
+        thread.handle_->changeStatus(Status::Completed);
     } catch (const LuaHookStopException&) {
-        handle->changeStatus(Status::Canceled);
+        thread.handle_->changeStatus(Status::Canceled);
     } catch (const sol::error& err) {
         DEBUG << "Failed with msg: " << err.what() << std::endl;
-        handle->result().emplace_back(createStoredObject(err.what()));
-        handle->changeStatus(Status::Failed);
+        thread.handle_->result().emplace_back(createStoredObject(err.what()));
+        thread.handle_->changeStatus(Status::Failed);
     }
 }
-
-} // namespace
-
 
 std::string threadId() {
     std::stringstream ss;
@@ -233,6 +237,11 @@ Thread::Thread(const std::string& path,
        const sol::variadic_args& variadicArgs)
         : handle_(std::make_shared<ThreadHandle>()) {
 
+    sol::optional<FunctionObject> functionObj;
+    try {
+        functionObj = FunctionObject(function);
+    } RETHROW_WITH_PREFIX("effil.thread");
+
     handle_->lua()["package"]["path"] = path;
     handle_->lua()["package"]["cpath"] = cpath;
     handle_->lua().script("require 'effil'");
@@ -240,18 +249,19 @@ Thread::Thread(const std::string& path,
     if (step != 0)
         lua_sethook(handle_->lua(), luaHook, LUA_MASKCOUNT, step);
 
-    std::string strFunction = dumpFunction(function);
-
     effil::StoredArray arguments;
     try {
         for (const auto& arg : variadicArgs) {
-            arguments.emplace_back(createStoredObject(arg.get<sol::object>()));
+            const auto& storedObj = createStoredObject(arg.get<sol::object>());
+            addReference(storedObj->gcHandle());
+            storedObj->releaseStrongReference();
+            arguments.emplace_back(storedObj);
         }
     } RETHROW_WITH_PREFIX("effil.thread");
 
-    std::thread thr(&runThread,
-                    handle_,
-                    std::move(strFunction),
+    std::thread thr(&Thread::runThread,
+                    *this,
+                    functionObj.value(),
                     std::move(arguments));
     DEBUG << "Created " << thr.get_id() << std::endl;
     thr.detach();

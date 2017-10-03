@@ -11,7 +11,8 @@ class Channel;
 class Thread;
 
 std::string dumpFunction(const sol::function& f);
-sol::function loadString(const sol::state_view& lua, const std::string& str);
+sol::function loadString(const sol::state_view& lua, const std::string& str,
+                         const sol::optional<std::string>& source = sol::nullopt);
 std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::string>& period);
 
 template <typename SolObject>
@@ -21,7 +22,7 @@ std::string luaTypename(const SolObject& obj) {
             return "effil.table";
         else if (obj.template is<Channel>())
             return "effil.channel";
-        else if (obj.template is<std::shared_ptr<Thread>>())
+        else if (obj.template is<Thread>())
             return "effil.thread";
         else
             return "userdata";

@@ -97,7 +97,10 @@ test.thread.cancel = function ()
 
     test.is_true(thread:cancel())
     test.equal(thread:status(), "canceled")
+
+    effil.sleep(2)
 end
+
 test.thread.async_cancel = function ()
     local thread_runner = effil.thread(
         function()
@@ -276,6 +279,8 @@ test.thread_with_table.recursive = function ()
     test.equal(share["subtable1"]["subtable2"]["magic_number"], magic_number)
     test.equal(share["subtable2"]["magic_number"], magic_number)
     test.equal(share["magic_number"], nil)
+
+    effil.sleep(2)
 end
 
 test.this_thread.tear_down = default_tear_down
@@ -314,6 +319,8 @@ test.this_thread.cancel_with_yield = function ()
     test.equal(thr:status(), "canceled")
     test.is_true(share.done)
     test.is_nil(share.afet_yield)
+
+    effil.sleep(2)
 end
 
 test.this_thread.pause_with_yield = function ()
