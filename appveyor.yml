@@ -9,6 +9,7 @@ environment:
   - LUA: "luajit 2.1"
 
 before_build:
+  - git submodule update --init --recursive
   - pip install hererocks
   - hererocks env --%LUA% -rlatest
   - call env\bin\activate
