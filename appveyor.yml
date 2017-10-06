@@ -1,5 +1,9 @@
 image: Visual Studio 2015
 
+configuration:
+  - Debug
+  - Release
+
 environment:
   matrix:
   - LUA: "lua 5.1"
@@ -16,6 +20,6 @@ before_build:
 
 build_script:
   - cmake . -G "Visual Studio 14 2015 Win64"
-  - cmake --build .
+  - cmake --build . --config %CONFIGURATION%
 
 test: off
