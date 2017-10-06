@@ -23,7 +23,9 @@ private:
 
     struct SharedData {
         std::string function;
+#if LUA_VERSION_NUM > 501
         unsigned char envUpvaluePos;
+#endif // LUA_VERSION_NUM > 501
         std::vector<StoredObject> upvalues;
     };
 

@@ -40,17 +40,22 @@ void FunctionObject::initialize(const sol::function& luaObject) {
 
     data_->function = dumpFunction(luaObject);
     data_->upvalues.resize(dbgInfo.nups);
+#if LUA_VERSION_NUM > 501
     data_->envUpvaluePos = 0; // means no _ENV upvalue
+#endif // LUA_VERSION_NUM > 501
 
     for (unsigned char i = 1; i <= dbgInfo.nups; ++i) {
         const char* valueName = lua_getupvalue(state, -1, i); // push value on stack
+        (void)valueName; // get rid of 'unused' warning for Lua5.1
         assert(valueName != nullptr);
 
+#if LUA_VERSION_NUM > 501
         if (strcmp(valueName, "_ENV") == 0) { // do not serialize _ENV
             sol::stack::pop<sol::object>(state);
             data_->envUpvaluePos = i;
             continue;
         }
+#endif // LUA_VERSION_NUM > 501
 
         const auto& upvalue = sol::stack::pop<sol::object>(state); // pop from stack
         if (!allow_table_upvalue() && upvalue.get_type() == sol::type::table) {
@@ -83,11 +88,13 @@ sol::object FunctionObject::loadFunction(lua_State* state) {
 
     sol::stack::push(state, result);
     for(size_t i = 0; i < data_->upvalues.size(); ++i) {
+#if LUA_VERSION_NUM > 501
         if (data_->envUpvaluePos == i + 1) {
             lua_rawgeti(state, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // push _ENV to stack
             lua_setupvalue(state, -2, i + 1); // pop _ENV and set as upvalue
             continue;
         }
+#endif // LUA_VERSION_NUM > 501
         assert(data_->upvalues[i].get() != nullptr);
 
         const auto& obj = data_->upvalues[i]->unpack(sol::this_state{state});

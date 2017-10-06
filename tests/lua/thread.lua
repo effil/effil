@@ -97,8 +97,6 @@ test.thread.cancel = function ()
 
     test.is_true(thread:cancel())
     test.equal(thread:status(), "canceled")
-
-    effil.sleep(2)
 end
 
 test.thread.async_cancel = function ()
@@ -216,9 +214,6 @@ test.thread.returns = function ()
 
     test.is_function(returns[5])
     test.equal(returns[5](11, 89), 100)
-
-    -- Workaround to get child thread free all return values
-    effil.sleep(2)
 end
 
 test.thread.timed_cancel = function ()
@@ -279,8 +274,6 @@ test.thread_with_table.recursive = function ()
     test.equal(share["subtable1"]["subtable2"]["magic_number"], magic_number)
     test.equal(share["subtable2"]["magic_number"], magic_number)
     test.equal(share["magic_number"], nil)
-
-    effil.sleep(2)
 end
 
 test.this_thread.tear_down = default_tear_down
@@ -319,8 +312,6 @@ test.this_thread.cancel_with_yield = function ()
     test.equal(thr:status(), "canceled")
     test.is_true(share.done)
     test.is_nil(share.afet_yield)
-
-    effil.sleep(2)
 end
 
 test.this_thread.pause_with_yield = function ()
