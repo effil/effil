@@ -1,7 +1,20 @@
 image: Visual Studio 2015
 
-build: off
+environment:
+  matrix:
+  - LUA: "lua 5.1"
+  - LUA: "lua 5.2"
+  - LUA: "lua 5.3"
+  - LUA: "luajit 2.0"
+  - LUA: "luajit 2.1"
 
-test_script:
-- cmd: >-
-    ci/test_all.bat
+before_build:
+  - pip install hererocks
+  - hererocks env --%LUA% -rlatest
+  - call env\bin\activate
+
+build_script:
+  - cmake . -G "Visual Studio 14 2015 Win64"
+  - cmake --build .
+
+test: off
