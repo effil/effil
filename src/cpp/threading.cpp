@@ -174,7 +174,6 @@ void Thread::runThread(Thread thread,
     try {
         {
             ScopeGuard reportComplete([thread, &arguments](){
-                DEBUG << "Finished " << std::endl;
                 // Let's destroy accociated state
                 // to release all resources as soon as possible
                 arguments.clear();
@@ -263,7 +262,6 @@ Thread::Thread(const std::string& path,
                     *this,
                     functionObj.value(),
                     std::move(arguments));
-    DEBUG << "Created " << thr.get_id() << std::endl;
     thr.detach();
 }
 
