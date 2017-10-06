@@ -29,9 +29,14 @@ target_link_libraries(effil -lpthread ${LUA_LIBRARY} -ldl)
 set_target_properties(effil PROPERTIES SUFFIX .so)
 
 set(GENERAL "-std=c++14 -DSOL_EXCEPTIONS_SAFE_PROPAGATION")
-set(ENABLE_WARNINGS "-Wall -Wextra -pedantic")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(ENABLE_WARNINGS "-Wall -Wextra -pedantic")
+endif()
 set(CMAKE_CXX_FLAGS "${EXTRA_FLAGS} ${CMAKE_CXX_FLAGS} ${GENERAL} ${ENABLE_WARNINGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror -O0 -g -UNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -UNDEBUG")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -werror")
+endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g0 -DNDEBUG")
 
 #----------
