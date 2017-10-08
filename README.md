@@ -1,5 +1,12 @@
 # Effil
-[![Build Status](https://travis-ci.org/effil/effil.svg?branch=master)](https://travis-ci.org/effil/effil)
+
+[![Join the chat at https://gitter.im/effil-chat/Lobby](https://badges.gitter.im/effil-chat/Lobby.svg)](https://gitter.im/effil-chat/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![LuaRocks](https://img.shields.io/luarocks/v/mihacooper/effil.svg)](https://luarocks.org/modules/mihacooper/effil)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
+
+| Linux + MacOS | Windows |
+| ------------- | ------- |
+| [![Build Status](https://travis-ci.org/effil/effil.svg?branch=master)](https://travis-ci.org/effil/effil) | [![Build status](https://ci.appveyor.com/api/projects/status/ji0l9lbs17djgm8w/branch/master?svg=true)](https://ci.appveyor.com/project/mihacooper/effil/branch/master) |
 
 Effil is a lua module for multithreading support.
 It allows to spawn native threads and safe data exchange.
