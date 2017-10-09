@@ -42,15 +42,13 @@ matrix:
           packages:
             - g++-5
       before_install:
-        - sudo add-apt-repository -y "deb http://ppa.launchpad.net/grilo-team/travis/ubuntu trusty main"
-        - sudo add-apt-repository -y "deb http://ppa.launchpad.net/fkrull/deadsnakes/ubuntu trusty main"
-        - sudo apt-get update -qq
+        - pip install hererocks --user
+        - hererocks lua53 -l5.3 -rlatest
+        - source lua53/bin/activate
       install:
-        - sudo apt-get install -qq --force-yes lua5.3 liblua5.3-dev
         - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
-        - sudo update-alternatives --install /usr/bin/lua lua /usr/bin/lua5.3 1
       script:
-        - ci/test_all.sh -DLUA_INCLUDE_DIR="/usr/include/lua5.3" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.3.so"
+        - ci/test_all.sh -DLUA_INCLUDE_DIR="$PWD/lua53/include"
     - os: linux
       env: LUA=LuaJIT
       addons:

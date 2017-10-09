@@ -5,7 +5,7 @@ test.channel_stress.tear_down = default_tear_down
 test.channel_stress.with_multiple_threads = function ()
     local exchange_channel, result_channel = effil.channel(), effil.channel()
 
-    local threads_number = 1000
+    local threads_number = 20
     local threads = {}
     for i = 1, threads_number do
         threads[i] = effil.thread(function(exchange_channel, result_channel, indx)
