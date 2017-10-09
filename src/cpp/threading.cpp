@@ -187,8 +187,8 @@ void Thread::runThread(Thread thread,
                 StoredObject store = createStoredObject(iter.get<sol::object>());
                 if (store->gcHandle() != nullptr)
                 {
-                    store->releaseStrongReference();
                     thread.addReference(store->gcHandle());
+                    store->releaseStrongReference();
                 }
                 thread.handle_->result().emplace_back(std::move(store));
             }
