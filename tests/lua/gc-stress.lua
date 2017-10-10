@@ -12,7 +12,7 @@ test.gc_stress.create_and_collect_in_parallel = function ()
                 {{{}}}, --[[3 levels]]
                 {{{{}}}} --[[4 levels]]
         }
-        for i = 1, 100 do
+        for i = 1, 100 * tonumber(os.getenv("STRESS")) do
             for t = 1, 10 do
                 local tbl = effil.table(nested_table)
                 for l = 1, 10 do
