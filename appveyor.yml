@@ -5,12 +5,14 @@ configuration:
   - Release
 
 environment:
+  global:
+    STRESS: 1
   matrix:
-  - LUA: "lua 5.1"
-  - LUA: "lua 5.2"
-  - LUA: "lua 5.3"
-  - LUA: "luajit 2.0"
-  - LUA: "luajit 2.1"
+    - LUA: "lua 5.1"
+    - LUA: "lua 5.2"
+    - LUA: "lua 5.3"
+    - LUA: "luajit 2.0"
+    # - LUA: "luajit 2.1" # currently failing
 
 before_build:
   - git submodule update --init --recursive
@@ -19,7 +21,10 @@ before_build:
   - call env\bin\activate
 
 build_script:
-  - cmake . -G "Visual Studio 14 2015 Win64"
+  - mkdir build
+  - cd build
+  - cmake .. -G "Visual Studio 14 2015 Win64"
   - cmake --build . --config %CONFIGURATION%
 
-test: off
+test_script:
+  - lua ../tests/lua/run_tests

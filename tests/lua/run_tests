@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 
-local scripts_path = arg[0]:gsub("/run_tests", "")
+local scripts_path = arg[0]:gsub("[\\/]run_tests", "")
 local src_path = scripts_path .. "/../.."
 package.path = ";" .. scripts_path .. "/?.lua;"
                 .. src_path .. "/src/lua/?.lua;"
