@@ -18,7 +18,7 @@ local function run_test_with_different_metatables(name, ...)
     test.metatable[name](effil.table(), ...)
 end
 
-test.metatable.index = function (metatable)
+test.metatable.index_p = function (metatable)
     local share = effil.table()
     metatable.__index = function(t, key)
         return "mt_" .. effil.rawget(t, key)
@@ -29,7 +29,7 @@ test.metatable.index = function (metatable)
     test.equal(share.table_key, "mt_table_value")
 end
 
-test.metatable.new_index = function (metatable)
+test.metatable.new_index_p = function (metatable)
     local share = effil.table()
     metatable.__newindex = function(t, key, value)
         effil.rawset(t, "mt_" .. key, "mt_" .. value)
@@ -40,7 +40,7 @@ test.metatable.new_index = function (metatable)
     test.equal(share.mt_table_key, "mt_table_value")
 end
 
-test.metatable.call = function (metatable)
+test.metatable.call_p = function (metatable)
     local share = effil.table()
     metatable.__call = function(t, val1, val2, val3)
         return tostring(val1) .. "_" .. tostring(val2), tostring(val2) .. "_" .. tostring(val3)
@@ -52,11 +52,11 @@ test.metatable.call = function (metatable)
     test.equal(second_ret, "val2_val3")
 end
 
-run_test_with_different_metatables("index")
-run_test_with_different_metatables("new_index")
-run_test_with_different_metatables("call")
+run_test_with_different_metatables("index_p")
+run_test_with_different_metatables("new_index_p")
+run_test_with_different_metatables("call_p")
 
-test.metatable.binary_op = function (metatable, metamethod, op, exp_value)
+test.metatable.binary_op_p = function (metatable, metamethod, op, exp_value)
     local testTable, operand = effil.table(), effil.table()
     metatable['__' .. metamethod] = function(left, right)
         left.was_called = true
@@ -73,7 +73,7 @@ test.metatable.binary_op = function (metatable, metamethod, op, exp_value)
 end
 
 local function test_binary_op(...)
-    run_test_with_different_metatables("binary_op", ...)
+    run_test_with_different_metatables("binary_op_p", ...)
 end
 
 test_binary_op("concat", function(a, b) return a .. b end)
@@ -88,7 +88,7 @@ test_binary_op("lt", function(a, b) return a < b end, true)
 test_binary_op("eq", function(a, b) return a == b end, true)
 
 
-test.metatable.unary_op = function(metatable, metamethod, op)
+test.metatable.unary_op_p = function(metatable, metamethod, op)
     local share = effil.table()
     metatable['__' .. metamethod] = function(t)
         t.was_called = true
@@ -103,7 +103,7 @@ test.metatable.unary_op = function(metatable, metamethod, op)
 end
 
 local function test_unary_op(...)
-    run_test_with_different_metatables("unary_op", ...)
+    run_test_with_different_metatables("unary_op_p", ...)
 end
 
 test_unary_op("unm",      function(a) return -a end)
@@ -112,7 +112,7 @@ test_unary_op("len",      function(a) return #a end)
 
 test.shared_table_with_metatable.tear_down = default_tear_down
 
-test.shared_table_with_metatable.iterators = function (iterator_type, iterator_trigger)
+test.shared_table_with_metatable.iterators_p = function (iterator_type, iterator_trigger)
     local share = effil.table()
     local iterator = iterator_type
     effil.setmetatable(share, {
@@ -147,12 +147,12 @@ test.shared_table_with_metatable.iterators = function (iterator_type, iterator_t
     test.equal(pow_iter, 2 ^ 11)
 end
 
-test.shared_table_with_metatable.iterators("pairs", "effil")
-test.shared_table_with_metatable.iterators("ipairs", "effil")
+test.shared_table_with_metatable.iterators_p("pairs", "effil")
+test.shared_table_with_metatable.iterators_p("ipairs", "effil")
 
 if LUA_VERSION > 51 then
-    test.shared_table_with_metatable.iterators("pairs", "_G")
-    test.shared_table_with_metatable.iterators("ipairs", "_G")
+    test.shared_table_with_metatable.iterators_p("pairs", "_G")
+    test.shared_table_with_metatable.iterators_p("ipairs", "_G")
 end -- LUA_VERSION > 51
 
 test.shared_table_with_metatable.as_shared_table = function()
