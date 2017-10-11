@@ -97,6 +97,12 @@ public:
         strongRef_ = sol::nullopt;
     }
 
+    void holdStrongReference() override {
+        if (!strongRef_) {
+            strongRef_ = GC::instance().get<T>(handle_);
+        }
+    }
+
 private:
     GCObjectHandle handle_;
     sol::optional<T> strongRef_;
