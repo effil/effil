@@ -64,7 +64,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
 
 # How to install
 ### Build from src on Linux and Mac
-1. `git clone git@github.com:effil/effil.git effil`
+1. `git clone --recursive git@github.com:effil/effil.git effil`
 2. `cd effil && mkdir build && cd build`
 3. `cmake .. && make install`
 4. Copy effil.lua and libeffil.so/libeffil.dylib to your project.
