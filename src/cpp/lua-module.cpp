@@ -67,7 +67,7 @@ int luaopen_libeffil(lua_State* L) {
             "type", getLuaTypename,
             "pairs", SharedTable::globalLuaPairs,
             "ipairs", SharedTable::globalLuaIPairs,
-            "allow_table_upvalue", lua_allow_table_upvalue
+            "allow_table_upvalues", luaAllowTableUpvalues
     );
     sol::stack::push(lua, publicApi);
     return 1;

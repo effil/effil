@@ -6,13 +6,13 @@
 
 namespace effil {
 
-sol::object lua_allow_table_upvalue(sol::this_state state, const sol::stack_object&);
+sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object&);
 
 class FunctionObject: public GCObject {
 public:
     template <typename SolType>
     FunctionObject(const SolType& luaObject)
-            : data_(new SharedData) {
+            : data_(std::make_shared<SharedData>()) {
         initialize(luaObject);
     }
 

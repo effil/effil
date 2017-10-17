@@ -93,27 +93,27 @@ local function check_works(should_work)
     end
     test.equal(ret, should_work)
     if not should_work then
-        test.equal(err, "effil.thread: bad function upvalue #1 (table is disabled by effil.allow_table_upvalue)")
+        test.equal(err, "effil.thread: bad function upvalue #1 (table is disabled by effil.allow_table_upvalues)")
     end
 end
 
 test.upvalues_table.tear_down = function()
-    effil.allow_table_upvalue(true)
+    effil.allow_table_upvalues(true)
     default_tear_down()
 end
 
 test.upvalues_table.disabling_table_upvalues = function()
-    test.equal(effil.allow_table_upvalue(), true)
+    test.equal(effil.allow_table_upvalues(), true)
     -- works by default
     check_works(true)
 
     -- disable
-    test.equal(effil.allow_table_upvalue(false), true)
+    test.equal(effil.allow_table_upvalues(false), true)
     check_works(false)
-    test.equal(effil.allow_table_upvalue(), false)
+    test.equal(effil.allow_table_upvalues(), false)
 
     -- enable back
-    test.equal(effil.allow_table_upvalue(true), false)
+    test.equal(effil.allow_table_upvalues(true), false)
     check_works(true)
-    test.equal(effil.allow_table_upvalue(), true)
+    test.equal(effil.allow_table_upvalues(), true)
 end

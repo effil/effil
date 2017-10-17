@@ -125,7 +125,7 @@ local function generate_tests()
 
         if typename ~= "boolean" then
             -- effil.allow_table_upvalue
-            test.type_mismatch.input_types_mismatch(1, "boolean", "allow_table_upvalue", type_instance)
+            test.type_mismatch.input_types_mismatch_p(1, "boolean", "allow_table_upvalues", type_instance)
         end
     end
 
@@ -155,6 +155,6 @@ end
 generate_tests()
 
 test.type_mismatch.gc_checks_after_tests = function()
-    effil.allow_table_upvalue(true)
+    effil.allow_table_upvalues(true)
     default_tear_down()
 end

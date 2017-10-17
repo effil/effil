@@ -4,26 +4,23 @@ namespace effil {
 
 namespace {
 
-bool allow_table_upvalue(const sol::optional<bool>& newValue = sol::nullopt) {
-    static std::mutex mutex;
-    static bool value = true;
+bool allowTableUpvalues(const sol::optional<bool>& newValue = sol::nullopt) {
+    static std::atomic_bool value(true);
 
-    std::unique_lock<std::mutex> lock(mutex);
-    bool oldValue = value;
     if (newValue)
-        value = newValue.value();
-    return oldValue;
+        return value.exchange(newValue.value());
+    return value;
 }
 
 } // anonymous
 
-sol::object lua_allow_table_upvalue(sol::this_state state, const sol::stack_object& value) {
+sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object& value) {
     if (value.valid()) {
-        REQUIRE(value.get_type() == sol::type::boolean) << "bad argument #1 to 'effil.allow_table_upvalue' (boolean expected, got " << luaTypename(value) << ")";
-        return sol::make_object(state, allow_table_upvalue(value.template as<bool>()));
+        REQUIRE(value.get_type() == sol::type::boolean) << "bad argument #1 to 'effil.allow_table_upvalues' (boolean expected, got " << luaTypename(value) << ")";
+        return sol::make_object(state, allowTableUpvalues(value.template as<bool>()));
     }
     else {
-        return sol::make_object(state, allow_table_upvalue());
+        return sol::make_object(state, allowTableUpvalues());
     }
 }
 
@@ -58,9 +55,9 @@ void FunctionObject::initialize(const sol::function& luaObject) {
 #endif // LUA_VERSION_NUM > 501
 
         const auto& upvalue = sol::stack::pop<sol::object>(state); // pop from stack
-        if (!allow_table_upvalue() && upvalue.get_type() == sol::type::table) {
+        if (!allowTableUpvalues() && upvalue.get_type() == sol::type::table) {
             sol::stack::pop<sol::object>(state);
-            throw effil::Exception() << "bad function upvalue #" << (int)i << " (table is disabled by effil.allow_table_upvalue)";
+            throw effil::Exception() << "bad function upvalue #" << (int)i << " (table is disabled by effil.allow_table_upvalues)";
         }
 
         StoredObject storedObject;
