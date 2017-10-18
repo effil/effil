@@ -24,6 +24,7 @@ public:
     virtual sol::object unpack(sol::this_state state) const = 0;
     virtual GCObjectHandle gcHandle() const { return GCNull; }
     virtual void releaseStrongReference() { }
+    virtual void holdStrongReference() { }
 
 private:
     BaseHolder(const BaseHolder&) = delete;

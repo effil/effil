@@ -69,3 +69,24 @@ if not os.getenv("APPVEYOR") then
         test.is_true(os.time() < start_time + 10)
     end
 end
+
+-- regress for channel returns
+test.channel_stress.retun_tables = function ()
+    local function worker()
+        local effil = require "effil"
+        local ch = effil.channel()
+        for i = 1, 1000 do
+            ch:push(effil.table())
+            local ret = { ch:pop() }
+        end
+    end
+
+    local threads = {}
+
+    for i = 1, 20 do
+        table.insert(threads, effil.thread(worker)())
+    end
+    for _, thr in ipairs(threads) do
+        thr:wait()
+    end
+end

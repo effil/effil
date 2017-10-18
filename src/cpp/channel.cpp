@@ -63,8 +63,10 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
     }
 
     auto ret = data_->channel_.front();
-    for (const auto& obj: ret)
+    for (const auto& obj: ret) {
+        obj->holdStrongReference();
         removeReference(obj->gcHandle());
+    }
 
     data_->channel_.pop();
     return ret;
