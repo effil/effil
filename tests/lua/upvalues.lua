@@ -2,7 +2,7 @@ require "bootstrap-tests"
 
 test.upvalues.tear_down = default_tear_down
 
-test.upvalues.check_single_upvalue = function(type_creator, type_checker)
+test.upvalues.check_single_upvalue_p = function(type_creator, type_checker)
     local obj = type_creator()
     local thread_worker = function(checker) return require("effil").type(obj) .. ": " .. checker(obj) end
     local ret = effil.thread(thread_worker)(type_checker):get()
@@ -13,28 +13,28 @@ end
 
 local foo = function() return 22 end
 
-test.upvalues.check_single_upvalue(function() return 1488 end,
+test.upvalues.check_single_upvalue_p(function() return 1488 end,
                                    function() return "1488" end)
 
-test.upvalues.check_single_upvalue(function() return "awesome" end,
+test.upvalues.check_single_upvalue_p(function() return "awesome" end,
                                    function() return "awesome" end)
 
-test.upvalues.check_single_upvalue(function() return true end,
+test.upvalues.check_single_upvalue_p(function() return true end,
                                    function() return "true" end)
 
-test.upvalues.check_single_upvalue(function() return nil end,
+test.upvalues.check_single_upvalue_p(function() return nil end,
                                    function() return "nil" end)
 
-test.upvalues.check_single_upvalue(function() return foo end,
+test.upvalues.check_single_upvalue_p(function() return foo end,
                                    function(f) return f() end)
 
-test.upvalues.check_single_upvalue(function() return effil.table({key = 44}) end,
+test.upvalues.check_single_upvalue_p(function() return effil.table({key = 44}) end,
                                    function(t) return t.key end)
 
-test.upvalues.check_single_upvalue(function() local c = effil.channel() c:push(33) c:push(33) return c end,
+test.upvalues.check_single_upvalue_p(function() local c = effil.channel() c:push(33) c:push(33) return c end,
                                    function(c) return c:pop() end)
 
-test.upvalues.check_single_upvalue(function() return effil.thread(foo)() end,
+test.upvalues.check_single_upvalue_p(function() return effil.thread(foo)() end,
                                    function(t) return t:get() end)
 
 test.upvalues.check_invalid_coroutine = function()
