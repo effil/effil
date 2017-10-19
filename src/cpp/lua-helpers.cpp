@@ -42,8 +42,9 @@ std::string dumpFunction(const sol::function& f) {
     return result;
 }
 
-sol::function loadString(const sol::state_view& lua, const std::string& str) {
-    int ret = luaL_loadbuffer(lua, str.c_str(), str.size(), nullptr);
+sol::function loadString(const sol::state_view& lua, const std::string& str,
+                         const sol::optional<std::string>& source /* = sol::nullopt*/) {
+    int ret = luaL_loadbuffer(lua, str.c_str(), str.size(), source ? source.value().c_str() : nullptr);
     REQUIRE(ret == LUA_OK) << "Unable to load function from string: " << luaError(ret);
     return sol::stack::pop<sol::function>(lua);
 }

@@ -98,6 +98,7 @@ test.thread.cancel = function ()
     test.is_true(thread:cancel())
     test.equal(thread:status(), "canceled")
 end
+
 test.thread.async_cancel = function ()
     local thread_runner = effil.thread(
         function()
@@ -213,9 +214,6 @@ test.thread.returns = function ()
 
     test.is_function(returns[5])
     test.equal(returns[5](11, 89), 100)
-
-    -- Workaround to get child thread free all return values
-    effil.sleep(2)
 end
 
 test.thread.timed_cancel = function ()

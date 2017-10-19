@@ -15,7 +15,8 @@ local api = {
     channel = capi.channel,
     type = capi.type,
     pairs = capi.pairs,
-    ipairs = capi.ipairs
+    ipairs = capi.ipairs,
+    allow_table_upvalues = capi.allow_table_upvalues
 }
 
 api.size = function (something)

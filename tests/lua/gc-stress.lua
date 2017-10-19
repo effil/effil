@@ -34,6 +34,4 @@ test.gc_stress.create_and_collect_in_parallel = function ()
     for i = 1, thread_num do
         test.equal(threads[i]:wait(), "completed")
     end
-
-    test.equal(effil.gc.count(), 1)
 end

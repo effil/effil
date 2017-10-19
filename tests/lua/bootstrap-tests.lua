@@ -9,6 +9,13 @@ function default_tear_down()
     effil.gc.collect()
     -- effil.G is always present
     -- thus, gc has one object
+    if effil.gc.count() ~= 1 then
+        print "Not all bojects were removed, gonna sleep for 2 seconds"
+        effil.sleep(2)
+
+        collectgarbage()
+        effil.gc.collect()
+    end
     test.equal(effil.gc.count(), 1)
 end
 
