@@ -55,7 +55,7 @@ public:
         handle_ = strongRef_->handle();
     }
 
-    GCObjectHolder(GCObjectHandle handle)
+    GCObjectHolder(GCHandle handle)
             : handle_(handle) {
         strongRef_ = GC::instance().get<T>(handle_);
     }
@@ -68,7 +68,7 @@ public:
         return sol::make_object(state, GC::instance().get<T>(handle_));
     }
 
-    GCObjectHandle gcHandle() const override { return handle_; }
+    GCHandle gcHandle() const override { return handle_; }
 
     void releaseStrongReference() override {
         strongRef_ = sol::nullopt;
@@ -81,50 +81,50 @@ public:
     }
 
 protected:
-    GCObjectHandle handle_;
+    GCHandle handle_;
     sol::optional<T> strongRef_;
 };
 
-class FunctionHolder : public GCObjectHolder<FunctionObject> {
+class FunctionHolder : public GCObjectHolder<FunctionView> {
 public:
     template <typename SolType>
-    FunctionHolder(const SolType& luaObject) : GCObjectHolder<FunctionObject>(luaObject) {}
-    FunctionHolder(GCObjectHandle handle) : GCObjectHolder(handle) {}
+    FunctionHolder(const SolType& luaObject) : GCObjectHolder<FunctionView>(luaObject) {}
+    FunctionHolder(GCHandle handle) : GCObjectHolder(handle) {}
 
     sol::object unpack(sol::this_state state) const final {
-        return GC::instance().get<FunctionObject>(handle_).loadFunction(state);
+        return GC::instance().get<FunctionView>(handle_).loadFunction(state);
     }
 };
 
 // This class is used as a storage for visited sol::tables
 // TODO: try to use map or unordered map instead of linear search in vector
 // TODO: Trick is - sol::object has only operator==:/
-typedef std::vector<std::pair<sol::object, GCObjectHandle>> SolTableToShared;
+typedef std::vector<std::pair<sol::object, GCHandle>> SolTableToShared;
 
-void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited);
+void dumpTable(SharedTableView* target, sol::table luaTable, SolTableToShared& visited);
 
 StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) {
     if (luaObject.get_type() == sol::type::table) {
         sol::table luaTable = luaObject;
-        auto comparator = [&luaTable](const std::pair<sol::table, GCObjectHandle>& element) {
+        auto comparator = [&luaTable](const std::pair<sol::table, GCHandle>& element) {
             return element.first == luaTable;
         };
         auto st = std::find_if(visited.begin(), visited.end(), comparator);
 
         if (st == std::end(visited)) {
-            SharedTable table = GC::instance().create<SharedTable>();
+            SharedTableView table = GC::instance().create<SharedTableView>();
             visited.emplace_back(std::make_pair(luaTable, table.handle()));
             dumpTable(&table, luaTable, visited);
-            return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
+            return std::make_unique<GCObjectHolder<SharedTableView>>(table.handle());
         } else {
-            return std::make_unique<GCObjectHolder<SharedTable>>(st->second);
+            return std::make_unique<GCObjectHolder<SharedTableView>>(st->second);
         }
     } else {
         return createStoredObject(luaObject);
     }
 }
 
-void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) {
+void dumpTable(SharedTableView* target, sol::table luaTable, SolTableToShared& visited) {
     for (auto& row : luaTable) {
         target->set(makeStoredObject(row.first, visited), makeStoredObject(row.second, visited));
     }
@@ -155,32 +155,32 @@ StoredObject fromSolObject(const SolObject& luaObject) {
         case sol::type::lightuserdata:
             return std::make_unique<PrimitiveHolder<void*>>(luaObject);
         case sol::type::userdata:
-            if (luaObject.template is<SharedTable>())
-                return std::make_unique<GCObjectHolder<SharedTable>>(luaObject);
-            else if (luaObject.template is<Channel>())
-                return std::make_unique<GCObjectHolder<Channel>>(luaObject);
-            else if (luaObject.template is<FunctionObject>())
+            if (luaObject.template is<SharedTableView>())
+                return std::make_unique<GCObjectHolder<SharedTableView>>(luaObject);
+            else if (luaObject.template is<ChannelView>())
+                return std::make_unique<GCObjectHolder<ChannelView>>(luaObject);
+            else if (luaObject.template is<FunctionView>())
                 return std::make_unique<FunctionHolder>(luaObject);
-            else if (luaObject.template is<Thread>())
-                return std::make_unique<GCObjectHolder<Thread>>(luaObject);
+            else if (luaObject.template is<ThreadView>())
+                return std::make_unique<GCObjectHolder<ThreadView>>(luaObject);
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
-            FunctionObject func = GC::instance().create<FunctionObject>(luaObject);
+            FunctionView func = GC::instance().create<FunctionView>(luaObject);
             return std::make_unique<FunctionHolder>(func.handle());
         }
         case sol::type::table: {
             sol::table luaTable = luaObject;
             // Tables pool is used to store tables.
             // Right now not defiantly clear how ownership between states works.
-            SharedTable table = GC::instance().create<SharedTable>();
+            SharedTableView table = GC::instance().create<SharedTableView>();
             SolTableToShared visited{{luaTable, table.handle()}};
 
             // Let's dump table and all subtables
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
             dumpTable(&table, luaTable, visited);
-            return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
+            return std::make_unique<GCObjectHolder<SharedTableView>>(table.handle());
         }
         default:
             throw Exception() << "unable to store object of " << luaTypename(luaObject) << " type";

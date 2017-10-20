@@ -1,10 +1,11 @@
 #pragma once
 
-#include "gc-object.h"
+#include "impl.h"
 #include "stored-object.h"
 #include "spin-mutex.h"
 #include "utils.h"
 #include "lua-helpers.h"
+#include "view.h"
 
 #include <sol.hpp>
 
@@ -13,15 +14,21 @@
 
 namespace effil {
 
-class SharedTable : public GCObject {
+
+class SharedTableImpl : public BaseImpl {
+public:
+    using DataEntries = std::map<StoredObject, StoredObject, StoredObjectLess>;
+public:
+    SpinMutex lock;
+    DataEntries entries;
+    GCHandle metatable = GCNull;
+};
+
+class SharedTableView : public View<SharedTableImpl> {
 private:
     typedef std::pair<sol::object, sol::object> PairsIterator;
-    typedef std::map<StoredObject, StoredObject, StoredObjectLess> DataEntries;
 
 public:
-    SharedTable();
-    SharedTable& operator=(const SharedTable&) = default;
-
     static void exportAPI(sol::state_view& lua);
 
     void set(StoredObject&&, StoredObject&&);
@@ -52,10 +59,10 @@ public:
     static sol::object luaConcat(sol::this_state, const sol::stack_object&, const sol::stack_object&);
 
     // Stand alone functions for effil::table available in Lua
-    static SharedTable luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt);
+    static SharedTableView luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt);
     static sol::object luaGetMetatable(const sol::stack_object& tbl, const sol::this_state state);
     static sol::object luaRawGet(const sol::stack_object& tbl, const sol::stack_object& key, sol::this_state state);
-    static SharedTable luaRawSet(const sol::stack_object& tbl, const sol::stack_object& key, const sol::stack_object& value);
+    static SharedTableView luaRawSet(const sol::stack_object& tbl, const sol::stack_object& key, const sol::stack_object& value);
     static size_t luaSize(const sol::stack_object& tbl);
     static PairsIterator globalLuaPairs(sol::this_state state, const sol::stack_object& obj);
     static PairsIterator globalLuaIPairs(sol::this_state state, const sol::stack_object& obj);
@@ -64,15 +71,8 @@ private:
     PairsIterator getNext(const sol::object& key, sol::this_state lua);
 
 private:
-    struct SharedData {
-        SpinMutex lock;
-        DataEntries entries;
-        GCObjectHandle metatable;
-
-        SharedData() : metatable(GCNull) {}
-    };
-
-    std::shared_ptr<SharedData> data_;
+    SharedTableView() = default;
+    friend class GC;
 };
 
 } // effil

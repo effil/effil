@@ -17,8 +17,8 @@ GC::GC()
 void GC::collect() {
     std::lock_guard<std::mutex> g(lock_);
 
-    std::unordered_set<GCObjectHandle> grey;
-    std::unordered_map<GCObjectHandle, std::unique_ptr<GCObject>> black;
+    std::unordered_set<GCHandle> grey;
+    std::unordered_map<GCHandle, std::unique_ptr<BaseView>> black;
 
     for (const auto& handleAndObject : objects_)
         if (handleAndObject.second->instances() > 1)
@@ -26,11 +26,11 @@ void GC::collect() {
 
     while (!grey.empty()) {
         auto it = grey.begin();
-        GCObjectHandle handle = *it;
+        GCHandle handle = *it;
         grey.erase(it);
 
         black[handle] = std::move(objects_[handle]);
-        for (GCObjectHandle refHandle : black[handle]->refers()) {
+        for (GCHandle refHandle : black[handle]->refers()) {
             assert(objects_.count(refHandle));
             if (black.count(refHandle) == 0 && grey.count(refHandle) == 0)
                 grey.insert(refHandle);
@@ -44,12 +44,7 @@ void GC::collect() {
     lastCleanup_.store(0);
 }
 
-size_t GC::size() const {
-    std::lock_guard<std::mutex> g(lock_);
-    return objects_.size();
-}
-
-size_t GC::count() {
+size_t GC::count() const {
     std::lock_guard<std::mutex> g(lock_);
     return objects_.size();
 }
