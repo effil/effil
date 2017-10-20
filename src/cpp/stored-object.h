@@ -22,7 +22,7 @@ public:
     virtual bool rawCompare(const BaseHolder* other) const = 0;
     virtual const std::type_info& type() { return typeid(*this); }
     virtual sol::object unpack(sol::this_state state) const = 0;
-    virtual GCObjectHandle gcHandle() const { return GCNull; }
+    virtual GCHandle gcHandle() const { return GCNull; }
     virtual void releaseStrongReference() { }
     virtual void holdStrongReference() { }
 

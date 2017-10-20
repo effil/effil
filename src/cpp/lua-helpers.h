@@ -6,9 +6,9 @@
 
 namespace effil {
 
-class SharedTable;
-class Channel;
-class Thread;
+class SharedTableView;
+class ChannelView;
+class ThreadView;
 
 std::string dumpFunction(const sol::function& f);
 sol::function loadString(const sol::state_view& lua, const std::string& str,
@@ -18,11 +18,11 @@ std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::str
 template <typename SolObject>
 std::string luaTypename(const SolObject& obj) {
     if (obj.get_type() == sol::type::userdata) {
-        if (obj.template is<SharedTable>())
+        if (obj.template is<SharedTableView>())
             return "effil.table";
-        else if (obj.template is<Channel>())
+        else if (obj.template is<ChannelView>())
             return "effil.channel";
-        else if (obj.template is<Thread>())
+        else if (obj.template is<ThreadView>())
             return "effil.thread";
         else
             return "userdata";
