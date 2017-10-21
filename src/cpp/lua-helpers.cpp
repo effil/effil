@@ -11,14 +11,14 @@ std::string luaError(int errCode) {
         case LUA_ERRRUN:    return "Execution error (LUA_ERRRUN)";
         case LUA_ERRGCMM:   return "Error in __gc method (LUA_ERRGCMM)";
         case LUA_ERRERR:    return "Recursive error (LUA_ERRERR)";
-        default: return "Unknown";
+        default: return "Unknown (" + std::to_string(errCode) + ")";
     }
 }
 
 int dumpMemoryWriter(lua_State*, const void* batch, size_t batchSize, void* storage) {
-    if (storage == nullptr || batch == nullptr)
+    if (storage == nullptr)
         return 1;
-    if (batchSize) {
+    if (batchSize && batch) {
         std::string& buff = *reinterpret_cast<std::string*>(storage);
         const char* newData = reinterpret_cast<const char*>(batch);
         buff.insert(buff.end(), newData, newData + batchSize);
