@@ -1,6 +1,6 @@
 #pragma once
 
-#include "view.h"
+#include "gc-object.h"
 #include <sol.hpp>
 #include <mutex>
 #include <unordered_map>
@@ -45,7 +45,7 @@ private:
     bool enabled_;
     std::atomic<size_t> lastCleanup_;
     size_t step_;
-    std::unordered_map<GCHandle, std::unique_ptr<BaseView>> objects_;
+    std::unordered_map<GCHandle, std::unique_ptr<BaseGCObject>> objects_;
 
 private:
     GC();

@@ -2,14 +2,14 @@
 
 #include "notifier.h"
 #include "lua-helpers.h"
-#include "impl.h"
-#include "view.h"
+#include "gc-data.h"
+#include "gc-object.h"
 
 #include <queue>
 
 namespace effil {
 
-class ChannelImpl : public BaseImpl {
+class ChannelImpl : public GCData {
 public:
     std::mutex lock_;
     std::condition_variable cv_;
@@ -17,7 +17,7 @@ public:
     std::queue<StoredArray> channel_;
 };
 
-class ChannelView : public View<ChannelImpl> {
+class Channel : public GCObject<ChannelImpl> {
 public:
     static void exportAPI(sol::state_view& lua);
 
@@ -28,10 +28,10 @@ public:
     size_t size();
 
 public:
-    ChannelView() = delete;
+    Channel() = delete;
 
 private:
-    explicit ChannelView(const sol::stack_object& capacity);
+    explicit Channel(const sol::stack_object& capacity);
     friend class GC;
 };
 
