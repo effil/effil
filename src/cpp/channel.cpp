@@ -14,15 +14,15 @@ void Channel::exportAPI(sol::state_view& lua) {
     sol::stack::pop<sol::object>(lua);
 }
 
-Channel::Channel(const sol::stack_object& capacity) : data_(std::make_shared<SharedData>()){
+Channel::Channel(const sol::stack_object& capacity) {
     if (capacity.valid()) {
         REQUIRE(capacity.get_type() == sol::type::number) << "bad argument #1 to 'effil.channel' (number expected, got "
                                                           << luaTypename(capacity) << ")";
         REQUIRE(capacity.as<int>() >= 0) << "effil.channel: invalid capacity value = " << capacity.as<int>();
-        data_->capacity_ = capacity.as<size_t>();
+        impl_->capacity_ = capacity.as<size_t>();
     }
     else {
-        data_->capacity_ = 0;
+        impl_->capacity_ = 0;
     }
 }
 
@@ -30,51 +30,51 @@ bool Channel::push(const sol::variadic_args& args) {
     if (!args.leftover_count())
         return false;
 
-    std::unique_lock<std::mutex> lock(data_->lock_);
-    if (data_->capacity_ && data_->channel_.size() >= data_->capacity_)
+    std::unique_lock<std::mutex> lock(impl_->lock_);
+    if (impl_->capacity_ && impl_->channel_.size() >= impl_->capacity_)
         return false;
-    effil::StoredArray array;
+    StoredArray array;
     for (const auto& arg : args) {
         try {
             auto obj = createStoredObject(arg.get<sol::object>());
-            addReference(obj->gcHandle());
+            impl_->addReference(obj->gcHandle());
             obj->releaseStrongReference();
             array.emplace_back(obj);
         }
         RETHROW_WITH_PREFIX("effil.channel:push");
     }
-    if (data_->channel_.empty())
-        data_->cv_.notify_one();
-    data_->channel_.emplace(array);
+    if (impl_->channel_.empty())
+        impl_->cv_.notify_one();
+    impl_->channel_.emplace(array);
     return true;
 }
 
 StoredArray Channel::pop(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
-    std::unique_lock<std::mutex> lock(data_->lock_);
-    while (data_->channel_.empty()) {
+    std::unique_lock<std::mutex> lock(impl_->lock_);
+    while (impl_->channel_.empty()) {
         if (duration) {
-            if (data_->cv_.wait_for(lock, fromLuaTime(duration.value(), period)) == std::cv_status::timeout)
+            if (impl_->cv_.wait_for(lock, fromLuaTime(duration.value(), period)) == std::cv_status::timeout)
                 return StoredArray();
         }
         else { // No time limit
-            data_->cv_.wait(lock);
+            impl_->cv_.wait(lock);
         }
     }
 
-    auto ret = data_->channel_.front();
+    auto ret = impl_->channel_.front();
     for (const auto& obj: ret) {
         obj->holdStrongReference();
-        removeReference(obj->gcHandle());
+        impl_->removeReference(obj->gcHandle());
     }
 
-    data_->channel_.pop();
+    impl_->channel_.pop();
     return ret;
 }
 
 size_t Channel::size() {
-    std::lock_guard<std::mutex> lock(data_->lock_);
-    return data_->channel_.size();
+    std::lock_guard<std::mutex> lock(impl_->lock_);
+    return impl_->channel_.size();
 }
 
 } // namespace effil

@@ -55,7 +55,7 @@ public:
         handle_ = strongRef_->handle();
     }
 
-    GCObjectHolder(GCObjectHandle handle)
+    GCObjectHolder(GCHandle handle)
             : handle_(handle) {
         strongRef_ = GC::instance().get<T>(handle_);
     }
@@ -68,7 +68,7 @@ public:
         return sol::make_object(state, GC::instance().get<T>(handle_));
     }
 
-    GCObjectHandle gcHandle() const override { return handle_; }
+    GCHandle gcHandle() const override { return handle_; }
 
     void releaseStrongReference() override {
         strongRef_ = sol::nullopt;
@@ -81,32 +81,32 @@ public:
     }
 
 protected:
-    GCObjectHandle handle_;
+    GCHandle handle_;
     sol::optional<T> strongRef_;
 };
 
-class FunctionHolder : public GCObjectHolder<FunctionObject> {
+class FunctionHolder : public GCObjectHolder<Function> {
 public:
     template <typename SolType>
-    FunctionHolder(const SolType& luaObject) : GCObjectHolder<FunctionObject>(luaObject) {}
-    FunctionHolder(GCObjectHandle handle) : GCObjectHolder(handle) {}
+    FunctionHolder(const SolType& luaObject) : GCObjectHolder<Function>(luaObject) {}
+    FunctionHolder(GCHandle handle) : GCObjectHolder(handle) {}
 
     sol::object unpack(sol::this_state state) const final {
-        return GC::instance().get<FunctionObject>(handle_).loadFunction(state);
+        return GC::instance().get<Function>(handle_).loadFunction(state);
     }
 };
 
 // This class is used as a storage for visited sol::tables
 // TODO: try to use map or unordered map instead of linear search in vector
 // TODO: Trick is - sol::object has only operator==:/
-typedef std::vector<std::pair<sol::object, GCObjectHandle>> SolTableToShared;
+typedef std::vector<std::pair<sol::object, GCHandle>> SolTableToShared;
 
 void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited);
 
 StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) {
     if (luaObject.get_type() == sol::type::table) {
         sol::table luaTable = luaObject;
-        auto comparator = [&luaTable](const std::pair<sol::table, GCObjectHandle>& element) {
+        auto comparator = [&luaTable](const std::pair<sol::table, GCHandle>& element) {
             return element.first == luaTable;
         };
         auto st = std::find_if(visited.begin(), visited.end(), comparator);
@@ -159,14 +159,14 @@ StoredObject fromSolObject(const SolObject& luaObject) {
                 return std::make_unique<GCObjectHolder<SharedTable>>(luaObject);
             else if (luaObject.template is<Channel>())
                 return std::make_unique<GCObjectHolder<Channel>>(luaObject);
-            else if (luaObject.template is<FunctionObject>())
+            else if (luaObject.template is<Function>())
                 return std::make_unique<FunctionHolder>(luaObject);
             else if (luaObject.template is<Thread>())
                 return std::make_unique<GCObjectHolder<Thread>>(luaObject);
             else
                 throw Exception() << "Unable to store userdata object\n";
         case sol::type::function: {
-            FunctionObject func = GC::instance().create<FunctionObject>(luaObject);
+            Function func = GC::instance().create<Function>(luaObject);
             return std::make_unique<FunctionHolder>(func.handle());
         }
         case sol::type::table: {
