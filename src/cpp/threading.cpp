@@ -51,14 +51,26 @@ enum class Command {
     Pause
 };
 
+#if LUA_VERSION_NUM > 501
+
+int luaErrorHandler(lua_State* state);
+const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
+
+#else
+
+const lua_CFunction luaErrorHandlerPtr = nullptr;
+
+#endif // LUA_VERSION_NUM > 501
+
 } // namespace
+
 
 class ThreadHandle {
 public:
     ThreadHandle()
             : status_(Status::Running)
             , command_(Command::Run)
-            , lua_(std::make_unique<sol::state>()) {
+            , lua_(std::make_unique<sol::state>(luaErrorHandlerPtr)) {
         luaL_openlibs(*lua_);
     }
 
@@ -141,6 +153,17 @@ const sol::optional<std::chrono::milliseconds> NO_TIMEOUT;
 
 static thread_local ThreadHandle* thisThreadHandle = nullptr;
 
+#if LUA_VERSION_NUM > 501
+
+int luaErrorHandler(lua_State* state) {
+    luaL_traceback(state, state, nullptr, 1);
+    const auto stacktrace = sol::stack::pop<std::string>(state);
+    thisThreadHandle->result().emplace_back(createStoredObject(stacktrace));
+    throw Exception() << sol::stack::pop<std::string>(state);
+}
+
+#endif // LUA_VERSION_NUM > 501
+
 void luaHook(lua_State*, lua_Debug*) {
     assert(thisThreadHandle);
     switch (thisThreadHandle->command()) {
@@ -198,7 +221,10 @@ void Thread::runThread(Thread thread,
         thread.handle_->changeStatus(Status::Canceled);
     } catch (const sol::error& err) {
         DEBUG << "Failed with msg: " << err.what() << std::endl;
-        thread.handle_->result().emplace_back(createStoredObject(err.what()));
+        auto& returns = thread.handle_->result();
+        returns.insert(returns.begin(),
+                { createStoredObject("failed"),
+                  createStoredObject(err.what()) });
         thread.handle_->changeStatus(Status::Failed);
     }
 }
@@ -279,14 +305,14 @@ void Thread::exportAPI(sol::state_view& lua) {
     sol::stack::pop<sol::object>(lua);
 }
 
-std::pair<sol::object, sol::object> Thread::status(const sol::this_state& lua) {
-    sol::object luaStatus = sol::make_object(lua, statusToString(handle_->status()));
-
-    if (handle_->status() == Status::Failed) {
+StoredArray Thread::status(const sol::this_state& lua) {
+    const auto stat = handle_->status();
+    if (stat == Status::Failed) {
         assert(!handle_->result().empty());
-        return std::make_pair(luaStatus, handle_->result()[0]->unpack(lua));
+        return handle_->result();
     } else {
-        return std::make_pair(luaStatus, sol::nil);
+        const sol::object luaStatus = sol::make_object(lua, statusToString(stat));
+        return StoredArray({createStoredObject(luaStatus)});
     }
 }
 
@@ -298,7 +324,7 @@ sol::optional<std::chrono::milliseconds> toOptionalTime(const sol::optional<int>
         return sol::optional<std::chrono::milliseconds>();
 }
 
-std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
+StoredArray Thread::wait(const sol::this_state& lua,
                                                  const sol::optional<int>& duration,
                                                  const sol::optional<std::string>& period) {
     handle_->waitForCompletion(toOptionalTime(duration, period));

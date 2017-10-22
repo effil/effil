@@ -164,7 +164,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             else if (luaObject.template is<Thread>())
                 return std::make_unique<GCObjectHolder<Thread>>(luaObject);
             else
-                throw Exception() << "Unable to store userdata object\n";
+                throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
             FunctionObject func = GC::instance().create<FunctionObject>(luaObject);
             return std::make_unique<FunctionHolder>(func.handle());

@@ -370,3 +370,37 @@ test.this_thread.pause_on_finished_thread = function ()
     test.is_true(worker_thread:get(2, "s"))
     test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
 end
+
+if LUA_VERSION > 51 then
+
+test.thread.traceback = function()
+    local curr_file = debug.getinfo(1,'S').short_src
+
+    local function foo()
+        function boom()
+            error("err msg")
+        end
+        function bar()
+            boom()
+        end
+        bar()
+    end
+
+    local status, err, trace = effil.thread(foo)():wait()
+    print("status: ", status)
+    print("error: ", err)
+    print("stacktrace: ", trace)
+
+    test.equal(status, "failed")
+    -- <souce file>.lua:<string number>: <error message>
+    test.is_not_nil(string.find(err, curr_file .. ":%d+: err msg"))
+    test.is_not_nil(string.find(trace, (
+[[stack traceback:
+%%s%s:%%d+: in function 'boom'
+%%s%s:%%d+: in function 'bar'
+%%s%s:%%d+: in function <%s:%%d+>]]
+        ):format(curr_file, curr_file, curr_file, curr_file)
+    ))
+end
+
+end -- LUA_VERSION > 51
