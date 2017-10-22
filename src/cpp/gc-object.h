@@ -11,27 +11,27 @@ using GCHandle = void*;
 // Mock handle for non gc objects
 static const GCHandle GCNull = nullptr;
 
-// View interface represents beheiviour of object.
+// GCObject interface represents beheiviour of object.
 // Multiple views may hold shred instance of Impl.
-class BaseView {
+class BaseGCObject {
 public:
-    virtual ~BaseView() = default;
+    virtual ~BaseGCObject() = default;
     virtual GCHandle handle() = 0;
     virtual size_t instances() const = 0;
     virtual std::unordered_set<GCHandle> refers() const = 0;
 };
 
 template<typename Impl>
-class View : public BaseView {
+class GCObject : public BaseGCObject {
 public:
-    View() : impl_(std::make_shared<Impl>())
+    GCObject() : impl_(std::make_shared<Impl>())
     {}
 
     // All views are copy constructable
-    View(const View&) = default;
-    View& operator=(const View&) = default;
+    GCObject(const GCObject&) = default;
+    GCObject& operator=(const GCObject&) = default;
 
-    // Unique handle for any copy of BaseImpl in any lua state
+    // Unique handle for any copy of GCData in any lua state
     GCHandle handle() final {
         return reinterpret_cast<GCHandle>(impl_.get());
     }

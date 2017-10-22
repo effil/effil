@@ -1,11 +1,11 @@
 #pragma once
 
-#include "impl.h"
+#include "gc-data.h"
 #include "stored-object.h"
 #include "spin-mutex.h"
 #include "utils.h"
 #include "lua-helpers.h"
-#include "view.h"
+#include "gc-object.h"
 
 #include <sol.hpp>
 
@@ -15,7 +15,7 @@
 namespace effil {
 
 
-class SharedTableImpl : public BaseImpl {
+class SharedTableImpl : public GCData {
 public:
     using DataEntries = std::map<StoredObject, StoredObject, StoredObjectLess>;
 public:
@@ -24,7 +24,7 @@ public:
     GCHandle metatable = GCNull;
 };
 
-class SharedTableView : public View<SharedTableImpl> {
+class SharedTable : public GCObject<SharedTableImpl> {
 private:
     typedef std::pair<sol::object, sol::object> PairsIterator;
 
@@ -59,10 +59,10 @@ public:
     static sol::object luaConcat(sol::this_state, const sol::stack_object&, const sol::stack_object&);
 
     // Stand alone functions for effil::table available in Lua
-    static SharedTableView luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt);
+    static SharedTable luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt);
     static sol::object luaGetMetatable(const sol::stack_object& tbl, const sol::this_state state);
     static sol::object luaRawGet(const sol::stack_object& tbl, const sol::stack_object& key, sol::this_state state);
-    static SharedTableView luaRawSet(const sol::stack_object& tbl, const sol::stack_object& key, const sol::stack_object& value);
+    static SharedTable luaRawSet(const sol::stack_object& tbl, const sol::stack_object& key, const sol::stack_object& value);
     static size_t luaSize(const sol::stack_object& tbl);
     static PairsIterator globalLuaPairs(sol::this_state state, const sol::stack_object& obj);
     static PairsIterator globalLuaIPairs(sol::this_state state, const sol::stack_object& obj);
@@ -71,7 +71,7 @@ private:
     PairsIterator getNext(const sol::object& key, sol::this_state lua);
 
 private:
-    SharedTableView() = default;
+    SharedTable() = default;
     friend class GC;
 };
 

@@ -4,17 +4,17 @@
 
 namespace effil {
 
-void ChannelView::exportAPI(sol::state_view& lua) {
-    sol::usertype<ChannelView> type("new", sol::no_constructor,
-        "push",  &ChannelView::push,
-        "pop",  &ChannelView::pop,
-        "size", &ChannelView::size
+void Channel::exportAPI(sol::state_view& lua) {
+    sol::usertype<Channel> type("new", sol::no_constructor,
+        "push",  &Channel::push,
+        "pop",  &Channel::pop,
+        "size", &Channel::size
     );
     sol::stack::push(lua, type);
     sol::stack::pop<sol::object>(lua);
 }
 
-ChannelView::ChannelView(const sol::stack_object& capacity) : View<ChannelImpl>() {
+Channel::Channel(const sol::stack_object& capacity) {
     if (capacity.valid()) {
         REQUIRE(capacity.get_type() == sol::type::number) << "bad argument #1 to 'effil.channel' (number expected, got "
                                                           << luaTypename(capacity) << ")";
@@ -26,14 +26,14 @@ ChannelView::ChannelView(const sol::stack_object& capacity) : View<ChannelImpl>(
     }
 }
 
-bool ChannelView::push(const sol::variadic_args& args) {
+bool Channel::push(const sol::variadic_args& args) {
     if (!args.leftover_count())
         return false;
 
     std::unique_lock<std::mutex> lock(impl_->lock_);
     if (impl_->capacity_ && impl_->channel_.size() >= impl_->capacity_)
         return false;
-    effil::StoredArray array;
+    StoredArray array;
     for (const auto& arg : args) {
         try {
             auto obj = createStoredObject(arg.get<sol::object>());
@@ -49,7 +49,7 @@ bool ChannelView::push(const sol::variadic_args& args) {
     return true;
 }
 
-StoredArray ChannelView::pop(const sol::optional<int>& duration,
+StoredArray Channel::pop(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
     std::unique_lock<std::mutex> lock(impl_->lock_);
     while (impl_->channel_.empty()) {
@@ -72,7 +72,7 @@ StoredArray ChannelView::pop(const sol::optional<int>& duration,
     return ret;
 }
 
-size_t ChannelView::size() {
+size_t Channel::size() {
     std::lock_guard<std::mutex> lock(impl_->lock_);
     return impl_->channel_.size();
 }

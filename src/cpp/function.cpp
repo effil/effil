@@ -24,7 +24,7 @@ sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object
     }
 }
 
-FunctionView::FunctionView(const sol::function& luaObject) {
+Function::Function(const sol::function& luaObject) {
     assert(luaObject.valid());
     assert(luaObject.get_type() == sol::type::function);
 
@@ -79,7 +79,7 @@ FunctionView::FunctionView(const sol::function& luaObject) {
     sol::stack::pop<sol::object>(state);
 }
 
-sol::object FunctionView::loadFunction(lua_State* state) {
+sol::object Function::loadFunction(lua_State* state) {
     sol::function result = loadString(state, impl_->function);
     assert(result.valid());
 

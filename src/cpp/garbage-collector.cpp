@@ -18,7 +18,7 @@ void GC::collect() {
     std::lock_guard<std::mutex> g(lock_);
 
     std::unordered_set<GCHandle> grey;
-    std::unordered_map<GCHandle, std::unique_ptr<BaseView>> black;
+    std::unordered_map<GCHandle, std::unique_ptr<BaseGCObject>> black;
 
     for (const auto& handleAndObject : objects_)
         if (handleAndObject.second->instances() > 1)

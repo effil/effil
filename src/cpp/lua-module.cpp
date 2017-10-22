@@ -15,7 +15,7 @@ sol::object createThread(const sol::this_state& lua,
                          int step,
                          const sol::function& function,
                          const sol::variadic_args& args) {
-    return sol::make_object(lua, GC::instance().create<ThreadView>(path, cpath, step, function, args));
+    return sol::make_object(lua, GC::instance().create<Thread>(path, cpath, step, function, args));
 }
 
 sol::object createTable(sol::this_state lua, const sol::optional<sol::object>& tbl) {
@@ -25,14 +25,14 @@ sol::object createTable(sol::this_state lua, const sol::optional<sol::object>& t
                                                      << lua_typename(lua, (int)tbl->get_type());
         return createStoredObject(*tbl)->unpack(lua);
     }
-    return sol::make_object(lua, GC::instance().create<SharedTableView>());
+    return sol::make_object(lua, GC::instance().create<SharedTable>());
 }
 
 sol::object createChannel(const sol::stack_object& capacity, sol::this_state lua) {
-    return sol::make_object(lua, GC::instance().create<ChannelView>(capacity));
+    return sol::make_object(lua, GC::instance().create<Channel>(capacity));
 }
 
-SharedTableView globalTable = GC::instance().create<SharedTableView>();
+SharedTable globalTable = GC::instance().create<SharedTable>();
 
 std::string getLuaTypename(const sol::stack_object& obj)
 {
@@ -47,26 +47,26 @@ extern "C"
 #endif
 int luaopen_libeffil(lua_State* L) {
     sol::state_view lua(L);
-    ThreadView::exportAPI(lua);
-    SharedTableView::exportAPI(lua);
-    ChannelView::exportAPI(lua);
+    Thread::exportAPI(lua);
+    SharedTable::exportAPI(lua);
+    Channel::exportAPI(lua);
     sol::table publicApi = lua.create_table_with(
             "thread", createThread,
             "thread_id", threadId,
             "sleep", sleep,
             "yield", yield,
             "table", createTable,
-            "rawset", SharedTableView::luaRawSet,
-            "rawget", SharedTableView::luaRawGet,
-            "table_size", SharedTableView::luaSize,
-            "setmetatable", SharedTableView::luaSetMetatable,
-            "getmetatable", SharedTableView::luaGetMetatable,
+            "rawset", SharedTable::luaRawSet,
+            "rawget", SharedTable::luaRawGet,
+            "table_size", SharedTable::luaSize,
+            "setmetatable", SharedTable::luaSetMetatable,
+            "getmetatable", SharedTable::luaGetMetatable,
             "G", sol::make_object(lua, globalTable),
             "gc", GC::exportAPI(lua),
             "channel", createChannel,
             "type", getLuaTypename,
-            "pairs", SharedTableView::globalLuaPairs,
-            "ipairs", SharedTableView::globalLuaIPairs,
+            "pairs", SharedTable::globalLuaPairs,
+            "ipairs", SharedTable::globalLuaIPairs,
             "allow_table_upvalues", luaAllowTableUpvalues
     );
     sol::stack::push(lua, publicApi);

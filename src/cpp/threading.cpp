@@ -67,8 +67,8 @@ void luaHook(lua_State*, lua_Debug*) {
 
 } // namespace
 
-void ThreadView::runThread(ThreadView thread,
-               FunctionView function,
+void Thread::runThread(Thread thread,
+               Function function,
                effil::StoredArray arguments) {
     thisThreadHandle = thread.impl_.get();
     assert(thisThreadHandle != nullptr);
@@ -130,15 +130,15 @@ void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {
     }
 }
 
-ThreadView::ThreadView(const std::string& path,
+Thread::Thread(const std::string& path,
        const std::string& cpath,
        int step,
        const sol::function& function,
        const sol::variadic_args& variadicArgs) {
 
-    sol::optional<FunctionView> functionObj;
+    sol::optional<Function> functionObj;
     try {
-        functionObj = GC::instance().create<FunctionView>(function);
+        functionObj = GC::instance().create<Function>(function);
     } RETHROW_WITH_PREFIX("effil.thread");
 
     impl_->lua()["package"]["path"] = path;
@@ -158,28 +158,28 @@ ThreadView::ThreadView(const std::string& path,
         }
     } RETHROW_WITH_PREFIX("effil.thread");
 
-    std::thread thr(&ThreadView::runThread,
+    std::thread thr(&Thread::runThread,
                     *this,
                     functionObj.value(),
                     std::move(arguments));
     thr.detach();
 }
 
-void ThreadView::exportAPI(sol::state_view& lua) {
-    sol::usertype<ThreadView> type(
+void Thread::exportAPI(sol::state_view& lua) {
+    sol::usertype<Thread> type(
             "new", sol::no_constructor,
-            "get", &ThreadView::get,
-            "wait", &ThreadView::wait,
-            "cancel", &ThreadView::cancel,
-            "pause", &ThreadView::pause,
-            "resume", &ThreadView::resume,
-            "status", &ThreadView::status);
+            "get", &Thread::get,
+            "wait", &Thread::wait,
+            "cancel", &Thread::cancel,
+            "pause", &Thread::pause,
+            "resume", &Thread::resume,
+            "status", &Thread::status);
 
     sol::stack::push(lua, type);
     sol::stack::pop<sol::object>(lua);
 }
 
-std::pair<sol::object, sol::object> ThreadView::status(const sol::this_state& lua) {
+std::pair<sol::object, sol::object> Thread::status(const sol::this_state& lua) {
     sol::object luaStatus = sol::make_object(lua, statusToString(impl_->status()));
 
     if (impl_->status() == Status::Failed) {
@@ -198,14 +198,14 @@ sol::optional<std::chrono::milliseconds> toOptionalTime(const sol::optional<int>
         return sol::optional<std::chrono::milliseconds>();
 }
 
-std::pair<sol::object, sol::object> ThreadView::wait(const sol::this_state& lua,
+std::pair<sol::object, sol::object> Thread::wait(const sol::this_state& lua,
                                                  const sol::optional<int>& duration,
                                                  const sol::optional<std::string>& period) {
     impl_->waitForCompletion(toOptionalTime(duration, period));
     return status(lua);
 }
 
-StoredArray ThreadView::get(const sol::optional<int>& duration,
+StoredArray Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
     if (impl_->waitForCompletion(toOptionalTime(duration, period)) && impl_->status() == Status::Completed)
         return impl_->result();
@@ -213,7 +213,7 @@ StoredArray ThreadView::get(const sol::optional<int>& duration,
         return StoredArray();
 }
 
-bool ThreadView::cancel(const sol::this_state&,
+bool Thread::cancel(const sol::this_state&,
                     const sol::optional<int>& duration,
                     const sol::optional<std::string>& period) {
     impl_->putCommand(Command::Cancel);
@@ -221,7 +221,7 @@ bool ThreadView::cancel(const sol::this_state&,
     return ThreadImpl::isFinishStatus(status);
 }
 
-bool ThreadView::pause(const sol::this_state&,
+bool Thread::pause(const sol::this_state&,
                    const sol::optional<int>& duration,
                    const sol::optional<std::string>& period) {
     impl_->putCommand(Command::Pause);
@@ -229,7 +229,7 @@ bool ThreadView::pause(const sol::this_state&,
     return status == Status::Paused;
 }
 
-void ThreadView::resume() {
+void Thread::resume() {
     impl_->putCommand(Command::Run);
 }
 

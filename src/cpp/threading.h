@@ -2,7 +2,7 @@
 
 #include "lua-helpers.h"
 #include "function.h"
-#include "view.h"
+#include "gc-object.h"
 #include "notifier.h"
 
 #include <sol.hpp>
@@ -14,7 +14,7 @@ std::string threadId();
 void yield();
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
 
-class ThreadImpl : public BaseImpl {
+class ThreadImpl : public GCData {
 public:
     enum class Status {
         Running,
@@ -116,7 +116,7 @@ public:
     }
 };
 
-class ThreadView : public View<ThreadImpl> {
+class Thread : public GCObject<ThreadImpl> {
 public:
     static void exportAPI(sol::state_view& lua);
 
@@ -135,10 +135,10 @@ public:
     void resume();
 
 private:
-    static void runThread(ThreadView, FunctionView, effil::StoredArray);
+    static void runThread(Thread, Function, effil::StoredArray);
 
 private:
-    ThreadView(const std::string& path,
+    Thread(const std::string& path,
                const std::string& cpath,
                int step,
                const sol::function& function,
