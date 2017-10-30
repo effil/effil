@@ -9,7 +9,7 @@
 
 namespace effil {
 
-class ChannelImpl : public GCData {
+class ChannelData : public GCData {
 public:
     std::mutex lock_;
     std::condition_variable cv_;
@@ -17,7 +17,7 @@ public:
     std::queue<StoredArray> channel_;
 };
 
-class Channel : public GCObject<ChannelImpl> {
+class Channel : public GCObject<ChannelData> {
 public:
     static void exportAPI(sol::state_view& lua);
 

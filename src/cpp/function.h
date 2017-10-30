@@ -9,7 +9,7 @@ namespace effil {
 
 sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object&);
 
-class FunctionImpl : public GCData {
+class FunctionData : public GCData {
 public:
     std::string function;
 #if LUA_VERSION_NUM > 501
@@ -18,7 +18,7 @@ public:
     std::vector<StoredObject> upvalues;
 };
 
-class Function : public GCObject<FunctionImpl> {
+class Function : public GCObject<FunctionData> {
 public:
     sol::object loadFunction(lua_State* state);
 

@@ -24,7 +24,7 @@ public:
 template<typename Impl>
 class GCObject : public BaseGCObject {
 public:
-    GCObject() : impl_(std::make_shared<Impl>())
+    GCObject() : ctx_(std::make_shared<Impl>())
     {}
 
     // All views are copy constructable
@@ -33,22 +33,22 @@ public:
 
     // Unique handle for any copy of GCData in any lua state
     GCHandle handle() final {
-        return reinterpret_cast<GCHandle>(impl_.get());
+        return reinterpret_cast<GCHandle>(ctx_.get());
     }
 
-    // Number of instance copies
+    // Number of instances
     // always greater than 1
     // GC holds one copy
     size_t instances() const final {
-        return impl_.use_count();
+        return ctx_.use_count();
     }
 
     std::unordered_set<GCHandle> refers() const {
-        return impl_->refers();
+        return ctx_->refers();
     }
 
 protected:
-    std::shared_ptr<Impl> impl_;
+    std::shared_ptr<Impl> ctx_;
 };
 
 } // namespace effil

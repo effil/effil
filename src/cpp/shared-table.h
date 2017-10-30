@@ -15,7 +15,7 @@
 namespace effil {
 
 
-class SharedTableImpl : public GCData {
+class SharedTableData : public GCData {
 public:
     using DataEntries = std::map<StoredObject, StoredObject, StoredObjectLess>;
 public:
@@ -24,7 +24,7 @@ public:
     GCHandle metatable = GCNull;
 };
 
-class SharedTable : public GCObject<SharedTableImpl> {
+class SharedTable : public GCObject<SharedTableData> {
 private:
     typedef std::pair<sol::object, sol::object> PairsIterator;
 
