@@ -16,8 +16,6 @@ public:
 
     // List of weak references to nested objects
     std::unordered_set<GCHandle> refers() const;
-
-public://protected:
     void addReference(GCHandle handle);
     void removeReference(GCHandle handle);
 
