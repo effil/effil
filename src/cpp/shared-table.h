@@ -1,10 +1,11 @@
 #pragma once
 
-#include "gc-object.h"
+#include "gc-data.h"
 #include "stored-object.h"
 #include "spin-mutex.h"
 #include "utils.h"
 #include "lua-helpers.h"
+#include "gc-object.h"
 
 #include <sol.hpp>
 
@@ -13,15 +14,21 @@
 
 namespace effil {
 
-class SharedTable : public GCObject {
+
+class SharedTableData : public GCData {
+public:
+    using DataEntries = std::map<StoredObject, StoredObject, StoredObjectLess>;
+public:
+    SpinMutex lock;
+    DataEntries entries;
+    GCHandle metatable = GCNull;
+};
+
+class SharedTable : public GCObject<SharedTableData> {
 private:
     typedef std::pair<sol::object, sol::object> PairsIterator;
-    typedef std::map<StoredObject, StoredObject, StoredObjectLess> DataEntries;
 
 public:
-    SharedTable();
-    SharedTable& operator=(const SharedTable&) = default;
-
     static void exportAPI(sol::state_view& lua);
 
     void set(StoredObject&&, StoredObject&&);
@@ -64,15 +71,8 @@ private:
     PairsIterator getNext(const sol::object& key, sol::this_state lua);
 
 private:
-    struct SharedData {
-        SpinMutex lock;
-        DataEntries entries;
-        GCObjectHandle metatable;
-
-        SharedData() : metatable(GCNull) {}
-    };
-
-    std::shared_ptr<SharedData> data_;
+    SharedTable() = default;
+    friend class GC;
 };
 
 } // effil

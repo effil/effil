@@ -1,16 +1,24 @@
 #pragma once
 
-#include "gc-object.h"
 #include "notifier.h"
-#include "stored-object.h"
 #include "lua-helpers.h"
-#include "queue"
+#include "gc-data.h"
+#include "gc-object.h"
+
+#include <queue>
 
 namespace effil {
 
-class Channel : public GCObject {
+class ChannelData : public GCData {
 public:
-    Channel(const sol::stack_object& capacity);
+    std::mutex lock_;
+    std::condition_variable cv_;
+    size_t capacity_;
+    std::queue<StoredArray> channel_;
+};
+
+class Channel : public GCObject<ChannelData> {
+public:
     static void exportAPI(sol::state_view& lua);
 
     bool push(const sol::variadic_args& args);
@@ -18,15 +26,13 @@ public:
                     const sol::optional<std::string>& period);
 
     size_t size();
-protected:
-    struct SharedData {
-        std::mutex lock_;
-        std::condition_variable cv_;
-        size_t capacity_;
-        std::queue<StoredArray> channel_;
-    };
 
-    std::shared_ptr<SharedData> data_;
+public:
+    Channel() = delete;
+
+private:
+    explicit Channel(const sol::stack_object& capacity);
+    friend class GC;
 };
 
 } // namespace effil

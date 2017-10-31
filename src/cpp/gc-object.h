@@ -1,47 +1,54 @@
 #pragma once
 
-#include "spin-mutex.h"
-
 #include <unordered_set>
+#include <memory>
 
 namespace effil {
 
 // Unique handle for all objects spawned from one object.
-using GCObjectHandle = void*;
+using GCHandle = void*;
 
-static const GCObjectHandle GCNull = nullptr;
+// Mock handle for non gc objects
+static const GCHandle GCNull = nullptr;
 
-// All effil objects that owned in lua code have to inherit this class.
-// This type o object can persist in multiple threads and in multiple lua states.
-// Childes have to care about storing data, concurrent access and
-// weak references (GCHandle) to other GCObjects.
-class GCObject {
+// GCObject interface represents beheiviour of object.
+// Multiple views may hold shred instance of Impl.
+class BaseGCObject {
 public:
-    GCObject();
-    virtual ~GCObject() = default;
+    virtual ~BaseGCObject() = default;
+    virtual GCHandle handle() = 0;
+    virtual size_t instances() const = 0;
+    virtual std::unordered_set<GCHandle> refers() const = 0;
+};
 
-    // Unique handle for any copy of GCObject in any lua state
-    GCObjectHandle handle() const;
+template<typename Impl>
+class GCObject : public BaseGCObject {
+public:
+    GCObject() : ctx_(std::make_shared<Impl>())
+    {}
 
-    // Number of instance copies
+    // All views are copy constructable
+    GCObject(const GCObject&) = default;
+    GCObject& operator=(const GCObject&) = default;
+
+    // Unique handle for any copy of GCData in any lua state
+    GCHandle handle() final {
+        return reinterpret_cast<GCHandle>(ctx_.get());
+    }
+
+    // Number of instances
     // always greater than 1
     // GC holds one copy
-    size_t instances() const;
+    size_t instances() const final {
+        return ctx_.use_count();
+    }
 
-    // List of weak references to nested objects
-    const std::unordered_set<GCObjectHandle> refers() const;
+    std::unordered_set<GCHandle> refers() const {
+        return ctx_->refers();
+    }
 
 protected:
-    void addReference(GCObjectHandle handle);
-    void removeReference(GCObjectHandle handle);
-
-private:
-    struct SharedData {
-        mutable SpinMutex mutex_;
-        std::unordered_multiset<GCObjectHandle> weakRefs_;
-    };
-
-    std::shared_ptr<SharedData> data_;
+    std::shared_ptr<Impl> ctx_;
 };
 
 } // namespace effil

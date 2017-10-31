@@ -24,7 +24,7 @@ sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object
     }
 }
 
-void FunctionObject::initialize(const sol::function& luaObject) {
+Function::Function(const sol::function& luaObject) {
     assert(luaObject.valid());
     assert(luaObject.get_type() == sol::type::function);
 
@@ -35,10 +35,10 @@ void FunctionObject::initialize(const sol::function& luaObject) {
     lua_getinfo(state, ">u", &dbgInfo); // function is popped from stack here
     sol::stack::push(state, luaObject);
 
-    data_->function = dumpFunction(luaObject);
-    data_->upvalues.resize(dbgInfo.nups);
+    ctx_->function = dumpFunction(luaObject);
+    ctx_->upvalues.resize(dbgInfo.nups);
 #if LUA_VERSION_NUM > 501
-    data_->envUpvaluePos = 0; // means no _ENV upvalue
+    ctx_->envUpvaluePos = 0; // means no _ENV upvalue
 #endif // LUA_VERSION_NUM > 501
 
     for (unsigned char i = 1; i <= dbgInfo.nups; ++i) {
@@ -49,7 +49,7 @@ void FunctionObject::initialize(const sol::function& luaObject) {
 #if LUA_VERSION_NUM > 501
         if (strcmp(valueName, "_ENV") == 0) { // do not serialize _ENV
             sol::stack::pop<sol::object>(state);
-            data_->envUpvaluePos = i;
+            ctx_->envUpvaluePos = i;
             continue;
         }
 #endif // LUA_VERSION_NUM > 501
@@ -71,30 +71,30 @@ void FunctionObject::initialize(const sol::function& luaObject) {
         }
 
         if (storedObject->gcHandle() != nullptr) {
-            addReference(storedObject->gcHandle());
+            ctx_->addReference(storedObject->gcHandle());
             storedObject->releaseStrongReference();
         }
-        data_->upvalues[i - 1] = std::move(storedObject);
+        ctx_->upvalues[i - 1] = std::move(storedObject);
     }
     sol::stack::pop<sol::object>(state);
 }
 
-sol::object FunctionObject::loadFunction(lua_State* state) {
-    sol::function result = loadString(state, data_->function);
+sol::object Function::loadFunction(lua_State* state) {
+    sol::function result = loadString(state, ctx_->function);
     assert(result.valid());
 
     sol::stack::push(state, result);
-    for(size_t i = 0; i < data_->upvalues.size(); ++i) {
+    for(size_t i = 0; i < ctx_->upvalues.size(); ++i) {
 #if LUA_VERSION_NUM > 501
-        if (data_->envUpvaluePos == i + 1) {
+        if (ctx_->envUpvaluePos == i + 1) {
             lua_rawgeti(state, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // push _ENV to stack
             lua_setupvalue(state, -2, i + 1); // pop _ENV and set as upvalue
             continue;
         }
 #endif // LUA_VERSION_NUM > 501
-        assert(data_->upvalues[i].get() != nullptr);
+        assert(ctx_->upvalues[i].get() != nullptr);
 
-        const auto& obj = data_->upvalues[i]->unpack(sol::this_state{state});
+        const auto& obj = ctx_->upvalues[i]->unpack(sol::this_state{state});
         sol::stack::push(state, obj);
         lua_setupvalue(state, -2, i + 1);
     }
