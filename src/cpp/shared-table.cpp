@@ -277,7 +277,8 @@ SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol
         stable.ctx_->metatable = GCNull;
     }
 
-    stable.ctx_->metatable = createStoredObject(mt)->gcHandle();
+    const auto mtObj = createStoredObject(mt);
+    stable.ctx_->metatable = mtObj->gcHandle();
     stable.ctx_->addReference(stable.ctx_->metatable);
 
     return stable;

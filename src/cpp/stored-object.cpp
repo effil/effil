@@ -166,7 +166,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
-            Function func = GC::instance().create<Function>(luaObject);
+            Function func = Function::create(luaObject);
             return std::make_unique<FunctionHolder>(func.handle());
         }
         case sol::type::table: {

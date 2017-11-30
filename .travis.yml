@@ -74,16 +74,16 @@ matrix:
         - brew install lua@5.1
       script:
         - LUA_BIN=lua5.1 ci/test_all.sh
-    - os: osx
-      env: LUA=Lua5.2
-      compiler: clang
-      osx_image: xcode8.3
-      before_install:
-        - brew update
-      install:
-        - brew install lua@5.2
-      script:
-        - ci/test_all.sh
+#    - os: osx
+#      env: LUA=Lua5.2
+#     compiler: clang
+#     osx_image: xcode8.3
+#     before_install:
+#       - brew update
+#     install:
+#       - brew install lua@5.2
+#     script:
+#       - ci/test_all.sh
     - os: osx
       env: LUA=Lua5.3
       compiler: clang

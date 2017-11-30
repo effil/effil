@@ -1,4 +1,5 @@
 #include "function.h"
+#include "cache.h"
 
 namespace effil {
 
@@ -24,11 +25,22 @@ sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object
     }
 }
 
+Function Function::create(const sol::function& luaFunc) {
+    const auto cachedFunc = cache::get(luaFunc.lua_state(), luaFunc);
+    if (cachedFunc)
+        return cachedFunc.value();
+
+    Function func = GC::instance().create<Function>(luaFunc);
+    cache::put(luaFunc.lua_state(), luaFunc, func);
+    cache::put(luaFunc.lua_state(), func, luaFunc);
+    return func;
+}
+
 Function::Function(const sol::function& luaObject) {
     assert(luaObject.valid());
     assert(luaObject.get_type() == sol::type::function);
 
-    lua_State* state = luaObject.lua_state();
+    sol::state_view state = luaObject.lua_state();
     sol::stack::push(state, luaObject);
 
     lua_Debug dbgInfo;
@@ -80,6 +92,10 @@ Function::Function(const sol::function& luaObject) {
 }
 
 sol::object Function::loadFunction(lua_State* state) {
+    auto cachedFunc = cache::get(state, *this);
+    if (cachedFunc.valid())
+        return cachedFunc;
+
     sol::function result = loadString(state, ctx_->function);
     assert(result.valid());
 
@@ -98,7 +114,10 @@ sol::object Function::loadFunction(lua_State* state) {
         sol::stack::push(state, obj);
         lua_setupvalue(state, -2, i + 1);
     }
-    return sol::stack::pop<sol::function>(state);
+    const auto obj = sol::stack::pop<sol::object>(state);
+    cache::put(state, *this, obj);
+    cache::put(state, obj, *this);
+    return obj;
 }
 
 } // namespace effil

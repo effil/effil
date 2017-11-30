@@ -38,6 +38,8 @@ test.type_mismatch.unsupported_type_p = function(wrong_arg_num, func_name, ...)
 end
 
 local function generate_tests()
+    print "Start test generation for 'type_mismatch' test suite"
+
     local function create_object_generator(name, func)
         return setmetatable({ name = name }, {
             __call = func,
@@ -102,9 +104,12 @@ local function generate_tests()
             test.type_mismatch.input_types_mismatch_p(1, "effil.table", "pairs", type_instance)
         end
 
-        -- effil.thread
         if typename ~= "function" then
+            -- effil.thread
             test.type_mismatch.input_types_mismatch_p(1, "function", "thread", type_instance)
+
+            --  effil.cache.remove
+            test.type_mismatch.input_types_mismatch_p(1, "function", "cache.remove", type_instance)
         end
 
         -- effil.sleep
@@ -121,6 +126,9 @@ local function generate_tests()
 
             --  effil.gc.step
             test.type_mismatch.input_types_mismatch_p(1, "number", "gc.step", type_instance)
+
+            --  effil.cache.capacity
+            test.type_mismatch.input_types_mismatch_p(1, "number", "cache.capacity", type_instance)
         end
 
         if typename ~= "boolean" then
@@ -153,6 +161,10 @@ end
 
 -- Put it to function to limit the lifetime of objects
 generate_tests()
+-- Remove garbage after generation
+effil.cache.clear()
+collectgarbage()
+effil.gc.collect()
 
 test.type_mismatch.gc_checks_after_tests = function()
     effil.allow_table_upvalues(true)

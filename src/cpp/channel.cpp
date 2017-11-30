@@ -43,9 +43,10 @@ bool Channel::push(const sol::variadic_args& args) {
         }
         RETHROW_WITH_PREFIX("effil.channel:push");
     }
-    if (ctx_->channel_.empty())
-        ctx_->cv_.notify_one();
+    const bool wasEmpty = ctx_->channel_.empty();
     ctx_->channel_.emplace(array);
+    if (wasEmpty)
+        ctx_->cv_.notify_all();
     return true;
 }
 

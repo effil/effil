@@ -2,6 +2,7 @@
 #include "shared-table.h"
 #include "garbage-collector.h"
 #include "channel.h"
+#include "cache.h"
 
 #include <lua.hpp>
 
@@ -67,8 +68,10 @@ int luaopen_libeffil(lua_State* L) {
             "type", getLuaTypename,
             "pairs", SharedTable::globalLuaPairs,
             "ipairs", SharedTable::globalLuaIPairs,
-            "allow_table_upvalues", luaAllowTableUpvalues
+            "allow_table_upvalues", luaAllowTableUpvalues,
+            "cache", cache::exportAPI(lua)
     );
     sol::stack::push(lua, publicApi);
+    cache::initStateCache(L);
     return 1;
 }

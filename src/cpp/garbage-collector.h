@@ -1,10 +1,12 @@
 #pragma once
 
-#include "gc-object.h"
 #include <sol.hpp>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+
+#include "gc-object.h"
+#include "utils.h"
 
 namespace effil {
 
@@ -22,6 +24,8 @@ public:
 
         std::unique_ptr<ViewType> object(new ViewType(std::forward<Args>(args)...));
         auto copy = *object;
+
+        DEBUG("gc") << "Create " << std::hex << object->handle();
 
         std::lock_guard<std::mutex> g(lock_);
         objects_.emplace(object->handle(), std::move(object));

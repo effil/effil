@@ -38,7 +38,8 @@ void GC::collect() {
     }
 
     // Sweep phase
-    DEBUG << "Removing " << (objects_.size() - black.size()) << " out of " << objects_.size() << std::endl;
+    DEBUG("gc") << "Removing " << (objects_.size() - black.size())
+                << " out of " << objects_.size();
     objects_ = std::move(black);
 
     lastCleanup_.store(0);
