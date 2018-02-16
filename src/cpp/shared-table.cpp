@@ -2,12 +2,15 @@
 
 #include "utils.h"
 
-#include <mutex>
 #include <cassert>
+#include <shared_mutex>
 
 namespace effil {
 
 namespace {
+
+typedef std::unique_lock<SpinMutex> UniqueLock;
+typedef std::shared_lock<SpinMutex> SharedLock;
 
 template<typename SolObject>
 bool isSharedTable(const SolObject& obj) {
@@ -47,7 +50,7 @@ void SharedTable::exportAPI(sol::state_view& lua) {
 }
 
 void SharedTable::set(StoredObject&& key, StoredObject&& value) {
-    std::lock_guard<SpinMutex> g(ctx_->lock);
+    UniqueLock g(ctx_->lock);
 
     ctx_->addReference(key->gcHandle());
     ctx_->addReference(value->gcHandle());
@@ -59,7 +62,7 @@ void SharedTable::set(StoredObject&& key, StoredObject&& value) {
 }
 
 sol::object SharedTable::get(const StoredObject& key, sol::this_state state) const {
-    std::lock_guard<SpinMutex> g(ctx_->lock);
+    SharedLock g(ctx_->lock);
     auto val = ctx_->entries.find(key);
     if (val == ctx_->entries.end()) {
         return sol::nil;
@@ -73,7 +76,7 @@ void SharedTable::rawSet(const sol::stack_object& luaKey, const sol::stack_objec
 
     StoredObject key = createStoredObject(luaKey);
     if (luaValue.get_type() == sol::type::nil) {
-        std::lock_guard<SpinMutex> g(ctx_->lock);
+        UniqueLock g(ctx_->lock);
 
         // in this case object is not obligatory to own data
         auto it = ctx_->entries.find(key);
@@ -100,7 +103,7 @@ sol::object SharedTable::rawGet(const sol::stack_object& luaKey, sol::this_state
 #define DEFFINE_METAMETHOD_CALL_0(methodName) DEFFINE_METAMETHOD_CALL(methodName, *this)
 #define DEFFINE_METAMETHOD_CALL(methodName, ...) \
     { \
-        std::unique_lock<SpinMutex> lock(ctx_->lock); \
+        SharedLock lock(ctx_->lock); \
         if (ctx_->metatable != GCNull) { \
             auto tableHolder = GC::instance().get<SharedTable>(ctx_->metatable); \
             lock.unlock(); \
@@ -156,7 +159,7 @@ sol::object SharedTable::luaUnm(sol::this_state state) {
 
 void SharedTable::luaNewIndex(const sol::stack_object& luaKey, const sol::stack_object& luaValue, sol::this_state state) {
     {
-        std::unique_lock<SpinMutex> lock(ctx_->lock);
+        SharedLock lock(ctx_->lock);
         if (ctx_->metatable != GCNull) {
             auto tableHolder = GC::instance().get<SharedTable>(ctx_->metatable);
             lock.unlock();
@@ -180,7 +183,7 @@ sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_sta
 }
 
 StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
-    std::unique_lock<SpinMutex> lock(ctx_->lock);
+    SharedLock lock(ctx_->lock);
     if (ctx_->metatable != GCNull) {
         auto metatable = GC::instance().get<SharedTable>(ctx_->metatable);
         sol::function handler = metatable.get(createStoredObject(std::string("__call")), state);
@@ -208,7 +211,7 @@ sol::object SharedTable::luaToString(sol::this_state state) {
 
 sol::object SharedTable::luaLength(sol::this_state state) {
     DEFFINE_METAMETHOD_CALL_0("__len");
-    std::lock_guard<SpinMutex> g(ctx_->lock);
+    SharedLock g(ctx_->lock);
     size_t len = 0u;
     sol::optional<LUA_INDEX_TYPE> value;
     auto iter = ctx_->entries.find(createStoredObject(static_cast<LUA_INDEX_TYPE>(1)));
@@ -223,7 +226,7 @@ sol::object SharedTable::luaLength(sol::this_state state) {
 }
 
 SharedTable::PairsIterator SharedTable::getNext(const sol::object& key, sol::this_state lua) {
-    std::lock_guard<SpinMutex> g(ctx_->lock);
+    SharedLock g(ctx_->lock);
     if (key) {
         auto obj = createStoredObject(key);
         auto upper = ctx_->entries.upper_bound(obj);
@@ -271,7 +274,7 @@ SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol
 
     SharedTable stable = GC::instance().get<SharedTable>(createStoredObject(tbl)->gcHandle());
 
-    std::lock_guard<SpinMutex> lock(stable.ctx_->lock);
+    UniqueLock lock(stable.ctx_->lock);
     if (stable.ctx_->metatable != GCNull) {
         stable.ctx_->removeReference(stable.ctx_->metatable);
         stable.ctx_->metatable = GCNull;
@@ -287,7 +290,7 @@ sol::object SharedTable::luaGetMetatable(const sol::stack_object& tbl, sol::this
     REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.getmetatable' (effil.table expected, got " << luaTypename(tbl) << ")";
     auto& stable = tbl.as<SharedTable>();
 
-    std::lock_guard<SpinMutex> lock(stable.ctx_->lock);
+    SharedLock lock(stable.ctx_->lock);
     return stable.ctx_->metatable == GCNull ? sol::nil :
             sol::make_object(state, GC::instance().get<SharedTable>(stable.ctx_->metatable));
 }
@@ -312,7 +315,7 @@ size_t SharedTable::luaSize(const sol::stack_object& tbl) {
     REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.size' (effil.table expected, got " << luaTypename(tbl) << ")";
     try {
         auto& stable = tbl.as<SharedTable>();
-        std::lock_guard<SpinMutex> g(stable.ctx_->lock);
+        SharedLock g(stable.ctx_->lock);
         return stable.ctx_->entries.size();
     } RETHROW_WITH_PREFIX("effil.size");
 }
