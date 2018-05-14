@@ -1,106 +1,32 @@
 language: cpp
-compiler: g++-5
+
 dist: trusty
+osx_image: xcode8.3
 sudo: required
 
-matrix:
-  include:
-    - os: linux
-      env: LUA=Lua5.1
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-            - lua5.1
-            - liblua5.1-dev
-      install:
-        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
-      script:
-        - ci/test_all.sh -DLUA_INCLUDE_DIR="/usr/include/lua5.1" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.1.so"
-    - os: linux
-      env: LUA=Lua5.2
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-            - lua5.2
-            - liblua5.2-dev
-      install:
-        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
-      script:
-        - ci/test_all.sh -DLUA_INCLUDE_DIR="/usr/include/lua5.2" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/liblua5.2.so"
-    - os: linux
-      env: LUA=Lua5.3
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-      before_install:
-        - pip install hererocks --user
-        - hererocks lua53 -l5.3 -rlatest
-        - source lua53/bin/activate
-      install:
-        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
-      script:
-        - ci/test_all.sh -DLUA_INCLUDE_DIR="$PWD/lua53/include"
-    - os: linux
-      env: LUA=LuaJIT
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-            - luajit
-            - libluajit-5.1-dev
-      install:
-        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 1
-      script:
-        - LUA_BIN=luajit ci/test_all.sh -DLUA_INCLUDE_DIR="/usr/include/luajit-2.0" -DLUA_LIBRARY="/usr/lib/x86_64-linux-gnu/libluajit-5.1.so"
+env:
+  matrix:
+  - LUA="lua 5.1"
+  - LUA="lua 5.2"
+  - LUA="lua 5.3"
+  - LUA="luajit 2.0"
 
-    - os: osx
-      env: LUA=Lua5.1
-      compiler: clang
-      osx_image: xcode8.3
-      before_install:
-        - brew update
-      install:
-        - brew install lua@5.1
-      script:
-        - LUA_BIN=lua5.1 ci/test_all.sh
-    - os: osx
-      env: LUA=Lua5.2
-      compiler: clang
-      osx_image: xcode8.3
-      before_install:
-        - brew update
-      install:
-        - brew install lua@5.2
-      script:
-        - ci/test_all.sh
-    - os: osx
-      env: LUA=Lua5.3
-      compiler: clang
-      osx_image: xcode8.3
-      before_install:
-        - brew update
-      install:
-        - brew install lua@5.3
-      script:
-        - LUA_BIN=lua5.3 ci/test_all.sh
-    - os: osx
-      env: LUA=LuaJIT
-      compiler: clang
-      osx_image: xcode8.3
-      before_install:
-        - brew update
-      install:
-        - brew install luajit
-      script:
-        - LUA_BIN=luajit ci/test_all.sh -DLUA_INCLUDE_DIR="/usr/local/Cellar/luajit/2.0.5/include/luajit-2.0" -DLUA_LIBRARY="/usr/local/Cellar/luajit/2.0.5/lib/libluajit.dylib"
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-5
+
+before_install:
+  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then export CXX=g++-5; sudo pip install hererocks; fi
+  - if [[ $TRAVIS_OS_NAME == "osx" ]]; then export CXX=clang++; brew update;  brew upgrade python; sudo pip3 install hererocks; fi
+  - hererocks lua-pkg --$LUA -rlatest
+  - source lua-pkg/bin/activate
+
+script:
+  - ci/test_all.sh -DLUA_INCLUDE_DIR="$PWD/lua-pkg/include"

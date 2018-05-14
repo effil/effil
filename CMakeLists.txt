@@ -31,7 +31,7 @@ if(APPLE)
 endif()
 
 # libeffil not directly linked with liblua
-if (APPLE AND BUILD_ROCK)
+if (APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
 endif()
 
