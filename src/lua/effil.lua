@@ -6,6 +6,7 @@ local api = {
     thread_id = capi.thread_id,
     sleep = capi.sleep,
     yield = capi.yield,
+    threads_max = capi.threads_max,
     rawget = capi.rawget,
     rawset = capi.rawset,
     setmetatable = capi.setmetatable,

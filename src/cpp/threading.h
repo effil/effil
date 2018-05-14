@@ -12,6 +12,7 @@ namespace effil {
 std::string threadId();
 void yield();
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
+size_t maxThreadsSupported();
 
 class ThreaHandle : public GCData {
 public:

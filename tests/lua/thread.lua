@@ -404,3 +404,10 @@ test.thread.traceback = function()
 end
 
 end -- LUA_VERSION > 51
+
+test.threads_max.check_value = function ()
+    local val = effil.threads_max()
+    test.is_number(val)
+    test.is_true(val > 0)
+    print("Max concurent threads = " .. val)
+end
