@@ -56,7 +56,7 @@ int luaopen_libeffil(lua_State* L) {
             "thread_id", threadId,
             "sleep", sleep,
             "yield", yield,
-            "threads_max", maxThreadsSupported,
+            "hardware_concurrency", hardwareConcurrency,
             "table", createTable,
             "rawset", SharedTable::luaRawSet,
             "rawget", SharedTable::luaRawGet,

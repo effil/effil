@@ -171,7 +171,7 @@ void yield() {
     std::this_thread::yield();
 }
 
-size_t maxThreadsSupported() {
+size_t hardwareConcurrency() {
     return std::thread::hardware_concurrency();
 }
 
