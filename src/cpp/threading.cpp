@@ -171,6 +171,10 @@ void yield() {
     std::this_thread::yield();
 }
 
+size_t hardwareConcurrency() {
+    return std::thread::hardware_concurrency();
+}
+
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {
     if (duration.valid()) {
         REQUIRE(duration.get_type() == sol::type::number) << "bad argument #1 to 'effil.sleep' (number expected, got " << luaTypename(duration) << ")";
