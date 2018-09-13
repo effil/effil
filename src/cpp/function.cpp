@@ -2,28 +2,6 @@
 
 namespace effil {
 
-namespace {
-
-bool allowTableUpvalues(const sol::optional<bool>& newValue = sol::nullopt) {
-    static std::atomic_bool value(true);
-
-    if (newValue)
-        return value.exchange(newValue.value());
-    return value;
-}
-
-} // anonymous
-
-sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object& value) {
-    if (value.valid()) {
-        REQUIRE(value.get_type() == sol::type::boolean) << "bad argument #1 to 'effil.allow_table_upvalues' (boolean expected, got " << luaTypename(value) << ")";
-        return sol::make_object(state, allowTableUpvalues(value.template as<bool>()));
-    }
-    else {
-        return sol::make_object(state, allowTableUpvalues());
-    }
-}
-
 Function::Function(const sol::function& luaObject) {
     assert(luaObject.valid());
     assert(luaObject.get_type() == sol::type::function);
@@ -38,8 +16,12 @@ Function::Function(const sol::function& luaObject) {
     ctx_->function = dumpFunction(luaObject);
     ctx_->upvalues.resize(dbgInfo.nups);
 #if LUA_VERSION_NUM > 501
-    ctx_->envUpvaluePos = 0; // means no _ENV upvalue
+    ctx_->envUpvaluePos = 0; // means no _G upvalue
+
+    lua_pushglobaltable(state);
+    const auto gTable = sol::stack::pop<sol::table>(state);
 #endif // LUA_VERSION_NUM > 501
+
 
     for (unsigned char i = 1; i <= dbgInfo.nups; ++i) {
         const char* valueName = lua_getupvalue(state, -1, i); // push value on stack
@@ -47,21 +29,16 @@ Function::Function(const sol::function& luaObject) {
         assert(valueName != nullptr);
 
 #if LUA_VERSION_NUM > 501
-        if (strcmp(valueName, "_ENV") == 0) { // do not serialize _ENV
+        if (gTable == sol::stack::get<sol::table>(state)) { // do not serialize _G
             sol::stack::pop<sol::object>(state);
             ctx_->envUpvaluePos = i;
             continue;
         }
 #endif // LUA_VERSION_NUM > 501
 
-        const auto& upvalue = sol::stack::pop<sol::object>(state); // pop from stack
-        if (!allowTableUpvalues() && upvalue.get_type() == sol::type::table) {
-            sol::stack::pop<sol::object>(state);
-            throw effil::Exception() << "bad function upvalue #" << (int)i << " (table is disabled by effil.allow_table_upvalues)";
-        }
-
         StoredObject storedObject;
         try {
+            const auto& upvalue = sol::stack::pop<sol::object>(state);
             storedObject = createStoredObject(upvalue);
             assert(storedObject.get() != nullptr);
         }
@@ -87,8 +64,8 @@ sol::object Function::loadFunction(lua_State* state) {
     for(size_t i = 0; i < ctx_->upvalues.size(); ++i) {
 #if LUA_VERSION_NUM > 501
         if (ctx_->envUpvaluePos == i + 1) {
-            lua_rawgeti(state, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // push _ENV to stack
-            lua_setupvalue(state, -2, i + 1); // pop _ENV and set as upvalue
+            lua_pushglobaltable(state); // push _G to stack
+            lua_setupvalue(state, -2, i + 1); // pop _G and set as upvalue
             continue;
         }
 #endif // LUA_VERSION_NUM > 501

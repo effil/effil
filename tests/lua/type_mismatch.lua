@@ -122,11 +122,6 @@ local function generate_tests()
             --  effil.gc.step
             test.type_mismatch.input_types_mismatch_p(1, "number", "gc.step", type_instance)
         end
-
-        if typename ~= "boolean" then
-            -- effil.allow_table_upvalue
-            test.type_mismatch.input_types_mismatch_p(1, "boolean", "allow_table_upvalues", type_instance)
-        end
     end
 
     -- Below presented tests which support everything except coroutines
@@ -155,6 +150,5 @@ end
 generate_tests()
 
 test.type_mismatch.gc_checks_after_tests = function()
-    effil.allow_table_upvalues(true)
     default_tear_down()
 end

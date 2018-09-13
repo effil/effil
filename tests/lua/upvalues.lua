@@ -60,7 +60,7 @@ test.upvalues.check_table = function()
     test.equal(ret, "effil.table: value")
 end
 
-test.upvalues.check_env = function()
+test.upvalues.check_global_env = function()
     local obj1 = 13 -- local
     obj2 = { key = "origin" } -- global
     local obj3 = 79 -- local
@@ -81,39 +81,19 @@ test.upvalues.check_env = function()
     test.equal(ret, "13, local, 79")
 end
 
-local function check_works(should_work)
-    local obj = { key = "value"}
-    local function worker()
-        return obj.key
+if LUA_VERSION > 51 then
+
+test.upvalues.check_custom_env = function()
+    local function create_foo()
+        local _ENV = { key = 'value' }
+        return function()
+            return key
+        end
     end
 
-    local ret, err = pcall(effil.thread(worker))
-    if ret then
-        err:wait()
-    end
-    test.equal(ret, should_work)
-    if not should_work then
-        test.equal(err, "effil.thread: bad function upvalue #1 (table is disabled by effil.allow_table_upvalues)")
-    end
+    local foo = create_foo()
+    local ret = effil.thread(foo)():get()
+    test.equal(ret, 'value')
 end
 
-test.upvalues_table.tear_down = function()
-    effil.allow_table_upvalues(true)
-    default_tear_down()
-end
-
-test.upvalues_table.disabling_table_upvalues = function()
-    test.equal(effil.allow_table_upvalues(), true)
-    -- works by default
-    check_works(true)
-
-    -- disable
-    test.equal(effil.allow_table_upvalues(false), true)
-    check_works(false)
-    test.equal(effil.allow_table_upvalues(), false)
-
-    -- enable back
-    test.equal(effil.allow_table_upvalues(true), false)
-    check_works(true)
-    test.equal(effil.allow_table_upvalues(), true)
-end
+end -- LUA_VERSION > 51
