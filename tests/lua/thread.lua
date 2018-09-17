@@ -1,5 +1,7 @@
 require "bootstrap-tests"
 
+local effil = effil
+
 test.thread.tear_down = default_tear_down
 
 test.thread.wait = function ()
@@ -26,7 +28,7 @@ end
 
 test.thread.timed_get = function ()
     local thread = effil.thread(function()
-        require('effil').sleep(2)
+        effil.sleep(2)
         return "-_-"
     end)()
     test.is_nil(thread:get(1))
@@ -35,7 +37,7 @@ end
 
 test.thread.timed_get = function ()
     local thread = effil.thread(function()
-        require('effil').sleep(2)
+        effil.sleep(2)
         return 8
     end)()
 
@@ -50,7 +52,7 @@ end
 
 test.thread.async_wait = function()
     local thread = effil.thread( function()
-        require('effil').sleep(1)
+        effil.sleep(1)
     end)()
 
     local iter = 0
@@ -86,7 +88,7 @@ test.thread.cancel = function ()
         jit ~= nil and
             function()
                 while true do
-                    require("effil").yield()
+                    effil.yield()
                 end
             end
         or
@@ -218,7 +220,7 @@ end
 
 test.thread.timed_cancel = function ()
     local thread = effil.thread(function()
-        require("effil").sleep(4)
+        effil.sleep(4)
     end)()
     test.is_false(thread:cancel(100, "ms"))
     thread:wait()
@@ -283,7 +285,7 @@ test.this_thread.functions = function ()
 
     local thread_factory = effil.thread(
         function(share)
-            share["child.id"] = require('effil').thread_id()
+            share["child.id"] = effil.thread_id()
         end
     )
     local thread = thread_factory(share)
@@ -297,12 +299,12 @@ end
 test.this_thread.cancel_with_yield = function ()
     local share = effil.table()
     local spec = effil.thread(function (share)
-        require('effil').sleep(1)
+        effil.sleep(1)
         for i=1,10000 do
            -- Just waiting
         end
         share.done = true
-        require("effil").yield()
+        effil.yield()
         share.afet_yield = true
     end)
     spec.step = 0
@@ -318,7 +320,7 @@ test.this_thread.pause_with_yield = function ()
     local share = effil.table({stop = false})
     local spec = effil.thread(function (share)
         while not share.stop do
-            require("effil").yield()
+            effil.yield()
         end
         share.done = true
         return true
@@ -339,7 +341,7 @@ test.this_thread.pause_with_yield = function ()
 end
 
 local function worker(cmd)
-    eff = require("effil")
+    eff = effil
     while not cmd.need_to_stop do
         eff.yield()
     end

@@ -44,12 +44,12 @@ add_library(effil SHARED ${SOURCES})
 target_link_libraries(effil ${LUA_LIBRARY})
 if (WIN32)
     set_target_properties(effil PROPERTIES
-        PREFIX lib
+        PREFIX ""
         SUFFIX .dll)
 else()
     target_link_libraries(effil -lpthread -ldl)
     set_target_properties(effil PROPERTIES
-        PREFIX lib
+        PREFIX ""
         SUFFIX .so)
 endif()
 
@@ -66,10 +66,6 @@ endif()
 #----------
 # INSTALL -
 #----------
-install(FILES src/lua/effil.lua
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
-        PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
-
 install(TARGETS effil
         DESTINATION ${CMAKE_INSTALL_PREFIX}
         PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)

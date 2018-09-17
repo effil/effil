@@ -15,6 +15,15 @@ namespace effil {
 
 namespace {
 
+class ApiReferenceHolder : public BaseHolder {
+public:
+    bool rawCompare(const BaseHolder*) const noexcept final { return true; }
+    sol::object unpack(sol::this_state lua) const final {
+        luaopen_effil(lua);
+        return sol::stack::pop<sol::object>(lua);
+    }
+};
+
 class NilHolder : public BaseHolder {
 public:
     bool rawCompare(const BaseHolder*) const noexcept final { return true; }
@@ -163,6 +172,8 @@ StoredObject fromSolObject(const SolObject& luaObject) {
                 return std::make_unique<FunctionHolder>(luaObject);
             else if (luaObject.template is<Thread>())
                 return std::make_unique<GCObjectHolder<Thread>>(luaObject);
+            else if (luaObject.template is<EffilApiMarker>())
+                return std::make_unique<ApiReferenceHolder>();
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
