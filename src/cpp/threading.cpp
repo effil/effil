@@ -10,15 +10,15 @@
 
 namespace effil {
 
-using Status = ThreaHandle::Status;
-using Command = ThreaHandle::Command;
+using Status = ThreadHandle::Status;
+using Command = ThreadHandle::Command;
 
 namespace {
 
 const sol::optional<std::chrono::milliseconds> NO_TIMEOUT;
 
 // Thread specific pointer to current thread
-static thread_local ThreaHandle* thisThreadHandle = nullptr;
+static thread_local ThreadHandle* thisThreadHandle = nullptr;
 
 // Doesn't inherit std::exception
 // to prevent from catching this exception third party lua C++ libs
@@ -86,14 +86,14 @@ void luaHook(lua_State*, lua_Debug*) {
 
 } // namespace
 
-ThreaHandle::ThreaHandle()
+ThreadHandle::ThreadHandle()
         : status_(Status::Running)
         , command_(Command::Run)
         , lua_(std::make_unique<sol::state>(luaErrorHandlerPtr)) {
     luaL_openlibs(*lua_);
 }
 
-void ThreaHandle::putCommand(Command cmd) {
+void ThreadHandle::putCommand(Command cmd) {
     std::unique_lock<std::mutex> lock(stateLock_);
     if (isFinishStatus(status_))
         return;
@@ -103,7 +103,7 @@ void ThreaHandle::putCommand(Command cmd) {
     commandNotifier_.notify();
 }
 
-void ThreaHandle::changeStatus(Status stat) {
+void ThreadHandle::changeStatus(Status stat) {
     std::unique_lock<std::mutex> lock(stateLock_);
     status_ = stat;
     commandNotifier_.reset();

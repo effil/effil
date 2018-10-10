@@ -13,7 +13,7 @@ std::string threadId();
 void yield();
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
 
-class ThreaHandle : public GCData {
+class ThreadHandle : public GCData {
 public:
     enum class Status {
         Running,
@@ -30,7 +30,7 @@ public:
     };
 
 public:
-    ThreaHandle();
+    ThreadHandle();
     Command command() const { return command_; }
     void putCommand(Command cmd);
     void changeStatus(Status stat);
@@ -87,7 +87,7 @@ private:
     std::unique_ptr<sol::state> lua_;
 };
 
-class Thread : public GCObject<ThreaHandle> {
+class Thread : public GCObject<ThreadHandle> {
 public:
     static void exportAPI(sol::state_view& lua);
 
