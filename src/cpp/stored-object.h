@@ -7,6 +7,8 @@
 
 namespace effil {
 
+struct EffilApiMarker{};
+
 // Represents an interface for lua type stored at C++ code
 class BaseHolder {
 public:

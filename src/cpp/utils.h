@@ -16,6 +16,12 @@
 #   define LUA_INDEX_TYPE lua_Number
 #endif
 
+extern "C"
+#ifdef _WIN32
+ __declspec(dllexport)
+#endif
+int luaopen_effil(lua_State* L);
+
 namespace effil {
 
 class Exception : public sol::error {
