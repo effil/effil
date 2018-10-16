@@ -305,11 +305,12 @@ Explicit cancellation point. Function checks *cancellation* or *pausing* flags o
 ### `effil.sleep(time, metric)`
 Suspend current thread.
 
+**input**: [time metrics](#time-metrics) arguments.
+
 ### `effil.hardware_threads()`
 Returns the number of concurrent threads supported by implementation.
 Basically forwards value from [std::thread::hardware_concurrency](https://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency).
-
-**input**: [time metrics](#time-metrics) arguments.
+**output**: number of concurrent hardware threads.
 
 ## Table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.

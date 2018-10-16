@@ -5,7 +5,7 @@ local effil = effil
 test.thread.tear_down = default_tear_down
 
 test.thread.hardware_threads = function()
-    test.is_number(effil.hardware_threads())
+    test.is_true(effil.hardware_threads() >= 0)
 end
 
 test.thread.wait = function ()
