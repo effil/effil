@@ -7,8 +7,6 @@
 
 namespace effil {
 
-sol::object luaAllowTableUpvalues(sol::this_state state, const sol::stack_object&);
-
 class FunctionData : public GCData {
 public:
     std::string function;
