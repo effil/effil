@@ -37,6 +37,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [effil.thread_id()](#id--effilthread_id)
       * [effil.yield()](#effilyield)
       * [effil.sleep()](#effilsleeptime-metric)
+      * [effil.hardware_threads()](#id--effilhardware_threads)
     * [Table](#table)
       * [effil.table()](#table--effiltabletbl)
       * [__newindex: table[key] = value](#tablekey--value)
@@ -305,6 +306,11 @@ Explicit cancellation point. Function checks *cancellation* or *pausing* flags o
 Suspend current thread.
 
 **input**: [time metrics](#time-metrics) arguments.
+
+### `effil.hardware_threads()`
+Returns the number of concurrent threads supported by implementation.
+Basically forwards value from [std::thread::hardware_concurrency](https://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency).
+**output**: number of concurrent hardware threads.
 
 ## Table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.

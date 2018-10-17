@@ -4,6 +4,10 @@ local effil = effil
 
 test.thread.tear_down = default_tear_down
 
+test.thread.hardware_threads = function()
+    test.is_true(effil.hardware_threads() >= 0)
+end
+
 test.thread.wait = function ()
     local thread = effil.thread(function()
         print 'Effil is not that tower'
