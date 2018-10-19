@@ -1,5 +1,6 @@
 #include "threading.h"
 
+#include "cache.h"
 #include "stored-object.h"
 #include "notifier.h"
 #include "spin-mutex.h"
@@ -118,6 +119,10 @@ void Thread::runThread(Thread thread,
     thisThreadHandle = thread.ctx_.get();
     assert(thisThreadHandle != nullptr);
 
+    DEBUG("thread") << "Run new thread:" << std::this_thread::get_id();
+
+    Cache::create(thisThreadHandle->lua());
+
     try {
         {
             ScopeGuard reportComplete([thread, &arguments](){
@@ -185,9 +190,14 @@ Thread::Thread(const std::string& path,
        const sol::function& function,
        const sol::variadic_args& variadicArgs) {
 
+    DEBUG("thread") << "Create new thread:" << std::endl
+                    << "\tpath: "  << path  << std::endl
+                    << "\tcpath: " << cpath << std::endl
+                    << "\tstep: "  << step;
+
     sol::optional<Function> functionObj;
     try {
-        functionObj = GC::instance().create<Function>(function);
+        functionObj = Function::create(function);
     } RETHROW_WITH_PREFIX("effil.thread");
 
     ctx_->lua()["package"]["path"] = path;

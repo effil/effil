@@ -2,6 +2,7 @@
 #include "shared-table.h"
 #include "garbage-collector.h"
 #include "channel.h"
+#include "cache.h"
 
 #include <lua.hpp>
 
@@ -80,6 +81,8 @@ int luaopen_effil(lua_State* L) {
     const sol::table  gcApi     = GC::exportAPI(lua);
     const sol::object gLuaTable = sol::make_object(lua, globalTable);
 
+    Cache::create(lua);
+
     const auto luaIndex = [gcApi, gLuaTable](
             const sol::stack_object& obj, const std::string& key) -> sol::object
     {
@@ -107,6 +110,7 @@ int luaopen_effil(lua_State* L) {
             "pairs",        SharedTable::globalLuaPairs,
             "ipairs",       SharedTable::globalLuaIPairs,
             "size",         luaSize,
+            "cache",        sol::var(Cache::exportAPI(lua)),
             "hardware_threads",        std::thread::hardware_concurrency,
             sol::meta_function::index, luaIndex
     );

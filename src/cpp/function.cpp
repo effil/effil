@@ -1,6 +1,21 @@
 #include "function.h"
+#include "cache.h"
 
 namespace effil {
+
+Function Function::create(const sol::function& luaFunc) {
+    auto cache = Cache::instance(luaFunc.lua_state());
+    if (cache) {
+        if (const auto cachedFunc = cache->get(luaFunc))
+            return cachedFunc.value();
+    }
+
+    Function func = GC::instance().create<Function>(luaFunc);
+    if (cache) {
+        cache->put(func, luaFunc);
+    }
+    return func;
+}
 
 Function::Function(const sol::function& luaObject) {
     assert(luaObject.valid());
@@ -57,6 +72,12 @@ Function::Function(const sol::function& luaObject) {
 }
 
 sol::object Function::loadFunction(lua_State* state) {
+    auto cache = Cache::instance(state);
+    if (cache) {
+        if (const auto cachedFunc = cache->get(*this))
+            return cachedFunc;
+    }
+
     sol::function result = loadString(state, ctx_->function);
     assert(result.valid());
 
@@ -75,7 +96,10 @@ sol::object Function::loadFunction(lua_State* state) {
         sol::stack::push(state, obj);
         lua_setupvalue(state, -2, i + 1);
     }
-    return sol::stack::pop<sol::function>(state);
+    const auto obj = sol::stack::pop<sol::object>(state);
+    if (cache)
+        cache->put(*this, obj);
+    return obj;
 }
 
 } // namespace effil

@@ -117,7 +117,7 @@ test.thread.async_cancel = function ()
     sleep(2) -- let thread starts working
     thread:cancel(0)
 
-    test.is_true(wait(2, function() return thread:status() ~= 'running' end))
+    test.is_true(wait(5, function() return thread:status() ~= 'running' end))
     test.equal(thread:status(), 'canceled')
 end
 

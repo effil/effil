@@ -15,8 +15,9 @@ require "channel"
 require "thread"
 require "shared-table"
 require "metatable"
-require "type_mismatch"
 require "upvalues"
+require "cache"
+require "type_mismatch"
 
 if os.getenv("STRESS") then
     require "channel-stress"

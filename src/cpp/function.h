@@ -3,7 +3,6 @@
 #include "gc-data.h"
 #include "utils.h"
 #include "lua-helpers.h"
-#include "gc-object.h"
 
 namespace effil {
 
@@ -19,6 +18,8 @@ public:
 class Function : public GCObject<FunctionData> {
 public:
     sol::object loadFunction(lua_State* state);
+
+    static Function create(const sol::function& luaFunc);
 
 private:
     explicit Function(const sol::function& luaObject);

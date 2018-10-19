@@ -1,16 +1,21 @@
 require "bootstrap-tests"
 
 test.metatable.tear_down = function (metatable)
+    effil.cache.clear()
     collectgarbage()
     effil.gc.collect()
 
     -- if metatable is shared_table - it counts as gr object
     -- and it will be destroyed after tear_down
-    if type(metatable) == "table" then
-        test.equal(effil.gc.count(), 1)
-    else
-        test.equal(effil.gc.count(), 3)
+    exp_amount = type(metatable) == "table" and 1 or 3
+    if effil.gc.count() ~= exp_amount then
+        print "Not all objects were removed, gonna sleep for 2 seconds"
+        effil.sleep(2)
+
+        collectgarbage()
+        effil.gc.collect()
     end
+    test.equal(effil.gc.count(), exp_amount)
 end
 
 local function run_test_with_different_metatables(name, ...)
