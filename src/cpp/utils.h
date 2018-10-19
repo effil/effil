@@ -3,8 +3,10 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
-
+#include <ctime>
+#include <mutex>
 #include <sol.hpp>
+
 
 #if LUA_VERSION_NUM < 501 || LUA_VERSION_NUM > 503
 #   error Unsupported Lua version
@@ -52,13 +54,40 @@ private:
     std::function<void()> f_;
 };
 
+class Logger
+{
+public:
+    Logger(std::ostream& s, std::mutex& m)
+        : stream_(s), lock_(m)
+    {}
+
+    Logger(Logger&&) = default;
+
+    ~Logger() {
+        stream_ << std::endl;
+    }
+
+    std::ostream& get() { return stream_; }
+
+private:
+    std::ostream& stream_;
+    std::unique_lock<std::mutex> lock_;
+};
+
+Logger getLogger();
+std::string getCurrentTime();
+
 } // effil
 
-#define REQUIRE(cond) if (!(cond)) throw effil::Exception()
-#define RETHROW_WITH_PREFIX(preff) catch(const effil::Exception& err) { throw effil::Exception() << preff << ": " << err.what(); }
-
 #ifdef NDEBUG
-#define DEBUG if (false) std::cout
+#   define DEBUG(x) if (false) std::cout
 #else
-#define DEBUG std::cout << __FILE__ << ":" << __FUNCTION__ << ":" << __LINE__ << " tid:" << std::this_thread::get_id() << " "
+#   define DEBUG(name) getLogger().get() << getCurrentTime() << " " << \
+                       "[" << std::this_thread::get_id() << "][" << name << "] "
 #endif
+
+#define REQUIRE(cond) if (!(cond)) throw effil::Exception()
+#define RETHROW_WITH_PREFIX(preff) catch(const effil::Exception& err) { \
+        DEBUG(preff) << err.what(); \
+        throw effil::Exception() << preff << ": " << err.what(); \
+    }

@@ -144,7 +144,7 @@ void Thread::runThread(Thread thread,
     } catch (const LuaHookStopException&) {
         thread.ctx_->changeStatus(Status::Canceled);
     } catch (const sol::error& err) {
-        DEBUG << "Failed with msg: " << err.what() << std::endl;
+        DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;
         auto& returns = thread.ctx_->result();
         returns.insert(returns.begin(),
                 { createStoredObject("failed"),
