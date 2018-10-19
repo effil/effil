@@ -34,6 +34,17 @@ std::string luaTypename(const SolObject& obj) {
 
 typedef std::vector<effil::StoredObject> StoredArray;
 
+class Timer {
+public:
+    Timer(const std::chrono::milliseconds& timeout);
+    bool isFinished();
+    std::chrono::milliseconds left();
+
+private:
+    std::chrono::milliseconds timeout_;
+    std::chrono::high_resolution_clock::time_point startTime_;
+};
+
 } // namespace effil
 
 namespace sol {

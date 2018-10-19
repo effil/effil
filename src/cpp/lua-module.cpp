@@ -96,24 +96,24 @@ int luaopen_effil(lua_State* L) {
     };
 
     sol::usertype<EffilApiMarker> type("new", sol::no_constructor,
-            "thread",       createThreadRunner,
-            "thread_id",    threadId,
-            "sleep",        sleep,
-            "yield",        yield,
-            "table",        createTable,
-            "rawset",       SharedTable::luaRawSet,
-            "rawget",       SharedTable::luaRawGet,
-            "setmetatable", SharedTable::luaSetMetatable,
-            "getmetatable", SharedTable::luaGetMetatable,
-            "channel",      createChannel,
-            "type",         getLuaTypename,
-            "pairs",        SharedTable::globalLuaPairs,
-            "ipairs",       SharedTable::globalLuaIPairs,
-            "next",         SharedTable::globalLuaNext,
-            "size",         luaSize,
-            "dump",         luaDump,
-            "hardware_threads", std::thread::hardware_concurrency,
-            sol::meta_function::index, luaIndex
+        "thread",       createThreadRunner,
+        "thread_id",    this_thread::threadId,
+        "sleep",        this_thread::sleep,
+        "yield",        this_thread::yield,
+        "table",        createTable,
+        "rawset",       SharedTable::luaRawSet,
+        "rawget",       SharedTable::luaRawGet,
+        "setmetatable", SharedTable::luaSetMetatable,
+        "getmetatable", SharedTable::luaGetMetatable,
+        "channel",      createChannel,
+        "type",         getLuaTypename,
+        "pairs",        SharedTable::globalLuaPairs,
+        "ipairs",       SharedTable::globalLuaIPairs,
+        "next",         SharedTable::globalLuaNext,
+        "size",         luaSize,
+        "dump",         luaDump,
+        "hardware_threads", std::thread::hardware_concurrency,
+        sol::meta_function::index, luaIndex
     );
 
     sol::stack::push(lua, type);
