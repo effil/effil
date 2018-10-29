@@ -57,24 +57,23 @@ private:
 class Logger
 {
 public:
-    Logger(std::ostream& s, std::mutex& m)
-        : stream_(s), lock_(m)
+    Logger()
+        : lockGuard_(lock_)
     {}
 
-    Logger(Logger&&) = default;
-
     ~Logger() {
-        stream_ << std::endl;
+        *stream_ << std::endl;
     }
 
-    std::ostream& get() { return stream_; }
+    std::ostream& getStream() { return *stream_; }
 
 private:
-    std::ostream& stream_;
-    std::unique_lock<std::mutex> lock_;
+    static std::mutex lock_;
+    static std::unique_ptr<std::ostream> stream_;
+
+    std::lock_guard<std::mutex> lockGuard_;
 };
 
-Logger getLogger();
 std::string getCurrentTime();
 
 } // effil
@@ -82,8 +81,9 @@ std::string getCurrentTime();
 #ifdef NDEBUG
 #   define DEBUG(x) if (false) std::cout
 #else
-#   define DEBUG(name) getLogger().get() << getCurrentTime() << " " << \
-                       "[" << std::this_thread::get_id() << "][" << name << "] "
+#   define DEBUG(name) Logger().getStream() << getCurrentTime() \
+                            << " " << "[" << std::this_thread::get_id() \
+                            << "][" << name << "] "
 #endif
 
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
