@@ -1,4 +1,9 @@
 # Effil
+[![Generic badge](https://img.shields.io/badge/Lua-5.1-44cc11.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Lua-5.2-44cc11.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Lua-5.3-44cc11.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/LuaJIT-2.0-44cc11.svg)](https://shields.io/)
+
 [![LuaRocks](https://img.shields.io/luarocks/v/mihacooper/effil.svg)](https://luarocks.org/modules/mihacooper/effil)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
 [![Join the chat at https://gitter.im/effil-chat/Lobby](https://badges.gitter.im/effil-chat/Lobby.svg)](https://gitter.im/effil-chat/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
