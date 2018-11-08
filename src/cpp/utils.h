@@ -1,12 +1,9 @@
 #pragma once
 
-#include <iostream>
-#include <sstream>
-#include <thread>
-#include <ctime>
-#include <mutex>
-#include <sol.hpp>
+#include "logger.h"
 
+#include <sstream>
+#include <sol.hpp>
 
 #if LUA_VERSION_NUM < 501 || LUA_VERSION_NUM > 503
 #   error Unsupported Lua version
@@ -54,40 +51,10 @@ private:
     std::function<void()> f_;
 };
 
-class Logger
-{
-public:
-    Logger()
-        : lockGuard_(lock_)
-    {}
-
-    ~Logger() {
-        *stream_ << std::endl;
-    }
-
-    std::ostream& getStream() { return *stream_; }
-
-private:
-    static std::mutex lock_;
-    static std::unique_ptr<std::ostream> stream_;
-
-    std::lock_guard<std::mutex> lockGuard_;
-};
-
-std::string getCurrentTime();
-
-} // effil
-
-#ifdef NDEBUG
-#   define DEBUG(x) if (false) std::cout
-#else
-#   define DEBUG(name) Logger().getStream() << getCurrentTime() \
-                            << " " << "[" << std::this_thread::get_id() \
-                            << "][" << name << "] "
-#endif
-
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
 #define RETHROW_WITH_PREFIX(preff) catch(const effil::Exception& err) { \
         DEBUG(preff) << err.what(); \
         throw effil::Exception() << preff << ": " << err.what(); \
     }
+
+} // namespace effil

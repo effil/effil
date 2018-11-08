@@ -1,7 +1,10 @@
-#include "utils.h"
+#include "logger.h"
 
 #include <fstream>
+#include <sstream>
 #include <iomanip>
+#include <cstring>
+
 
 namespace effil {
 
@@ -14,9 +17,7 @@ static std::unique_ptr<std::ostream> getLoggerStream() {
     else if (strcmp(logFile, "term") == 0) {
         return std::make_unique<std::ostream>(std::cout.rdbuf());
     }
-    else {
-        return std::make_unique<std::ofstream>(logFile);
-    }
+    return std::make_unique<std::ofstream>(logFile);
 }
 
 std::mutex Logger::lock_;
@@ -30,4 +31,4 @@ std::string getCurrentTime() {
     return ss.str();
 }
 
-}
+} // namespace effil
