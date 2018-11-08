@@ -1,5 +1,7 @@
 require "bootstrap-tests"
 
+local effil = require "effil"
+
 test.channel_stress.tear_down = default_tear_down
 
 test.channel_stress.with_multiple_threads = function ()
@@ -88,5 +90,33 @@ test.channel_stress.retun_tables = function ()
     end
     for _, thr in ipairs(threads) do
         thr:wait()
+    end
+end
+
+-- regress for multiple wait on channel
+test.channel_stress.regress_for_multiple_waiters = function ()
+    for i = 1, 20 do
+        local chan = effil.channel()
+        local function receiver()
+            return chan:pop(5) ~= nil
+        end
+
+        local threads = {}
+        for i = 1, 10 do
+            table.insert(threads, effil.thread(receiver)())
+        end
+
+        effil.sleep(0.1)
+        for i = 1, 100 do
+            chan:push(1)
+        end
+
+        for _, thr in ipairs(threads) do
+            local ret = thr:get()
+            test.is_true(ret)
+            if not ret then
+                return
+            end
+        end
     end
 end
