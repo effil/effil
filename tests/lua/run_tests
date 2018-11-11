@@ -17,11 +17,16 @@ require "shared-table"
 require "metatable"
 require "type_mismatch"
 require "upvalues"
+require "clock"
 
 if os.getenv("STRESS") then
     require "channel-stress"
     require "thread-stress"
     require "gc-stress"
+end
+
+if os.getenv("PERF") then
+    require "shared-table-perf"
 end
 
 test.summary()

@@ -2,6 +2,7 @@
 #include "shared-table.h"
 #include "garbage-collector.h"
 #include "channel.h"
+#include "clock.h"
 
 #include <lua.hpp>
 
@@ -78,15 +79,18 @@ int luaopen_effil(lua_State* L) {
     Channel::exportAPI(lua);
 
     const sol::table  gcApi     = GC::exportAPI(lua);
+    const sol::table  clock     = clock::exportAPI(lua);
     const sol::object gLuaTable = sol::make_object(lua, globalTable);
 
-    const auto luaIndex = [gcApi, gLuaTable](
+    const auto luaIndex = [gcApi, clock, gLuaTable](
             const sol::stack_object& obj, const std::string& key) -> sol::object
     {
         if (key == "G")
             return gLuaTable;
         else if (key == "gc")
             return gcApi;
+        else if (key == "clock")
+            return clock;
         else if (key == "version")
             return sol::make_object(obj.lua_state(), "0.1.0");
         return sol::nil;
