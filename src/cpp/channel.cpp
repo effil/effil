@@ -43,9 +43,8 @@ bool Channel::push(const sol::variadic_args& args) {
         }
         RETHROW_WITH_PREFIX("effil.channel:push");
     }
-    if (ctx_->channel_.empty())
-        ctx_->cv_.notify_one();
     ctx_->channel_.emplace(array);
+    ctx_->cv_.notify_one();
     return true;
 }
 
