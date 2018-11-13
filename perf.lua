@@ -68,7 +68,7 @@ test.thread.spawn_threads = function(nthreads, wait)
 end
 
 
-local insertions = 100 * 1000 * 1000;
+local insertions = 10 * 1000 * 1000;
 test.shared_table.table_insertions(insertions, {}, 42)
 test.shared_table.table_insertions(insertions, effil.table(), 42)
 
