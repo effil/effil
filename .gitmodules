@@ -7,3 +7,6 @@
 [submodule "libs/u-test"]
 	path = libs/u-test
 	url = https://github.com/IUdalov/u-test.git
+[submodule "libs/FlameGraph"]
+	path = libs/FlameGraph
+	url = https://github.com/brendangregg/FlameGraph.git
