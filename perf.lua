@@ -80,8 +80,11 @@ local long_string = "I am very very very very long string"
 test.shared_table.table_insertions(insertions, {}, long_string)
 test.shared_table.table_insertions(insertions, effil.table(), long_string)
 
+test.shared_table.table_insertions(insertions, effil.table(), effil.table())
+
 local nelems = insertions
 test.channel.same_value_2threads(nelems, 42)
 test.channel.same_value_2threads(nelems, short_string)
 test.channel.same_value_2threads(nelems, long_string)
+test.channel.same_value_2threads(nelems, effil.table())
 
