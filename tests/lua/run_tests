@@ -25,8 +25,4 @@ if os.getenv("STRESS") then
     require "gc-stress"
 end
 
-if os.getenv("PERF") then
-    require "shared-table-perf"
-end
-
 test.summary()
