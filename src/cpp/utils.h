@@ -1,9 +1,8 @@
 #pragma once
 
-#include <iostream>
-#include <sstream>
-#include <thread>
+#include "logger.h"
 
+#include <sstream>
 #include <sol.hpp>
 
 #if LUA_VERSION_NUM < 501 || LUA_VERSION_NUM > 503
@@ -52,13 +51,10 @@ private:
     std::function<void()> f_;
 };
 
-} // effil
-
 #define REQUIRE(cond) if (!(cond)) throw effil::Exception()
-#define RETHROW_WITH_PREFIX(preff) catch(const effil::Exception& err) { throw effil::Exception() << preff << ": " << err.what(); }
+#define RETHROW_WITH_PREFIX(preff) catch(const effil::Exception& err) { \
+        DEBUG(preff) << err.what(); \
+        throw effil::Exception() << preff << ": " << err.what(); \
+    }
 
-#ifdef NDEBUG
-#define DEBUG if (false) std::cout
-#else
-#define DEBUG std::cout << __FILE__ << ":" << __FUNCTION__ << ":" << __LINE__ << " tid:" << std::this_thread::get_id() << " "
-#endif
+} // namespace effil
