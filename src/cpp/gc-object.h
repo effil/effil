@@ -1,22 +1,21 @@
 #pragma once
 
+#include "gc-data.h"
+
 #include <unordered_set>
 #include <memory>
 
 namespace effil {
 
-// Unique handle for all objects spawned from one object.
-using GCHandle = void*;
-
-// Mock handle for non gc objects
-static const GCHandle GCNull = nullptr;
+typedef std::shared_ptr<GCData> StrongRef;
 
 // GCObject interface represents beheiviour of object.
 // Multiple views may hold shred instance of Impl.
 class BaseGCObject {
 public:
     virtual ~BaseGCObject() = default;
-    virtual GCHandle handle() = 0;
+    virtual GCHandle handle() const = 0;
+    virtual StrongRef ref() const = 0;
     virtual size_t instances() const = 0;
     virtual std::unordered_set<GCHandle> refers() const = 0;
 };
@@ -32,8 +31,12 @@ public:
     GCObject& operator=(const GCObject&) = default;
 
     // Unique handle for any copy of GCData in any lua state
-    GCHandle handle() final {
+    GCHandle handle() const final {
         return reinterpret_cast<GCHandle>(ctx_.get());
+    }
+
+    StrongRef ref() const final {
+        return ctx_;
     }
 
     // Number of instances

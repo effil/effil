@@ -50,7 +50,7 @@ std::string statusToString(Status status) {
 int luaErrorHandler(lua_State* state) {
     luaL_traceback(state, state, nullptr, 1);
     const auto stacktrace = sol::stack::pop<std::string>(state);
-    thisThreadHandle->result().emplace_back(createStoredObject(stacktrace));
+    thisThreadHandle->result()->emplace_back(createStoredObject(stacktrace));
     throw Exception() << sol::stack::pop<std::string>(state);
 }
 
@@ -89,6 +89,7 @@ void luaHook(lua_State*, lua_Debug*) {
 ThreadHandle::ThreadHandle()
         : status_(Status::Running)
         , command_(Command::Run)
+        , result_(std::make_shared<StoredArray>())
         , lua_(std::make_unique<sol::state>(luaErrorHandlerPtr)) {
     luaL_openlibs(*lua_);
 }
@@ -114,7 +115,7 @@ void ThreadHandle::changeStatus(Status stat) {
 
 void Thread::runThread(Thread thread,
                Function function,
-               effil::StoredArray arguments) {
+               effil::StoredArrayPtr arguments) {
     thisThreadHandle = thread.ctx_.get();
     assert(thisThreadHandle != nullptr);
 
@@ -123,32 +124,37 @@ void Thread::runThread(Thread thread,
             ScopeGuard reportComplete([thread, &arguments](){
                 // Let's destroy accociated state
                 // to release all resources as soon as possible
-                arguments.clear();
+                if (arguments)
+                    arguments->clear();
                 thread.ctx_->destroyLua();
             });
             sol::function userFuncObj = function.loadFunction(thread.ctx_->lua());
-            sol::function_result results = userFuncObj(std::move(arguments));
+            sol::function_result results = userFuncObj(arguments);
             (void)results; // just leave all returns on the stack
             sol::variadic_args args(thread.ctx_->lua(), -lua_gettop(thread.ctx_->lua()));
             for (const auto& iter : args) {
                 StoredObject store = createStoredObject(iter.get<sol::object>());
-                if (store->gcHandle() != nullptr)
+                if (store.gcHandle() != nullptr)
                 {
-                    thread.ctx_->addReference(store->gcHandle());
-                    store->releaseStrongReference();
+                    thread.ctx_->addReference(store.gcHandle());
+                    store.releaseStrongReference();
                 }
-                thread.ctx_->result().emplace_back(std::move(store));
+                thread.ctx_->result()->emplace_back(std::move(store));
             }
         }
         thread.ctx_->changeStatus(Status::Completed);
     } catch (const LuaHookStopException&) {
         thread.ctx_->changeStatus(Status::Canceled);
-    } catch (const sol::error& err) {
+    } catch (const std::exception& err) {
         DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;
-        auto& returns = thread.ctx_->result();
-        returns.insert(returns.begin(),
-                { createStoredObject("failed"),
-                  createStoredObject(err.what()) });
+        const auto currResult = thread.ctx_->result();
+        auto& newResult = thread.ctx_->result();
+        newResult = std::make_shared<StoredArray>();
+
+        newResult->emplace_back(createStoredObject(statusToString(Status::Failed)));
+        newResult->emplace_back(createStoredObject(err.what()));
+        for (auto&& field: *currResult)
+            newResult->emplace_back(std::move(field));
         thread.ctx_->changeStatus(Status::Failed);
     }
 }
@@ -192,25 +198,27 @@ Thread::Thread(const std::string& path,
 
     ctx_->lua()["package"]["path"] = path;
     ctx_->lua()["package"]["cpath"] = cpath;
-    ctx_->lua().script("require 'effil'");
+
+    luaopen_effil(ctx_->lua());
+    sol::stack::pop_n(ctx_->lua(), 1);
 
     if (step != 0)
         lua_sethook(ctx_->lua(), luaHook, LUA_MASKCOUNT, step);
 
-    effil::StoredArray arguments;
+    effil::StoredArrayPtr arguments = std::make_shared<StoredArray>();
     try {
         for (const auto& arg : variadicArgs) {
-            const auto& storedObj = createStoredObject(arg.get<sol::object>());
-            ctx_->addReference(storedObj->gcHandle());
-            storedObj->releaseStrongReference();
-            arguments.emplace_back(storedObj);
+            auto storedObj = createStoredObject(arg.get<sol::object>());
+            ctx_->addReference(storedObj.gcHandle());
+            storedObj.releaseStrongReference();
+            arguments->emplace_back(std::move(storedObj));
         }
     } RETHROW_WITH_PREFIX("effil.thread");
 
     std::thread thr(&Thread::runThread,
                     *this,
                     functionObj.value(),
-                    std::move(arguments));
+                    arguments);
     thr.detach();
 }
 
@@ -228,14 +236,18 @@ void Thread::exportAPI(sol::state_view& lua) {
     sol::stack::pop<sol::object>(lua);
 }
 
-StoredArray Thread::status(const sol::this_state& lua) {
+StoredArrayPtr Thread::status(const sol::this_state& lua) {
     const auto stat = ctx_->status();
-    if (stat == Status::Failed) {
-        assert(!ctx_->result().empty());
+    if (stat == Status::Failed)
+    {
         return ctx_->result();
-    } else {
+    }
+    else
+    {
         const sol::object luaStatus = sol::make_object(lua, statusToString(stat));
-        return StoredArray({createStoredObject(luaStatus)});
+        StoredArrayPtr arr = std::make_shared<StoredArray>();
+        arr->emplace_back(createStoredObject(luaStatus));
+        return arr;
     }
 }
 
@@ -247,19 +259,19 @@ sol::optional<std::chrono::milliseconds> toOptionalTime(const sol::optional<int>
         return sol::optional<std::chrono::milliseconds>();
 }
 
-StoredArray Thread::wait(const sol::this_state& lua,
+StoredArrayPtr Thread::wait(const sol::this_state& lua,
                                                  const sol::optional<int>& duration,
                                                  const sol::optional<std::string>& period) {
     ctx_->waitForCompletion(toOptionalTime(duration, period));
     return status(lua);
 }
 
-StoredArray Thread::get(const sol::optional<int>& duration,
+StoredArrayPtr Thread::get(const sol::optional<int>& duration,
                        const sol::optional<std::string>& period) {
     if (ctx_->waitForCompletion(toOptionalTime(duration, period)) && ctx_->status() == Status::Completed)
         return ctx_->result();
     else
-        return StoredArray();
+        return StoredArrayPtr();
 }
 
 bool Thread::cancel(const sol::this_state&,

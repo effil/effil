@@ -33,17 +33,21 @@ std::string luaTypename(const SolObject& obj) {
 }
 
 typedef std::vector<effil::StoredObject> StoredArray;
+typedef std::shared_ptr<StoredArray>     StoredArrayPtr;
 
 } // namespace effil
 
 namespace sol {
 namespace stack {
     template<>
-    struct pusher<effil::StoredArray> {
-        int push(lua_State* state, const effil::StoredArray& args) {
+    struct pusher<effil::StoredArrayPtr> {
+        int push(lua_State* state, const effil::StoredArrayPtr& args) {
+            if (args.get() == nullptr)
+                return 0;
+
             int p = 0;
-            for (const auto& i : args) {
-                p += stack::push(state, i->unpack(sol::this_state{state}));
+            for (const auto& i : *args) {
+                p += stack::push(state, i.unpack(sol::this_state{state}));
             }
             return p;
         }

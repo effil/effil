@@ -1,15 +1,18 @@
 #pragma once
 
 #include "gc-object.h"
+#include "spin-mutex.h"
 #include <sol.hpp>
-#include <mutex>
 #include <unordered_map>
-#include <unordered_set>
+#include <shared_mutex>
 
 namespace effil {
 
 class GC {
 public:
+    typedef std::unique_lock<SpinMutex> UniqueLock;
+    typedef std::shared_lock<SpinMutex> SharedLock;
+
     // global gc instance
     static GC& instance();
     static sol::table exportAPI(sol::state_view& lua);
@@ -23,25 +26,34 @@ public:
         std::unique_ptr<ViewType> object(new ViewType(std::forward<Args>(args)...));
         auto copy = *object;
 
-        std::lock_guard<std::mutex> g(lock_);
+        UniqueLock lock(lock_);
         objects_.emplace(object->handle(), std::move(object));
         return copy;
     }
 
     template <typename ObjectType>
     ObjectType get(GCHandle handle) {
-        std::lock_guard<std::mutex> g(lock_);
+        SharedLock lock(lock_);
 
         auto it = objects_.find(handle);
         assert(it != objects_.end());
 
-        auto result = dynamic_cast<ObjectType*>(it->second.get());
+        auto result = reinterpret_cast<ObjectType*>(it->second.get());
         assert(result);
         return *result;
     }
 
+    StrongRef getRef(GCHandle handle) {
+        SharedLock lock(lock_);
+
+        auto it = objects_.find(handle);
+        assert(it != objects_.end());
+
+        return it->second->ref();
+    }
+
 private:
-    mutable std::mutex lock_;
+    mutable SpinMutex lock_;
     bool enabled_;
     std::atomic<uint64_t> lastCleanup_;
     double step_;

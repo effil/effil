@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "lua-helpers.h"
 
+#include <unordered_set>
 #include <cassert>
 
 namespace effil {
@@ -17,7 +18,7 @@ GC::GC()
 // Here is the naive tri-color marking
 // garbage collecting algorithm implementation.
 void GC::collect() {
-    std::lock_guard<std::mutex> g(lock_);
+    UniqueLock g(lock_);
 
     std::unordered_set<GCHandle> grey;
     std::unordered_map<GCHandle, std::unique_ptr<BaseGCObject>> black;
@@ -48,7 +49,7 @@ void GC::collect() {
 }
 
 size_t GC::count() const {
-    std::lock_guard<std::mutex> g(lock_);
+    SharedLock g(lock_);
     return objects_.size();
 }
 

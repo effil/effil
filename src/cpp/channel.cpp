@@ -33,13 +33,13 @@ bool Channel::push(const sol::variadic_args& args) {
     std::unique_lock<std::mutex> lock(ctx_->lock_);
     if (ctx_->capacity_ && ctx_->channel_.size() >= ctx_->capacity_)
         return false;
-    StoredArray array;
+    StoredArrayPtr array = std::make_shared<StoredArray>();
     for (const auto& arg : args) {
         try {
             auto obj = createStoredObject(arg.get<sol::object>());
-            ctx_->addReference(obj->gcHandle());
-            obj->releaseStrongReference();
-            array.emplace_back(obj);
+            ctx_->addReference(obj.gcHandle());
+            obj.releaseStrongReference();
+            array->emplace_back(std::move(obj));
         }
         RETHROW_WITH_PREFIX("effil.channel:push");
     }
@@ -48,23 +48,23 @@ bool Channel::push(const sol::variadic_args& args) {
     return true;
 }
 
-StoredArray Channel::pop(const sol::optional<int>& duration,
+StoredArrayPtr Channel::pop(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
     std::unique_lock<std::mutex> lock(ctx_->lock_);
     while (ctx_->channel_.empty()) {
         if (duration) {
             if (ctx_->cv_.wait_for(lock, fromLuaTime(duration.value(), period)) == std::cv_status::timeout)
-                return StoredArray();
+                return StoredArrayPtr();
         }
         else { // No time limit
             ctx_->cv_.wait(lock);
         }
     }
 
-    auto ret = ctx_->channel_.front();
-    for (const auto& obj: ret) {
-        obj->holdStrongReference();
-        ctx_->removeReference(obj->gcHandle());
+    auto ret = std::move(ctx_->channel_.front());
+    for (auto& obj: *ret) {
+        obj.holdStrongReference();
+        ctx_->removeReference(obj.gcHandle());
     }
 
     ctx_->channel_.pop();

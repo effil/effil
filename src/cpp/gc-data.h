@@ -1,11 +1,16 @@
 #pragma once
 
 #include "spin-mutex.h"
-#include "gc-object.h"
 
 #include <unordered_set>
 
 namespace effil {
+
+// Unique handle for all objects spawned from one object.
+using GCHandle = void*;
+
+// Mock handle for non gc objects
+static const GCHandle GCNull = nullptr;
 
 // Base class for data represented in Lua.
 // Derived classes always managed by corresponding views.

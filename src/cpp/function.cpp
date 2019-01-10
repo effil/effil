@@ -14,7 +14,6 @@ Function::Function(const sol::function& luaObject) {
     sol::stack::push(state, luaObject);
 
     ctx_->function = dumpFunction(luaObject);
-    ctx_->upvalues.resize(dbgInfo.nups);
 #if LUA_VERSION_NUM > 501
     ctx_->envUpvaluePos = 0; // means no _G upvalue
 
@@ -32,26 +31,26 @@ Function::Function(const sol::function& luaObject) {
         if (gTable == sol::stack::get<sol::table>(state)) { // do not serialize _G
             sol::stack::pop<sol::object>(state);
             ctx_->envUpvaluePos = i;
+            ctx_->upvalues.emplace_back(StoredObject(sol::nil));
             continue;
         }
 #endif // LUA_VERSION_NUM > 501
 
-        StoredObject storedObject;
         try {
             const auto& upvalue = sol::stack::pop<sol::object>(state);
-            storedObject = createStoredObject(upvalue);
-            assert(storedObject.get() != nullptr);
+            auto storedObject = createStoredObject(upvalue);
+
+            if (storedObject.gcHandle() != nullptr) {
+                ctx_->addReference(storedObject.gcHandle());
+                storedObject.releaseStrongReference();
+            }
+            ctx_->upvalues.emplace_back(std::move(storedObject));
         }
         catch(const std::exception& err) {
             sol::stack::pop<sol::object>(state);
             throw effil::Exception() << "bad function upvalue #" << (int)i << " (" << err.what() << ")";
         }
 
-        if (storedObject->gcHandle() != nullptr) {
-            ctx_->addReference(storedObject->gcHandle());
-            storedObject->releaseStrongReference();
-        }
-        ctx_->upvalues[i - 1] = std::move(storedObject);
     }
     sol::stack::pop<sol::object>(state);
 }
@@ -69,9 +68,8 @@ sol::object Function::loadFunction(lua_State* state) {
             continue;
         }
 #endif // LUA_VERSION_NUM > 501
-        assert(ctx_->upvalues[i].get() != nullptr);
 
-        const auto& obj = ctx_->upvalues[i]->unpack(sol::this_state{state});
+        const auto& obj = ctx_->upvalues[i].unpack(sol::this_state{state});
         sol::stack::push(state, obj);
         lua_setupvalue(state, -2, i + 1);
     }

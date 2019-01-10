@@ -14,16 +14,19 @@ typedef std::shared_lock<SpinMutex> SharedLock;
 
 template<typename SolObject>
 bool isSharedTable(const SolObject& obj) {
-    return obj.valid() && obj.get_type() == sol::type::userdata && obj.template is<SharedTable>();
+    return obj.template is<SharedTable>();
 }
 
 template<typename SolObject>
 bool isAnyTable(const SolObject& obj) {
-    return obj.valid() && ((obj.get_type() == sol::type::userdata && obj.template is<SharedTable>()) || obj.get_type() == sol::type::table);
+    return obj.get_type() == sol::type::table || obj.template is<SharedTable>();
 }
 
 } // namespace
 
+void SharedTable::reserve(size_t size) {
+    ctx_->entries.reserve(size);
+}
 void SharedTable::exportAPI(sol::state_view& lua) {
     sol::usertype<SharedTable> type("new", sol::no_constructor,
         "__pairs",  &SharedTable::luaPairs,
@@ -52,13 +55,24 @@ void SharedTable::exportAPI(sol::state_view& lua) {
 void SharedTable::set(StoredObject&& key, StoredObject&& value) {
     UniqueLock g(ctx_->lock);
 
-    ctx_->addReference(key->gcHandle());
-    ctx_->addReference(value->gcHandle());
+    if (key.gcHandle() != GCNull) {
+        ctx_->addReference(key.gcHandle());
+        key.releaseStrongReference();
+    }
+    if (value.gcHandle() != GCNull) {
+        ctx_->addReference(value.gcHandle());
+        value.releaseStrongReference();
+    }
 
-    key->releaseStrongReference();
-    value->releaseStrongReference();
 
-    ctx_->entries[std::move(key)] = std::move(value);
+    const auto iter = ctx_->entries.find(key);
+    if (iter != ctx_->entries.end()) {
+        const auto hint = ctx_->entries.erase(iter);
+        ctx_->entries.emplace_hint(hint, std::move(key), std::move(value));
+    }
+    else {
+        ctx_->entries.emplace_hint(iter, std::move(key), std::move(value));
+    }
 }
 
 sol::object SharedTable::get(const StoredObject& key, sol::this_state state) const {
@@ -67,7 +81,7 @@ sol::object SharedTable::get(const StoredObject& key, sol::this_state state) con
     if (val == ctx_->entries.end()) {
         return sol::nil;
     } else {
-        return val->second->unpack(state);
+        return val->second.unpack(state);
     }
 }
 
@@ -81,11 +95,10 @@ void SharedTable::rawSet(const sol::stack_object& luaKey, const sol::stack_objec
         // in this case object is not obligatory to own data
         auto it = ctx_->entries.find(key);
         if (it != ctx_->entries.end()) {
-            ctx_->removeReference(it->first->gcHandle());
-            ctx_->removeReference(it->second->gcHandle());
+            ctx_->removeReference(it->first.gcHandle());
+            ctx_->removeReference(it->second.gcHandle());
             ctx_->entries.erase(it);
         }
-
     } else {
         set(std::move(key), createStoredObject(luaValue));
     }
@@ -182,20 +195,20 @@ sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_sta
     } RETHROW_WITH_PREFIX("effil.table");
 }
 
-StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
+StoredArrayPtr SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {
     SharedLock lock(ctx_->lock);
     if (ctx_->metatable != GCNull) {
         auto metatable = GC::instance().get<SharedTable>(ctx_->metatable);
         sol::function handler = metatable.get(createStoredObject(std::string("__call")), state);
         lock.unlock();
         if (handler.valid()) {
-            StoredArray storedResults;
+            StoredArrayPtr storedResults = std::make_shared<StoredArray>();
             const int savedStackTop = lua_gettop(state);
             sol::function_result callResults = handler(*this, args);
             (void)callResults;
             sol::variadic_args funcReturns(state, savedStackTop - lua_gettop(state));
             for (const auto& param : funcReturns)
-                storedResults.emplace_back(createStoredObject(param.get<sol::object>()));
+                storedResults->emplace_back(createStoredObject(param.get<sol::object>()));
             return storedResults;
         }
     }
@@ -211,31 +224,31 @@ sol::object SharedTable::luaToString(sol::this_state state) {
 
 sol::object SharedTable::luaLength(sol::this_state state) {
     DEFFINE_METAMETHOD_CALL_0("__len");
+
     SharedLock g(ctx_->lock);
-    size_t len = 0u;
-    sol::optional<LUA_INDEX_TYPE> value;
-    auto iter = ctx_->entries.find(createStoredObject(static_cast<LUA_INDEX_TYPE>(1)));
-    if (iter != ctx_->entries.end()) {
-        do {
-            ++len;
-            ++iter;
-        } while ((iter != ctx_->entries.end()) && (value = storedObjectToIndexType(iter->first)) &&
-                 (static_cast<size_t>(value.value()) == len + 1));
+    LUA_INDEX_TYPE index = 1;
+    while (ctx_->entries.find(createStoredObject(index)) != ctx_->entries.end())
+    {
+        ++index;
     }
-    return sol::make_object(state, len);
+    return sol::make_object(state, index - 1);
 }
 
 SharedTable::PairsIterator SharedTable::getNext(const sol::object& key, sol::this_state lua) {
     SharedLock g(ctx_->lock);
     if (key) {
-        auto obj = createStoredObject(key);
-        auto upper = ctx_->entries.upper_bound(obj);
-        if (upper != ctx_->entries.end())
-            return PairsIterator(upper->first->unpack(lua), upper->second->unpack(lua));
+        const auto obj = createStoredObject(key);
+        const auto curr = ctx_->entries.find(obj);
+        if (curr != ctx_->entries.end()) {
+            const auto next = std::next(curr);
+            if (next != ctx_->entries.end()) {
+                return PairsIterator(next->first.unpack(lua), next->second.unpack(lua));
+            }
+        }
     } else {
         if (!ctx_->entries.empty()) {
             const auto& begin = ctx_->entries.begin();
-            return PairsIterator(begin->first->unpack(lua), begin->second->unpack(lua));
+            return PairsIterator(begin->first.unpack(lua), begin->second.unpack(lua));
         }
     }
     return PairsIterator(sol::nil, sol::nil);
@@ -255,7 +268,7 @@ std::pair<sol::object, sol::object> ipairsNext(sol::this_state lua, SharedTable 
     sol::object value = table.get(objKey, lua);
     if (!value.valid())
         return std::pair<sol::object, sol::object>(sol::nil, sol::nil);
-    return std::pair<sol::object, sol::object>(objKey->unpack(lua), value);
+    return std::pair<sol::object, sol::object>(objKey.unpack(lua), value);
 }
 
 SharedTable::PairsIterator SharedTable::luaIPairs(sol::this_state state) {
@@ -272,7 +285,7 @@ SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol
     REQUIRE(isAnyTable(tbl)) << "bad argument #1 to 'effil.setmetatable' (table expected, got " << luaTypename(tbl) << ")";
     REQUIRE(isAnyTable(mt)) << "bad argument #2 to 'effil.setmetatable' (table expected, got " << luaTypename(mt) << ")";
 
-    SharedTable stable = GC::instance().get<SharedTable>(createStoredObject(tbl)->gcHandle());
+    SharedTable stable = GC::instance().get<SharedTable>(createStoredObject(tbl).gcHandle());
 
     UniqueLock lock(stable.ctx_->lock);
     if (stable.ctx_->metatable != GCNull) {
@@ -281,7 +294,7 @@ SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol
     }
 
     const auto mtObj = createStoredObject(mt);
-    stable.ctx_->metatable = mtObj->gcHandle();
+    stable.ctx_->metatable = mtObj.gcHandle();
     stable.ctx_->addReference(stable.ctx_->metatable);
 
     return stable;
@@ -331,6 +344,21 @@ SharedTable::PairsIterator SharedTable::globalLuaIPairs(sol::this_state state, c
     REQUIRE(isSharedTable(obj)) << "bad argument #1 to 'effil.ipairs' (effil.table expected, got " << luaTypename(obj) << ")";
     auto& tbl = obj.as<SharedTable>();
     return tbl.luaIPairs(state);
+}
+
+void SharedTable::luaReserve(const sol::stack_object& tbl, const sol::stack_object& size) {
+    REQUIRE(isSharedTable(tbl)) << "bad argument #1 to 'effil.reserve' "
+                                << "(effil.table expected, got "
+                                << luaTypename(tbl) << ")";
+    REQUIRE(size.is<int>()) << "bad argument #2 to 'effil.reserve' "
+                            << "(number expected, got " << luaTypename(tbl) << ")";
+    try {
+        const auto newSize = size.as<int>();
+        REQUIRE(newSize > 0) << "size should be > 0, got " << newSize;
+
+        auto& stable = tbl.as<SharedTable>();
+        stable.reserve(size.as<int>());
+    } RETHROW_WITH_PREFIX("effil.reserve");
 }
 
 #undef DEFFINE_METAMETHOD_CALL_0

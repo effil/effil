@@ -73,7 +73,7 @@ public:
 
     Status status() { return status_; }
 
-    StoredArray& result() { return result_; }
+    StoredArrayPtr& result() { return result_; }
 
 private:
     Status status_;
@@ -82,7 +82,7 @@ private:
     Notifier commandNotifier_;
     Notifier completionNotifier_;
     std::mutex stateLock_;
-    StoredArray result_;
+    StoredArrayPtr result_;
 
     std::unique_ptr<sol::state> lua_;
 };
@@ -91,11 +91,11 @@ class Thread : public GCObject<ThreadHandle> {
 public:
     static void exportAPI(sol::state_view& lua);
 
-    StoredArray status(const sol::this_state& state);
-    StoredArray wait(const sol::this_state& state,
+    StoredArrayPtr status(const sol::this_state& state);
+    StoredArrayPtr wait(const sol::this_state& state,
                      const sol::optional<int>& duration,
                      const sol::optional<std::string>& period);
-    StoredArray get(const sol::optional<int>& duration,
+    StoredArrayPtr get(const sol::optional<int>& duration,
                    const sol::optional<std::string>& period);
     bool cancel(const sol::this_state& state,
                 const sol::optional<int>& duration,
@@ -114,7 +114,7 @@ private:
     friend class GC;
 
 private:
-    static void runThread(Thread, Function, effil::StoredArray);
+    static void runThread(Thread, Function, effil::StoredArrayPtr);
 };
 
 } // effil

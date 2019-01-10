@@ -9,7 +9,7 @@
 
 #include <sol.hpp>
 
-#include <map>
+#include <unordered_map>
 #include <memory>
 
 namespace effil {
@@ -17,7 +17,8 @@ namespace effil {
 
 class SharedTableData : public GCData {
 public:
-    using DataEntries = std::map<StoredObject, StoredObject, StoredObjectLess>;
+    using DataEntries = std::unordered_map<StoredObject,
+                StoredObject, StoredObjectHash>;
 public:
     SpinMutex lock;
     DataEntries entries;
@@ -31,6 +32,7 @@ private:
 public:
     static void exportAPI(sol::state_view& lua);
 
+    void reserve(size_t size);
     void set(StoredObject&&, StoredObject&&);
     void rawSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);
     sol::object get(const StoredObject& key, sol::this_state state) const;
@@ -45,7 +47,7 @@ public:
     sol::object luaLength(sol::this_state state);
     PairsIterator luaPairs(sol::this_state);
     PairsIterator luaIPairs(sol::this_state);
-    StoredArray luaCall(sol::this_state state, const sol::variadic_args& args);
+    StoredArrayPtr luaCall(sol::this_state state, const sol::variadic_args& args);
     sol::object luaUnm(sol::this_state);
     static sol::object luaAdd(sol::this_state, const sol::stack_object&, const sol::stack_object&);
     static sol::object luaSub(sol::this_state, const sol::stack_object&, const sol::stack_object&);
@@ -66,6 +68,7 @@ public:
     static size_t luaSize(const sol::stack_object& tbl);
     static PairsIterator globalLuaPairs(sol::this_state state, const sol::stack_object& obj);
     static PairsIterator globalLuaIPairs(sol::this_state state, const sol::stack_object& obj);
+    static void luaReserve(const sol::stack_object& tbl, const sol::stack_object& size);
 
 private:
     PairsIterator getNext(const sol::object& key, sol::this_state lua);
