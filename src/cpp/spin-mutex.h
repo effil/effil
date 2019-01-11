@@ -1,5 +1,7 @@
 #pragma once
 
+#include "sol.hpp"
+
 #include <atomic>
 #include <thread>
 
@@ -7,41 +9,29 @@ namespace effil {
 
 class SpinMutex {
 public:
-    void lock() noexcept {
-        while (lock_.exchange(true, std::memory_order_acquire)) {
-            std::this_thread::yield();
-        }
-        while (counter_ != 0) {
-            std::this_thread::yield();
-        }
-    }
+    void lock() noexcept;
+    bool try_lock() noexcept;
+    void unlock() noexcept;
 
-    void unlock() noexcept {
-        lock_.exchange(false, std::memory_order_release);
-    }
-
-    void lock_shared() noexcept {
-        while (true) {
-            while (lock_) {
-                std::this_thread::yield();
-            }
-
-            counter_.fetch_add(1, std::memory_order_acquire);
-
-            if (lock_)
-                counter_.fetch_sub(1, std::memory_order_release);
-            else
-                return;
-        }
-    }
-
-    void unlock_shared() noexcept {
-        counter_.fetch_sub(1, std::memory_order_release);
-    }
+    void lock_shared() noexcept;
+    bool try_lock_shared() noexcept;
+    void unlock_shared() noexcept;
 
 private:
     std::atomic_int counter_ {0};
     std::atomic_bool lock_ {false};
 };
+
+namespace mutex {
+
+void uniqueLock(const sol::stack_object& objMutex, const sol::stack_object& objFunc);
+void sharedLock(const sol::stack_object& objMutex, const sol::stack_object& objFunc);
+
+bool tryUniqueLock(const sol::stack_object& objMutex,
+                   const sol::stack_object& objFunc);
+bool trySharedLock(const sol::stack_object& objMutex,
+                   const sol::stack_object& objFunc);
+
+} // mutex
 
 } // effil

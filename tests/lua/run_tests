@@ -22,6 +22,7 @@ require "type_mismatch"
 require "upvalues"
 require "dump_table"
 require "function"
+require "mutex"
 
 if os.getenv("STRESS") then
     require "channel-stress"
