@@ -9,6 +9,7 @@ namespace effil {
 class SharedTable;
 class Channel;
 class Thread;
+class SpinMutex;
 
 std::string dumpFunction(const sol::function& f);
 sol::function loadString(const sol::state_view& lua, const std::string& str,
@@ -24,6 +25,8 @@ std::string luaTypename(const SolObject& obj) {
             return "effil.channel";
         else if (obj.template is<Thread>())
             return "effil.thread";
+        else if (obj.template is<SpinMutex>())
+            return "effil.mutex";
         else
             return "userdata";
     }

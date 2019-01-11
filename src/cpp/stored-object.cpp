@@ -168,6 +168,8 @@ void dumpTable(SharedTable& target, const sol::table& luaTable, SolTableToShared
     }
 }
 
+typedef std::shared_ptr<SpinMutex> MutexPtr;
+
 template <typename SolObject>
 StoredObject fromSolObject(const SolObject& luaObject, SolTableToShared& visited) {
     switch (luaObject.get_type()) {
@@ -205,6 +207,8 @@ StoredObject fromSolObject(const SolObject& luaObject, SolTableToShared& visited
                 return std::make_unique<ApiReferenceHolder>();
             else if (luaObject.template is<ThreadRunner>())
                 return std::make_unique<GCObjectHolder<ThreadRunner>>(luaObject);
+            else if (luaObject.template is<MutexPtr>())
+                return std::make_unique<PrimitiveHolder<MutexPtr>>(luaObject);
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
