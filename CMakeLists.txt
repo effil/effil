@@ -43,11 +43,11 @@ FILE(GLOB LUA_SOURCES src/lua/*.lua)
 add_library(effil SHARED ${SOURCES})
 target_link_libraries(effil ${LUA_LIBRARY})
 if (WIN32)
+    target_link_libraries(effil legacy_stdio_definitions.lib)  
     set_target_properties(effil PROPERTIES
         PREFIX ""
         SUFFIX .dll)
 else()
-    target_link_libraries(effil -lpthread -ldl)
     set_target_properties(effil PROPERTIES
         PREFIX ""
         SUFFIX .so)
