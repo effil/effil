@@ -12,7 +12,7 @@
 | ------------- | ------- |
 | [![Build Status](https://travis-ci.org/effil/effil.svg?branch=master)](https://travis-ci.org/effil/effil) | [![Build status](https://ci.appveyor.com/api/projects/status/ji0l9lbs17djgm8w/branch/master?svg=true)](https://ci.appveyor.com/project/mihacooper/effil/branch/master) |
 
-Effil is a lua module for multithreading support.
+Effil is a library implements multithreading for Lua.
 It allows to spawn native threads and safe data exchange.
 Effil has been designed to provide clear and simple API for lua developers.
 
@@ -205,7 +205,7 @@ Thread result: 3
 # Important notes
 Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`.
  - Primitive types are transmitted 'as is' by copy: `nil`, `boolean`, `number`, `string`
- - Functions are dumped using [`string.dump`](#https://www.lua.org/manual/5.3/manual.html#pdf-string.dump) and currently **it does not support upvalues**
+ - Functions are dumped using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump). All function's upvalues will be captured following the rules of [upvalues support](#upvalues-support).
  - **Userdata and Lua threads (coroutines)** are not supported.
  - Tables are serialized to `effil.table` recursively. So, any Lua table becomes `effil.table`. Table serialization may take a lot of time for big table. Thus, it's better to put data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
 ```Lua
@@ -231,13 +231,13 @@ In the example #1 we create regular table, fill it and convert it to `effil.tabl
 All operation with threads can be synchronous (with optional timeout) or asynchronous.
 Each thread runs with its own lua state.
 
-**Do not run function with upvalues in** `effil.thread`. Use `effil.table` and `effil.channel` to transmit data over threads.
+Use `effil.table` and `effil.channel` to transmit data over threads.
 See example of thread usage [here](#examples).
 
 ### `runner = effil.thread(func)`
 Creates thread runner. Runner spawns new thread for each invocation. 
 
-**input**: *func* - any Lua function without upvalues
+**input**: *func* - Lua function
 
 **output**: *runner* - [thread runner](#thread-runner) object to configure and run a new thread
 
@@ -260,12 +260,13 @@ Number of lua instructions lua between cancelation points (where thread can be s
 ## Thread handle
 Thread handle provides API for interaction with thread.
 
-### `status, err = thread:status()`
+### `status, err, stacktrace = thread:status()`
 Returns thread status.
 
 **output**:
 - `status` - string values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`.
 - `err` - error message, if any. This value is specified only if thread status == `"failed"`.
+- `stacktrace` - stacktrace of failed thread. This value is specified only if thread status == `"failed"`.
 
 ### `... = thread:get(time, metric)`
 Waits for thread completion and returns function result or nothing in case of error.
@@ -325,7 +326,7 @@ All operations with shared table are thread safe. **Shared table stores** primit
 
 Use **Shared tables with regular tables**. If you want to store regular table in shared table, effil will implicitly dump origin table into new shared table. **Shared tables always stores subtables as shared tables.**
 
-Use **Shared tables with functions**. If you want to store function in shared table, effil will implicitly dump this function and saves it in internal representation as string. Thus, all upvalues will be lost. **Do not store function with upvalues in shared tables**.
+Use **Shared tables with functions**. If you store function in shared table, effil implicitly dumps this function and saves it in internal representation as string. All function's upvalues will be captured following the rules of [upvalues support](#upvalues-support).
 
 ### `table = effil.table(tbl)`
 Creates new **empty** shared table.
@@ -444,15 +445,16 @@ effil.type(effil.channel() == "effil.channel"
 ```
 
 ## Garbage collector
-Effil provides custom garbage collector for `effil.table` and `effil.channel`. It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
+Effil provides custom garbage collector for `effil.table` and `effil.channel` (and internal function representation). It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
 
 ### Garbage collection trigger
-Garbage collection may occur with new effil object creation (table or channel).
-Frequency of triggering configured by GC step.
-For example, if Gc step is 200, then each 200'th object creation trigger GC.    
+Garbage collector perform it's work when effil creates new shared object (table, channel or internal function representation).
+Each iteration GC checks amount of objects. If amount of allocated objects becomes higher then specific threshold value GC starts collecting of gabage. Threshold value is being calculated as `previous_count * coeff`, where `previous_count` - amount of objects on previous iteration (**100** by default) and `coeff` is a numerical coefficient specified by user (**2.0** by default).
+
+For example: if GC `coeff` is `2.0` and amount of allocated objects is `120` (left after previous GC iteration) then GC will starts collect garbage when amount of allocated objects will be equal to`240`.
 
 ### How to cleanup all dereferenced objects 
-Each thread represented as separate state with own garbage collector.
+Each thread represented as separate Lua state with own garbage collector.
 Thus, objects will be deleted eventually.
 Effil objects itself also managed by GC and uses `__gc` userdata metamethod as deserializer hook.
 To force objects deletion:
@@ -467,8 +469,8 @@ Show number of allocated shared tables and channels.
 
 **output**: returns current number of allocated objects. Minimum value is 1, `effil.G` is always present. 
 
-### `old_value = effil.gc.step(new_value)`
-Get/set GC step. Default is `200`.
+### `old_value = effil.gc.coeff(new_value)`
+Get/set GC memory coefficient. Default is `2.0`. GC triggers collecting when amount of allocated objects growth in `coeff` times.
 
 **input**: `new_value` is optional value of step to set. If it's `nil` then function will just return a current value.
 
@@ -487,7 +489,7 @@ Get GC state.
 
 ## Time metrics:
 All operations which use time metrics can be blocking or non blocking and use following API:
-`(time, metric)` where `metric` is time interval like and `time` is a number of intervals.
+`(time, metric)` where `metric` is time interval like `'s'` (seconds) and `time` is a number of intervals.
 
 Example:
 - `thread:get()` - infinitely wait for thread completion.
@@ -499,3 +501,6 @@ List of available time intervals:
 - `s` - seconds (default);
 - `m` - minutes;
 - `h` - hours.
+
+## Upvalues support
+Working with functions Effil serializes and deserializes them using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump) and [`lua_load`](#https://www.lua.org/manual/5.3/manual.html#lua_load) methods.
