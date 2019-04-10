@@ -67,6 +67,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [effil.gc.resume()](#effilgcresume)
       * [effil.gc.enabled()](#enabled--effilgcenabled)
     * [Time metrics](#time-metrics)
+    * [Function's upvalues](#functions-upvalues)
 
 # How to install
 ### Build from src on Linux and Mac
