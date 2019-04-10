@@ -205,7 +205,7 @@ Thread result: 3
 # Important notes
 Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`.
  - Primitive types are transmitted 'as is' by copy: `nil`, `boolean`, `number`, `string`
- - Functions are dumped using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump). All function's upvalues will be captured following the rules of [upvalues support](#upvalues-support).
+ - Functions are dumped using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump). All function's upvalues will be captured following the rules of [upvalues support](#functions-upvalues).
  - **Userdata and Lua threads (coroutines)** are not supported.
  - Tables are serialized to `effil.table` recursively. So, any Lua table becomes `effil.table`. Table serialization may take a lot of time for big table. Thus, it's better to put data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
 ```Lua
@@ -326,7 +326,7 @@ All operations with shared table are thread safe. **Shared table stores** primit
 
 Use **Shared tables with regular tables**. If you want to store regular table in shared table, effil will implicitly dump origin table into new shared table. **Shared tables always stores subtables as shared tables.**
 
-Use **Shared tables with functions**. If you store function in shared table, effil implicitly dumps this function and saves it in internal representation as string. All function's upvalues will be captured following the rules of [upvalues support](#upvalues-support).
+Use **Shared tables with functions**. If you store function in shared table, effil implicitly dumps this function and saves it in internal representation as string. All function's upvalues will be captured following the rules of [upvalues support](#functions-upvalues).
 
 ### `table = effil.table(tbl)`
 Creates new **empty** shared table.
@@ -502,5 +502,10 @@ List of available time intervals:
 - `m` - minutes;
 - `h` - hours.
 
-## Upvalues support
-Working with functions Effil serializes and deserializes them using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump) and [`lua_load`](#https://www.lua.org/manual/5.3/manual.html#lua_load) methods.
+## Function's upvalues
+Working with functions Effil serializes and deserializes them using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump) and [`lua_load`](#https://www.lua.org/manual/5.3/manual.html#lua_load) methods. All function's upvalues are stored following the same [rules](#important-notes) as usual. If function has **upvalue of unsupported type** this function cannot be transmitted to Effil. You will get error in that case.
+
+### Function environment
+Working with function Effil can store function environment (`_ENV`) as well. Considering environment as a regular table Effil will store it in the same way as any other table. But it does not make sence to store global `_G`, so there are some specific:
+ * *Lua = 5.1*: function environment is not stored at all (due to limitations of lua_setfenv we cannot use userdata)
+ * *Lua > 5.1*: Effil serialize and store function environment only if it's not equal to global environment (`_ENV ~= _G`).
