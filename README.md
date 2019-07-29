@@ -62,7 +62,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
     * [Garbage collector](#garbage-collector)
       * [effil.gc.collect()](#effilgccollect)
       * [effil.gc.count()](#count--effilgccount)
-      * [effil.gc.coeff()](#old_value--effilgccoeffnew_value)
+      * [effil.gc.step()](#old_value--effilgcstepnew_value)
       * [effil.gc.pause()](#effilgcpause)
       * [effil.gc.resume()](#effilgcresume)
       * [effil.gc.enabled()](#enabled--effilgcenabled)
@@ -457,9 +457,9 @@ Effil provides custom garbage collector for `effil.table` and `effil.channel` (a
 
 ### Garbage collection trigger
 Garbage collector perform it's work when effil creates new shared object (table, channel or internal function representation).
-Each iteration GC checks amount of objects. If amount of allocated objects becomes higher then specific threshold value GC starts gabage collecting. Threshold value is calculated as `previous_count * coeff`, where `previous_count` - amount of objects on previous iteration (**100** by default) and `coeff` is a numerical coefficient specified by user (**2.0** by default).
+Each iteration GC checks amount of objects. If amount of allocated objects becomes higher then specific threshold value GC starts garbage collecting. Threshold value is calculated as `previous_count * step`, where `previous_count` - amount of objects on previous iteration (**100** by default) and `step` is a numerical coefficient specified by user (**2.0** by default).
 
-For example: if GC `coeff` is `2.0` and amount of allocated objects is `120` (left after previous GC iteration) then GC will start to collect garbage when amount of allocated objects will be equal to`240`.
+For example: if GC `step` is `2.0` and amount of allocated objects is `120` (left after previous GC iteration) then GC will start to collect garbage when amount of allocated objects will be equal to`240`.
 
 ### How to cleanup all dereferenced objects 
 Each thread represented as separate Lua state with own garbage collector.
@@ -477,8 +477,8 @@ Show number of allocated shared tables and channels.
 
 **output**: returns current number of allocated objects. Minimum value is 1, `effil.G` is always present. 
 
-### `old_value = effil.gc.coeff(new_value)`
-Get/set GC memory coefficient. Default is `2.0`. GC triggers collecting when amount of allocated objects growth in `coeff` times.
+### `old_value = effil.gc.step(new_value)`
+Get/set GC memory step multiplier. Default is `2.0`. GC triggers collecting when amount of allocated objects growth in `step` times.
 
 **input**: `new_value` is optional value of step to set. If it's `nil` then function will just return a current value.
 
