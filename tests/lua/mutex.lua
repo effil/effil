@@ -12,7 +12,7 @@ test.mutex.locking = function()
         while not tbl.start do end
 
         for i = 1, 1000 do
-            effil.unique_lock(m, function()
+            m:unique_lock(function()
                 if inc then
                     tbl.val = tbl.val + 1
                 else
@@ -32,7 +32,7 @@ test.mutex.locking = function()
 end
 
 local function try_lock(m, lock_type)
-    return effil['try_' .. lock_type .. '_lock'](m, function() end)
+    return m['try_' .. lock_type .. '_lock'](m, function() end)
 end
 
 local function lock(m, lock_type)
@@ -45,7 +45,7 @@ local function lock(m, lock_type)
     end
 
     ctl.thread = effil.thread(function()
-        effil[lock_type .. '_lock'](m, function()
+        m[lock_type .. '_lock'](m, function()
             state.on_lock = true
             while state.do_lock do end
         end)
@@ -95,9 +95,9 @@ end
 test.mutex.error_under_lock = function()
     local m = effil.mutex()
 
-    local ret = pcall(effil.unique_lock, m, function()
+    local ret = pcall(m.unique_lock, m, function()
         error('wow')
     end)
     test.is_false(ret)
-    test.is_true(effil.try_unique_lock(m, function()end))
+    test.is_true(m:try_unique_lock(function()end))
 end

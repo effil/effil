@@ -60,86 +60,78 @@ void SpinMutex::unlock_shared() noexcept {
     counter_.fetch_sub(1, std::memory_order_release);
 }
 
-namespace mutex {
+void SpinMutex::luaUniqueLock(const sol::stack_object& clbk) {
+    REQUIRE(clbk.get_type() == sol::type::function)
+            << "bad argument #1 to 'mutex.unique_lock' (function expected, got "
+            << luaTypename(clbk) << ")";
 
-void uniqueLock(const sol::stack_object& objMutex,
-                const sol::stack_object& objFunc) {
-    REQUIRE(objMutex.is<SpinMutex>())
-            << "bad argument #1 to 'effil.unique_lock' (mutex expected, got "
-            << luaTypename(objMutex) << ")";
-    REQUIRE(objFunc.get_type() == sol::type::function)
-            << "bad argument #2 to 'effil.unique_lock' (function expected, got "
-            << luaTypename(objFunc) << ")";
-    auto& mutex = objMutex.as<SpinMutex>();
-    const auto& func = objFunc.as<sol::protected_function>();
+    const auto& func = clbk.as<sol::protected_function>();
 
-    mutex.lock();
-    ScopeGuard g([&mutex](){ mutex.unlock(); });
+    lock();
+    ScopeGuard g([this](){ unlock(); });
     const auto ret = func();
     if (!ret.valid())
         throw ret.get<sol::error>();
 }
 
-void sharedLock(const sol::stack_object& objMutex,
-                const sol::stack_object& objFunc) {
-    REQUIRE(objMutex.is<SpinMutex>())
-            << "bad argument #1 to 'effil.shared_lock' (mutex expected, got "
-            << luaTypename(objMutex) << ")";
-    REQUIRE(objFunc.get_type() == sol::type::function)
-            << "bad argument #2 to 'effil.shared_lock' (function expected, got "
-            << luaTypename(objFunc) << ")";
-    auto& mutex = objMutex.as<SpinMutex>();
-    const auto& func = objFunc.as<sol::function>();
+void SpinMutex::luaSharedLock(const sol::stack_object& clbk) {
+    REQUIRE(clbk.get_type() == sol::type::function)
+            << "bad argument #1 to 'mutex.shared_lock' (function expected, got "
+            << luaTypename(clbk) << ")";
 
-    mutex.lock_shared();
-    ScopeGuard g([&mutex](){ mutex.unlock_shared(); });
+    const auto& func = clbk.as<sol::protected_function>();
+
+    lock_shared();
+    ScopeGuard g([this](){ unlock_shared(); });
     const auto ret = func();
     if (!ret.valid())
         throw ret.get<sol::error>();
+
 }
 
-bool tryUniqueLock(const sol::stack_object& objMutex,
-                   const sol::stack_object& objFunc) {
-    REQUIRE(objMutex.is<SpinMutex>())
-            << "bad argument #1 to 'effil.try_unique_lock' (mutex expected, got "
-            << luaTypename(objMutex) << ")";
-    REQUIRE(objFunc.get_type() == sol::type::function)
-            << "bad argument #2 to 'effil.try_unique_lock' (function expected, got "
-            << luaTypename(objFunc) << ")";
-    auto& mutex = objMutex.as<SpinMutex>();
-    const auto& func = objFunc.as<sol::function>();
+bool SpinMutex::luaTryUniqueLock(const sol::stack_object& clbk) {
+    REQUIRE(clbk.get_type() == sol::type::function)
+            << "bad argument #1 to 'mutex.try_unique_lock' (function expected, got "
+            << luaTypename(clbk) << ")";
 
-    if (!mutex.try_lock())
+    const auto& func = clbk.as<sol::protected_function>();
+
+    if (!try_lock())
         return false;
 
-    ScopeGuard g([&mutex](){ mutex.unlock(); });
+    ScopeGuard g([this](){ unlock(); });
     const auto ret = func();
     if (!ret.valid())
         throw ret.get<sol::error>();
     return true;
 }
 
-bool trySharedLock(const sol::stack_object& objMutex,
-                   const sol::stack_object& objFunc) {
-    REQUIRE(objMutex.is<SpinMutex>())
-            << "bad argument #1 to 'effil.try_shared_lock' (mutex expected, got "
-            << luaTypename(objMutex) << ")";
-    REQUIRE(objFunc.get_type() == sol::type::function)
-            << "bad argument #2 to 'effil.try_shared_lock' (function expected, got "
-            << luaTypename(objFunc) << ")";
-    auto& mutex = objMutex.as<SpinMutex>();
-    const auto& func = objFunc.as<sol::function>();
+bool SpinMutex::luaTrySharedLock(const sol::stack_object& clbk) {
+    REQUIRE(clbk.get_type() == sol::type::function)
+            << "bad argument #1 to 'mutex.try_shared_lock' (function expected, got "
+            << luaTypename(clbk) << ")";
 
-    if (!mutex.try_lock_shared())
+    const auto& func = clbk.as<sol::protected_function>();
+
+    if (!try_lock_shared())
         return false;
 
-    ScopeGuard g([&mutex](){ mutex.unlock_shared(); });
+    ScopeGuard g([this](){ unlock_shared(); });
     const auto ret = func();
     if (!ret.valid())
         throw ret.get<sol::error>();
     return true;
 }
 
-} // mutex
+void SpinMutex::exportAPI(sol::state_view& lua) {
+    sol::usertype<SpinMutex> type("new", sol::no_constructor,
+        "unique_lock",  &SpinMutex::luaUniqueLock,
+        "shared_lock",  &SpinMutex::luaSharedLock,
+        "try_unique_lock", &SpinMutex::luaTryUniqueLock,
+        "try_shared_lock", &SpinMutex::luaTrySharedLock
+    );
+    sol::stack::push(lua, type);
+    sol::stack::pop<sol::object>(lua);
+}
 
 } // effil

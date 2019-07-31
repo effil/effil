@@ -17,21 +17,17 @@ public:
     bool try_lock_shared() noexcept;
     void unlock_shared() noexcept;
 
+    /// Lua API methods
+    void luaUniqueLock(const sol::stack_object& clbk);
+    void luaSharedLock(const sol::stack_object& clbk);
+    bool luaTryUniqueLock(const sol::stack_object& clbk);
+    bool luaTrySharedLock(const sol::stack_object& objMutex);
+
+    static void exportAPI(sol::state_view& lua);
+
 private:
     std::atomic_int counter_ {0};
     std::atomic_bool lock_ {false};
 };
-
-namespace mutex {
-
-void uniqueLock(const sol::stack_object& objMutex, const sol::stack_object& objFunc);
-void sharedLock(const sol::stack_object& objMutex, const sol::stack_object& objFunc);
-
-bool tryUniqueLock(const sol::stack_object& objMutex,
-                   const sol::stack_object& objFunc);
-bool trySharedLock(const sol::stack_object& objMutex,
-                   const sol::stack_object& objFunc);
-
-} // mutex
 
 } // effil
