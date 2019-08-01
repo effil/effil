@@ -23,7 +23,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
 * [How to install](#how-to-install)
 * [Quick guide](#quick-guide)
 * [Important notes](#important-notes)
-* [Time metrics](#time-metrics)
+* [Blocking and nonblocking operations](#blocking-and-nonblocking-operations)
 * [Function's upvalues](#functions-upvalues)
 * [API Reference](#api-reference)
    * [Thread](#thread)
@@ -207,7 +207,7 @@ Thread result: 3
 # Important notes
 Effil allows to transmit data between threads (Lua interpreter states) using `effil.channel`, `effil.table` or directly as parameters of `effil.thread`.
  - Primitive types are transmitted 'as is' by copy: `nil`, `boolean`, `number`, `string`
- - Functions are dumped using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump). All function's upvalues will be captured following [these rules](#functions-upvalues).
+ - Functions are dumped using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump). Upvalues are captured according to [the rules](#functions-upvalues).
  - **Userdata and Lua threads (coroutines)** are not supported.
  - Tables are serialized to `effil.table` recursively. So, any Lua table becomes `effil.table`. Table serialization may take a lot of time for big table. Thus, it's better to put data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
 ```Lua
@@ -226,7 +226,7 @@ end
 ```
 In the example #1 we create regular table, fill it and convert it to `effil.table`. In this case Effil needs to go through all table fields one more time. Another way is example #2 where we firstly created `effil.table` and after that we put data directly to `effil.table`. The 2nd way pretty much faster try to follow this principle.
 
-## Time metrics:
+## Blocking and nonblocking operations:
 All operations which use time metrics can be blocking or non blocking and use following API:
 `(time, metric)` where `metric` is time interval like `'s'` (seconds) and `time` is a number of intervals.
 
@@ -244,7 +244,6 @@ List of available time intervals:
 ## Function's upvalues
 Working with functions Effil serializes and deserializes them using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump) and [`lua_load`](#https://www.lua.org/manual/5.3/manual.html#lua_load) methods. All function's upvalues are stored following the same [rules](#important-notes) as usual. If function has **upvalue of unsupported type** this function cannot be transmitted to Effil. You will get error in that case.
 
-### Function environment
 Working with function Effil can store function environment (`_ENV`) as well. Considering environment as a regular table Effil will store it in the same way as any other table. But it does not make sence to store global `_G`, so there are some specific:
  * *Lua = 5.1*: function environment is not stored at all (due to limitations of lua_setfenv we cannot use userdata)
  * *Lua > 5.1*: Effil serialize and store function environment only if it's not equal to global environment (`_ENV ~= _G`).
@@ -296,28 +295,28 @@ Returns thread status.
 ### `... = thread:get(time, metric)`
 Waits for thread completion and returns function result or nothing in case of error.
 
-**input**: Operation timeout in terms of [time metrics](#time-metrics)
+**input**: Operation timeout in terms of [time metrics](#blocking-and-nonblocking-operations)
 
 **output**: Results of captured function invocation or nothing in case of error.
 
 ### `thread:wait(time, metric)`
 Waits for thread completion and returns thread status.
 
-**input**: Operation timeout in terms of [time metrics](#time-metrics)
+**input**: Operation timeout in terms of [time metrics](#blocking-and-nonblocking-operations)
 
 **output**: Returns status of thread. The output is the same as [`thread:status()`](#status-err--threadstatus)
 
 ### `thread:cancel(time, metric)`
 Interrupts thread execution. Once this function was invoked 'cancellation' flag  is set and thread can be stopped sometime in the future (even after this function call done). To be sure that thread is stopped invoke this function with infinite timeout. Cancellation of finished thread will do nothing and return `true`.
 
-**input**: Operation timeout in terms of [time metrics](#time-metrics)
+**input**: Operation timeout in terms of [time metrics](#blocking-and-nonblocking-operations)
 
 **output**: Returns `true` if thread was stopped or `false`.
 
 ### `thread:pause(time, metric)`
 Pauses thread. Once this function was invoked 'pause' flag  is set and thread can be paused sometime in the future (even after this function call done). To be sure that thread is paused invoke this function with infinite timeout.
 
-**input**: Operation timeout in terms of [time metrics](#time-metrics)
+**input**: Operation timeout in terms of [time metrics](#blocking-and-nonblocking-operations)
 
 **output**: Returns `true` if thread was paused or `false`. If the thread is completed function will return `false`
 
@@ -336,7 +335,7 @@ Explicit cancellation point. Function checks *cancellation* or *pausing* flags o
 ### `effil.sleep(time, metric)`
 Suspend current thread.
 
-**input**: [time metrics](#time-metrics) arguments.
+**input**: [time metrics](#blocking-and-nonblocking-operations) arguments.
 
 ### `effil.hardware_threads()`
 Returns the number of concurrent threads supported by implementation.
@@ -351,7 +350,7 @@ All operations with shared table are thread safe. **Shared table stores** primit
 
 Use **Shared tables with regular tables**. If you want to store regular table in shared table, effil will implicitly dump origin table into new shared table. **Shared tables always stores subtables as shared tables.**
 
-Use **Shared tables with functions**. If you store function in shared table, effil implicitly dumps this function and saves it in internal representation as string. All function's upvalues will be captured following [these rules](#functions-upvalues).
+Use **Shared tables with functions**. If you store function in shared table, effil implicitly dumps this function and saves it as string (and it's upvalues). All function's upvalues will be captured according to [following rules ](#functions-upvalues).
 
 ### `table = effil.table(tbl)`
 Creates new **empty** shared table.
@@ -443,7 +442,7 @@ Pushes message to channel.
 ### `... = channel:pop(time, metric)`
 Pop message from channel. Removes value(-s) from channel and returns them. If the channel is empty wait for any value appearance.
 
-**input**: waiting timeout in terms of [time metrics](#time-metrics) (used only if channel is empty).
+**input**: waiting timeout in terms of [time metrics](#blocking-and-nonblocking-operations) (used only if channel is empty).
 
 **output**: variable amount of values which were pushed by a single [channel:push()](#pushed--channelpush) call.
 
@@ -453,10 +452,10 @@ Get actual amount of messages in channel.
 **output**: amount of messages in channel.
 
 ## Garbage collector
-Effil provides custom garbage collector for `effil.table` and `effil.channel` (and internal function representation). It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
+Effil provides custom garbage collector for `effil.table` and `effil.channel` (and functions with captured upvalues). It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.
 
 ### Garbage collection trigger
-Garbage collector perform it's work when effil creates new shared object (table, channel or internal function representation).
+Garbage collector perform it's work when effil creates new shared object (table, channel and functions with captured upvalues).
 Each iteration GC checks amount of objects. If amount of allocated objects becomes higher then specific threshold value GC starts garbage collecting. Threshold value is calculated as `previous_count * step`, where `previous_count` - amount of objects on previous iteration (**100** by default) and `step` is a numerical coefficient specified by user (**2.0** by default).
 
 For example: if GC `step` is `2.0` and amount of allocated objects is `120` (left after previous GC iteration) then GC will start to collect garbage when amount of allocated objects will be equal to`240`.
@@ -502,7 +501,7 @@ Returns number of entries in Effil object.
 
 **input**: `obj` is [shared table](#table) or [channel](#channel).
 
-**output**: amount of entries in [shared table](#table) or amount of messages in [channel](#channel)
+**output**: number of entries in [shared table](#table) or number of messages in [channel](#channel)
 
 ### `type = effil.type(obj)`
 Threads, channels and tables are userdata. Thus, `type()` will return `userdata` for any type. If you want to detect type more precisely use `effil.type`. It behaves like regular `type()`, but it can detect effil specific userdata.
