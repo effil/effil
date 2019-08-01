@@ -1,17 +1,17 @@
 image: Visual Studio 2015
 
 configuration:
-  - Debug
-  - Release
+  - debug
+  - release
 
 environment:
   global:
     STRESS: 1
   matrix:
-    - LUA: "lua 5.1"
-    - LUA: "lua 5.2"
-    - LUA: "lua 5.3"
-    - LUA: "luajit 2.0"
+    - { LUA: "lua 5.1",    LUA_NAME: "lua5.1" }
+    - { LUA: "lua 5.2",    LUA_NAME: "lua5.2" }
+    - { LUA: "lua 5.3",    LUA_NAME: "lua5.3" }
+    - { LUA: "luajit 2.0", LUA_NAME: "luajit2.0" }
     # - LUA: "luajit 2.1" # currently failing
 
 before_build:
@@ -25,6 +25,21 @@ build_script:
   - cd build
   - cmake .. -G "Visual Studio 14 2015 Win64"
   - cmake --build . --config %CONFIGURATION%
+  - 7z a effil-%APPVEYOR_REPO_TAG_NAME%-%LUA_NAME%-win64.zip effil.dll
 
 test_script:
   - lua ../tests/lua/run_tests
+
+artifacts:
+  - path: build/*.zip
+
+deploy:
+    provider: GitHub
+    description: '$(APPVEYOR_REPO_TAG_NAME)'
+    auth_token:
+        secure: MmJswKplsV+hzQb/WtStw825jGE74AwQsBlqMRW7/2stpVPVwahjOcLuIv9WXkbL
+    artifact: /.*\.zip/
+    force_update: true
+    on:
+        appveyor_repo_tag: true
+        configuration: release

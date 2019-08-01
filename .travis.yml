@@ -1,32 +1,56 @@
 language: cpp
-
-dist: trusty
-osx_image: xcode10
 sudo: required
-
-env:
-  matrix:
-  - LUA="lua 5.1"
-  - LUA="lua 5.2"
-  - LUA="lua 5.3"
-  - LUA="luajit 2.0"
+osx_image: xcode10
+dist: Xenial 
 
 os:
-  - linux
-  - osx
+ - linux
+ - osx
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-5
+compiler:
+ - g++-5
+ - clang++
+
+matrix:
+  exclude:
+  - os: linux
+    compiler: clang++
+  - os: osx
+    compiler: g++-5
+
+env:
+  global:
+  - STESS=1
+  matrix:
+    - LUA="lua 5.1" BUILD_TYPE=debug
+    - LUA="lua 5.1" BUILD_TYPE=release
+    - LUA="lua 5.2" BUILD_TYPE=debug
+    - LUA="lua 5.2" BUILD_TYPE=release
+    - LUA="lua 5.3" BUILD_TYPE=debug
+    - LUA="lua 5.3" BUILD_TYPE=release
+    - LUA="luajit 2.0" BUILD_TYPE=debug
+    - LUA="luajit 2.0" BUILD_TYPE=release
 
 before_install:
-  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then export CXX=g++-5; sudo pip install hererocks; fi
-  - if [[ $TRAVIS_OS_NAME == "osx" ]]; then export CXX=clang++; brew update;  brew upgrade python; sudo pip3 install hererocks; fi
+  - sudo pip install hererocks
   - hererocks lua-pkg --$LUA -rlatest
-  - source lua-pkg/bin/activate
+  - source lua-pkg/bin/activate 
 
 script:
-  - ci/test_all.sh -DLUA_INCLUDE_DIR="$PWD/lua-pkg/include"
+  - export CXX=${TRAVIS_COMPILER}
+  - cmake -H. -B$BUILD_TYPE -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLUA_INCLUDE_DIR="$PWD/lua-pkg/include"
+  - cmake --build $BUILD_TYPE --config $BUILD_TYPE
+  - cd $BUILD_TYPE && lua ../tests/lua/run_tests
+  - tar cvfz effil-${TRAVIS_TAG}-$(echo "$LUA" | tr -d ' ')-$(${TRAVIS_COMPILER} -dumpmachine).tar.gz effil.so
+
+deploy:
+    provider:     releases
+    file_glob:    true
+    file:         effil-*.tar.gz
+    skip_cleanup: true
+    overwrite:    true
+    api_key:
+        secure: nyHMamSB64vby+GX7hhF8+mY/GG4hce4Zcib3Ag9dZSE7+gtxkj5lzojcHUzc1EKEiLfli2YrYAsQSIp18g/tScFeol9xRDYga+OyBAvYS3dXXBhXQlHcqyA+oWOFE1qtoSbrFC5JwPG+E6iVRI9/Pna7wbTCoI2OfxYACj5xC9reFJcyqbJzKdEApYG553sZhLCqaQyonKOrH2/ICcFrj9Ws3KA2zxg/tPmt4cw2N1bZAFyTViP70bfNyJqyXvlDb9pGX/66YNl7EqGV64S7i+ULkX8MK7KyXbL5/9kxefgRZHehNWabpZxIZC0gFEIoCaBXTL5u3JJt0ZcujV6epTeHsJHqT9gEa5bfK+4SPz3jvC4FtxrK94u64uD0a9dgxcdhKh123iTOB7eJAwmZ94zKYC++zD+t2XQErib8ha/TyL1trgKv3R6lqMLw0fE5xn/jqtV8ZCJkFuxydmi2Kr+If95LwAr/D48FVyWPu5x2LBpzrZqj8cO4VJOzAebVjEOLx4w2lzIq3i+79KET7iXmimqs4KmPsimL8+QrDBiSDIFoRLa7f+9TfLNwy68khXjkwpsEDvO/A4tLTaVI1Qe5Sn1kdtKAh5hm7gMW0RJy3F6BUq9WDwk2xLaxB/FOV7OkcZehuHi59e9W+PE2Se3XZ6QroE05B/cbiUlQA0=
+    on:
+        tags: true
+        condition: $BUILD_TYPE = release
