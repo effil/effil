@@ -9,7 +9,16 @@ namespace effil {
 
 class FunctionData : public GCData {
 public:
-    std::string function;
+    FunctionData();
+    ~FunctionData() override;
+
+    union
+    {
+        std::string function;
+        lua_CFunction cFunction;
+    };
+    bool isCFunction;
+
 #if LUA_VERSION_NUM > 501
     unsigned char envUpvaluePos;
 #endif // LUA_VERSION_NUM > 501

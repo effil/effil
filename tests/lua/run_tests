@@ -16,6 +16,7 @@ require "shared-table"
 require "metatable"
 require "type_mismatch"
 require "upvalues"
+require "functions"
 
 if os.getenv("STRESS") then
     require "channel-stress"
