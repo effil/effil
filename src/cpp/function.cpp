@@ -26,6 +26,7 @@ Function::Function(const sol::function& luaObject) {
     {
         ctx_->isCFunction = true;
         ctx_->cFunction = lua_tocfunction (state, -1);
+        REQUIRE(ctx_->cFunction) << "cannot get pointer to provided C function";
     }
     else
     {
@@ -63,7 +64,8 @@ Function::Function(const sol::function& luaObject) {
         }
         catch(const std::exception& err) {
             sol::stack::pop<sol::object>(state);
-            throw effil::Exception() << "bad function upvalue #" << (int)i << " (" << err.what() << ")";
+            throw effil::Exception() << "bad function upvalue #" << (int)i
+                                     << " (" << err.what() << ")";
         }
 
         if (storedObject->gcHandle() != nullptr) {
