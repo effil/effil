@@ -28,6 +28,12 @@ public:
     virtual void releaseStrongReference() { }
     virtual void holdStrongReference() { }
 
+
+    using DumpCache = std::unordered_map<GCHandle, int>;
+    virtual sol::object convertToNative(sol::this_state state, DumpCache&) const {
+        return unpack(state);
+    }
+
 private:
     BaseHolder(const BaseHolder&) = delete;
 };
@@ -45,7 +51,6 @@ StoredObject createStoredObject(const std::string&);
 StoredObject createStoredObject(const char*);
 StoredObject createStoredObject(const sol::object&);
 StoredObject createStoredObject(const sol::stack_object&);
-
 
 sol::optional<bool> storedObjectToBool(const StoredObject&);
 sol::optional<double> storedObjectToDouble(const StoredObject&);

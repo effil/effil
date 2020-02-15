@@ -122,6 +122,11 @@ local function generate_tests()
             --  effil.gc.step
             test.type_mismatch.input_types_mismatch_p(1, "number", "gc.step", type_instance)
         end
+
+        -- effil.dump
+        if typename ~= "table" and typename ~= "effil.table" then
+            test.type_mismatch.input_types_mismatch_p(1, "table", "dump", type_instance)
+        end
     end
 
     -- Below presented tests which support everything except coroutines

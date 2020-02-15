@@ -94,6 +94,15 @@ protected:
     sol::optional<T> strongRef_;
 };
 
+class SharedTableHolder : public GCObjectHolder<SharedTable> {
+public:
+    using GCObjectHolder<SharedTable>::GCObjectHolder;
+
+    sol::object convertToNative(sol::this_state state, DumpCache& cache) const final {
+        return GC::instance().get<SharedTable>(handle_).luaDump(state, cache);
+    }
+};
+
 class FunctionHolder : public GCObjectHolder<Function> {
 public:
     template <typename SolType>
@@ -102,6 +111,10 @@ public:
 
     sol::object unpack(sol::this_state state) const final {
         return GC::instance().get<Function>(handle_).loadFunction(state);
+    }
+
+    sol::object convertToNative(sol::this_state state, DumpCache& cache) const final {
+        return GC::instance().get<Function>(handle_).convertToNative(state, cache);
     }
 };
 
@@ -124,9 +137,9 @@ StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) 
             SharedTable table = GC::instance().create<SharedTable>();
             visited.emplace_back(std::make_pair(luaTable, table.handle()));
             dumpTable(&table, luaTable, visited);
-            return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
+            return std::make_unique<SharedTableHolder>(table.handle());
         } else {
-            return std::make_unique<GCObjectHolder<SharedTable>>(st->second);
+            return std::make_unique<SharedTableHolder>(st->second);
         }
     } else {
         return createStoredObject(luaObject);
@@ -165,7 +178,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             return std::make_unique<PrimitiveHolder<void*>>(luaObject);
         case sol::type::userdata:
             if (luaObject.template is<SharedTable>())
-                return std::make_unique<GCObjectHolder<SharedTable>>(luaObject);
+                return std::make_unique<SharedTableHolder>(luaObject);
             else if (luaObject.template is<Channel>())
                 return std::make_unique<GCObjectHolder<Channel>>(luaObject);
             else if (luaObject.template is<Function>())
@@ -191,7 +204,7 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
             dumpTable(&table, luaTable, visited);
-            return std::make_unique<GCObjectHolder<SharedTable>>(table.handle());
+            return std::make_unique<SharedTableHolder>(table.handle());
         }
         default:
             throw Exception() << "unable to store object of " << luaTypename(luaObject) << " type";

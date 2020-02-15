@@ -16,7 +16,7 @@ static const GCHandle GCNull = nullptr;
 class BaseGCObject {
 public:
     virtual ~BaseGCObject() = default;
-    virtual GCHandle handle() = 0;
+    virtual GCHandle handle() const = 0;
     virtual size_t instances() const = 0;
     virtual std::unordered_set<GCHandle> refers() const = 0;
 };
@@ -32,7 +32,7 @@ public:
     GCObject& operator=(const GCObject&) = default;
 
     // Unique handle for any copy of GCData in any lua state
-    GCHandle handle() final {
+    GCHandle handle() const final {
         return reinterpret_cast<GCHandle>(ctx_.get());
     }
 

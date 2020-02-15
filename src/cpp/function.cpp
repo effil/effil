@@ -56,7 +56,8 @@ Function::Function(const sol::function& luaObject) {
     sol::stack::pop<sol::object>(state);
 }
 
-sol::object Function::loadFunction(lua_State* state) {
+sol::object Function::convert(lua_State* state, const ConvertClbk& clbk) const
+{
     sol::function result = loadString(state, ctx_->function);
     assert(result.valid());
 
@@ -71,11 +72,22 @@ sol::object Function::loadFunction(lua_State* state) {
 #endif // LUA_VERSION_NUM > 501
         assert(ctx_->upvalues[i].get() != nullptr);
 
-        const auto& obj = ctx_->upvalues[i]->unpack(sol::this_state{state});
-        sol::stack::push(state, obj);
+        sol::stack::push(state, clbk(ctx_->upvalues[i]));
         lua_setupvalue(state, -2, i + 1);
     }
     return sol::stack::pop<sol::function>(state);
+}
+
+sol::object Function::loadFunction(lua_State* state) const {
+    return convert(state, [&](const StoredObject& obj){
+        return obj->unpack(sol::this_state{state});
+    });
+}
+
+sol::object Function::convertToNative(lua_State* state, BaseHolder::DumpCache& cache) const {
+    return convert(state, [&](const StoredObject& obj) {
+        return obj->convertToNative(sol::this_state{state}, cache);
+    });
 }
 
 } // namespace effil
