@@ -54,7 +54,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [effil.rawset()](#tbl--effilrawsettbl-key-value)
       * [effil.rawget()](#value--effilrawgettbl-key)
       * [effil.G](#effilg)
-      * [effil.dump()](#effildump)
+      * [effil.dump()](#result--effildumpobj)
     * [Channel](#channel)
       * [effil.channel()](#channel--effilchannelcapacity)
       * [channel:push()](#pushed--channelpush)
@@ -69,7 +69,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [effil.gc.enabled()](#enabled--effilgcenabled)
     * [Other methods](#othermethods)
       * [effil.size()](#size--effilsizeobj)
-      * [effil.type()](#result--effiltypeobj)
+      * [effil.type()](#effiltype)
 
 # How to install
 ### Build from src on Linux and Mac

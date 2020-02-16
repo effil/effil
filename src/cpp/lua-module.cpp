@@ -45,7 +45,7 @@ sol::object luaDump(sol::this_state lua, const sol::stack_object& obj) {
         return obj.as<SharedTable>().luaDump(lua, cache);
     }
     else if (obj.get_type() == sol::type::table) {
-            return obj;
+        return obj;
     }
 
     throw effil::Exception() << "bad argument #1 to 'effil.dump' (table expected, got "
