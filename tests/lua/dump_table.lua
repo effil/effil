@@ -74,3 +74,17 @@ test.dump_table.regular_table = function()
     local origin = {}
     test.equal(origin, effil.dump(origin))
 end
+
+test.dump_table.upvalues_with_loop = function()
+    local origin = {}
+    local function foo()
+        origin.key = "value"
+    end
+    origin.foo = foo
+
+    local result = effil.dump(origin)
+    local name, value = debug.getupvalue(result.foo, 1)
+    test.equal(value, result)
+    result.foo()
+    test.equal(result.key, "value")
+end
