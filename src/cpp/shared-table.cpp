@@ -97,6 +97,22 @@ sol::object SharedTable::rawGet(const sol::stack_object& luaKey, sol::this_state
     return get(key, state);
 }
 
+sol::object SharedTable::luaDump(sol::this_state state, BaseHolder::DumpCache& cache) const {
+    const auto iter = cache.find(handle());
+    if (iter == cache.end()) {
+        SharedLock lock(ctx_->lock);
+
+        auto result = sol::table::create(state.L);
+        cache.insert(iter, {handle(), result.registry_index()});
+        for (const auto& pair: ctx_->entries) {
+            result.set(pair.first->convertToLua(state, cache),
+                       pair.second->convertToLua(state, cache));
+        }
+        return result;
+    }
+    return sol::table(state.L, sol::ref_index(iter->second));
+}
+
 /*
  * Lua Meta API methods
  */

@@ -54,6 +54,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [effil.rawset()](#tbl--effilrawsettbl-key-value)
       * [effil.rawget()](#value--effilrawgettbl-key)
       * [effil.G](#effilg)
+      * [effil.dump()](#result--effildumpobj)
     * [Channel](#channel)
       * [effil.channel()](#channel--effilchannelcapacity)
       * [channel:push()](#pushed--channelpush)
@@ -420,6 +421,14 @@ end
 
 effil.thread(job)():wait()
 print(effil.G.key) -- will print "value"
+```
+
+### `result = effil.dump(obj)`
+Truns `effil.table` into regular Lua table.
+```lua
+tbl = effil.table({})
+effil.type(tbl) -- 'effil.table'
+effil.type(effil.dump(tbl))  -- 'table'
 ```
 
 ## Channel

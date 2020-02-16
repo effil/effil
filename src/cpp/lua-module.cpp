@@ -39,6 +39,19 @@ size_t luaSize(const sol::stack_object& obj) {
                              << luaTypename(obj) << " for effil.size()";
 }
 
+sol::object luaDump(sol::this_state lua, const sol::stack_object& obj) {
+    if (obj.is<SharedTable>()) {
+        BaseHolder::DumpCache cache;
+        return obj.as<SharedTable>().luaDump(lua, cache);
+    }
+    else if (obj.get_type() == sol::type::table) {
+        return obj;
+    }
+
+    throw effil::Exception() << "bad argument #1 to 'effil.dump' (table expected, got "
+                             << luaTypename(obj) << ")";
+}
+
 sol::table luaThreadConfig(sol::this_state state, const sol::stack_object& obj) {
     REQUIRE(obj.valid() && obj.get_type() == sol::type::function)
             << "bad argument #1 to 'effil.thread' (function expected, got "
@@ -107,6 +120,7 @@ int luaopen_effil(lua_State* L) {
             "pairs",        SharedTable::globalLuaPairs,
             "ipairs",       SharedTable::globalLuaIPairs,
             "size",         luaSize,
+            "dump",         luaDump,
             "hardware_threads",        std::thread::hardware_concurrency,
             sol::meta_function::index, luaIndex
     );

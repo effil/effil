@@ -47,6 +47,8 @@ public:
     PairsIterator luaIPairs(sol::this_state);
     StoredArray luaCall(sol::this_state state, const sol::variadic_args& args);
     sol::object luaUnm(sol::this_state);
+    sol::object luaDump(sol::this_state state, BaseHolder::DumpCache& cache) const;
+
     static sol::object luaAdd(sol::this_state, const sol::stack_object&, const sol::stack_object&);
     static sol::object luaSub(sol::this_state, const sol::stack_object&, const sol::stack_object&);
     static sol::object luaMul(sol::this_state, const sol::stack_object&, const sol::stack_object&);
