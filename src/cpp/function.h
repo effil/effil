@@ -19,11 +19,11 @@ public:
 class Function : public GCObject<FunctionData> {
 public:
     sol::object loadFunction(lua_State* state) const;
-    sol::object convertToNative(lua_State* state, BaseHolder::DumpCache& cache) const;
+    sol::object convertToLua(lua_State* state, BaseHolder::DumpCache& cache) const;
 
 private:
-    using ConvertClbk = std::function<sol::object(const StoredObject&)>;
-    sol::object convert(lua_State* state, const ConvertClbk& clbk) const;
+    using Converter = std::function<sol::object(const StoredObject&)>;
+    sol::object convert(lua_State* state, const Converter& clbk) const;
 
     explicit Function(const sol::function& luaObject);
     friend class GC;

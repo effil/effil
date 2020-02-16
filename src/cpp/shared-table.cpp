@@ -105,8 +105,8 @@ sol::object SharedTable::luaDump(sol::this_state state, BaseHolder::DumpCache& c
         auto result = sol::table::create(state.L);
         cache.insert(iter, {handle(), result.registry_index()});
         for (const auto& pair: ctx_->entries) {
-            result.set(pair.first->convertToNative(state, cache),
-                       pair.second->convertToNative(state, cache));
+            result.set(pair.first->convertToLua(state, cache),
+                       pair.second->convertToLua(state, cache));
         }
         return result;
     }

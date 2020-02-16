@@ -30,7 +30,7 @@ public:
 
 
     using DumpCache = std::unordered_map<GCHandle, int>;
-    virtual sol::object convertToNative(sol::this_state state, DumpCache&) const {
+    virtual sol::object convertToLua(sol::this_state state, DumpCache&) const {
         return unpack(state);
     }
 

@@ -98,7 +98,7 @@ class SharedTableHolder : public GCObjectHolder<SharedTable> {
 public:
     using GCObjectHolder<SharedTable>::GCObjectHolder;
 
-    sol::object convertToNative(sol::this_state state, DumpCache& cache) const final {
+    sol::object convertToLua(sol::this_state state, DumpCache& cache) const final {
         return GC::instance().get<SharedTable>(handle_).luaDump(state, cache);
     }
 };
@@ -113,8 +113,8 @@ public:
         return GC::instance().get<Function>(handle_).loadFunction(state);
     }
 
-    sol::object convertToNative(sol::this_state state, DumpCache& cache) const final {
-        return GC::instance().get<Function>(handle_).convertToNative(state, cache);
+    sol::object convertToLua(sol::this_state state, DumpCache& cache) const final {
+        return GC::instance().get<Function>(handle_).convertToLua(state, cache);
     }
 };
 

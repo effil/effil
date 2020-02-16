@@ -56,7 +56,7 @@ Function::Function(const sol::function& luaObject) {
     sol::stack::pop<sol::object>(state);
 }
 
-sol::object Function::convert(lua_State* state, const ConvertClbk& clbk) const
+sol::object Function::convert(lua_State* state, const Converter& clbk) const
 {
     sol::function result = loadString(state, ctx_->function);
     assert(result.valid());
@@ -84,9 +84,9 @@ sol::object Function::loadFunction(lua_State* state) const {
     });
 }
 
-sol::object Function::convertToNative(lua_State* state, BaseHolder::DumpCache& cache) const {
+sol::object Function::convertToLua(lua_State* state, BaseHolder::DumpCache& cache) const {
     return convert(state, [&](const StoredObject& obj) {
-        return obj->convertToNative(sol::this_state{state}, cache);
+        return obj->convertToLua(sol::this_state{state}, cache);
     });
 }
 
