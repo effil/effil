@@ -40,7 +40,7 @@ public:
 
     // These functions are metamethods available in Lua
     void luaNewIndex(const sol::stack_object& luaKey, const sol::stack_object& luaValue, sol::this_state);
-    sol::object luaIndex(const sol::stack_object& key, sol::this_state state);
+    sol::object luaIndex(const sol::stack_object& key, sol::this_state state) const;
     sol::object luaToString(sol::this_state state);
     sol::object luaLength(sol::this_state state);
     PairsIterator luaPairs(sol::this_state);
