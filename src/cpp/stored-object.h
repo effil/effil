@@ -52,7 +52,6 @@ StoredObject createStoredObject(const char*);
 StoredObject createStoredObject(const sol::object&);
 StoredObject createStoredObject(const sol::stack_object&);
 
-using RegistryIndex = int;
 using SolTableToShared = std::vector<std::pair<sol::table, GCHandle>>;
 
 StoredObject createStoredObject(const sol::object& obj, SolTableToShared& visited);
