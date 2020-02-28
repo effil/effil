@@ -108,6 +108,12 @@ sol::object SharedTable::luaDump(sol::this_state state, BaseHolder::DumpCache& c
             result.set(pair.first->convertToLua(state, cache),
                        pair.second->convertToLua(state, cache));
         }
+        if (ctx_->metatable) {
+            const auto mt = GC::instance().get<SharedTable>(ctx_->metatable);
+            lock.unlock();
+
+            result[sol::metatable_key] = mt.luaDump(state, cache);
+        }
         return result;
     }
     return sol::table(state.L, sol::ref_index(iter->second));
@@ -133,7 +139,7 @@ sol::object SharedTable::luaDump(sol::this_state state, BaseHolder::DumpCache& c
 #define PROXY_METAMETHOD_IMPL(tableMethod, methodName, errMsg) \
     sol::object SharedTable:: tableMethod(sol::this_state state, \
             const sol::stack_object& leftObject, const sol::stack_object& rightObject) { \
-        return basicMetaMethod(methodName, errMsg, state, leftObject, rightObject); \
+        return basicBinaryMetaMethod(methodName, errMsg, state, leftObject, rightObject); \
     }
 
 namespace {
@@ -142,7 +148,7 @@ const std::string COMPARE_ERR_MSG = "attempt to compare a effil::table value";
 const std::string CONCAT_ERR_MSG = "attempt to concatenate a effil::table value";
 }
 
-sol::object SharedTable::basicMetaMethod(const std::string& metamethodName, const std::string& errMsg,
+sol::object SharedTable::basicBinaryMetaMethod(const std::string& metamethodName, const std::string& errMsg,
             sol::this_state state, const sol::stack_object& leftObject, const sol::stack_object& rightObject) {
     if (isSharedTable(leftObject)) {
         SharedTable table = leftObject.as<SharedTable>();
@@ -166,7 +172,25 @@ PROXY_METAMETHOD_IMPL(luaMod, "__mod", ARITHMETIC_ERR_MSG)
 PROXY_METAMETHOD_IMPL(luaPow, "__pow", ARITHMETIC_ERR_MSG)
 PROXY_METAMETHOD_IMPL(luaLe, "__le", ARITHMETIC_ERR_MSG)
 PROXY_METAMETHOD_IMPL(luaLt, "__lt", ARITHMETIC_ERR_MSG)
-PROXY_METAMETHOD_IMPL(luaEq, "__eq", ARITHMETIC_ERR_MSG)
+
+sol::object SharedTable::luaEq(sol::this_state state, const sol::stack_object& leftObject,
+                               const sol::stack_object& rightObject) {
+    if (isSharedTable(leftObject) && isSharedTable(rightObject)) {
+        {
+            SharedTable table = leftObject.as<SharedTable>();
+            auto ctx_ = table.ctx_;
+            DEFFINE_METAMETHOD_CALL("__eq", table, rightObject)
+        }
+        {
+            SharedTable table = rightObject.as<SharedTable>();
+            auto ctx_ = table.ctx_;
+            DEFFINE_METAMETHOD_CALL("__eq", leftObject, table)
+        }
+        const bool isEqual = leftObject.as<SharedTable>().handle() == rightObject.as<SharedTable>().handle();
+        return sol::make_object(state, isEqual);
+    }
+    return sol::make_object(state, false);
+}
 
 sol::object SharedTable::luaUnm(sol::this_state state) {
     DEFFINE_METAMETHOD_CALL_0("__unm")
@@ -280,27 +304,39 @@ SharedTable::PairsIterator SharedTable::luaIPairs(sol::this_state state) {
                 sol::make_object(state, *this));
 }
 
+SharedTable SharedTable::setMetatable(const sol::optional<SharedTable>& metaTable) {
+    UniqueLock lock(ctx_->lock);
+    if (ctx_->metatable != GCNull) {
+        ctx_->removeReference(ctx_->metatable);
+        ctx_->metatable = GCNull;
+    }
+
+    if (metaTable) {
+        ctx_->metatable = metaTable->handle();
+        ctx_->addReference(ctx_->metatable);
+    }
+    return *this;
+}
+
 /*
  * Lua static API functions
  */
 
 SharedTable SharedTable::luaSetMetatable(const sol::stack_object& tbl, const sol::stack_object& mt) {
-    REQUIRE(isAnyTable(tbl)) << "bad argument #1 to 'effil.setmetatable' (table expected, got " << luaTypename(tbl) << ")";
-    REQUIRE(isAnyTable(mt)) << "bad argument #2 to 'effil.setmetatable' (table expected, got " << luaTypename(mt) << ")";
+    REQUIRE(isAnyTable(tbl))
+        << "bad argument #1 to 'effil.setmetatable' (table expected, got "
+        << luaTypename(tbl) << ")";
+    REQUIRE(isAnyTable(mt) || !mt.valid())
+        << "bad argument #2 to 'effil.setmetatable' (table or nil expected, got "
+        << luaTypename(mt) << ")";
 
-    SharedTable stable = GC::instance().get<SharedTable>(createStoredObject(tbl)->gcHandle());
-
-    UniqueLock lock(stable.ctx_->lock);
-    if (stable.ctx_->metatable != GCNull) {
-        stable.ctx_->removeReference(stable.ctx_->metatable);
-        stable.ctx_->metatable = GCNull;
+    SolTableToShared cache;
+    SharedTable table = GC::instance().get<SharedTable>(createStoredObject(tbl, cache)->gcHandle());
+    sol::optional<SharedTable> metatable;
+    if (mt.valid()) {
+        metatable = GC::instance().get<SharedTable>(createStoredObject(mt, cache)->gcHandle());
     }
-
-    const auto mtObj = createStoredObject(mt);
-    stable.ctx_->metatable = mtObj->gcHandle();
-    stable.ctx_->addReference(stable.ctx_->metatable);
-
-    return stable;
+    return table.setMetatable(metatable);
 }
 
 sol::object SharedTable::luaGetMetatable(const sol::stack_object& tbl, sol::this_state state) {

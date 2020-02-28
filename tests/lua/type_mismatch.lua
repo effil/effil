@@ -88,7 +88,7 @@ local function generate_tests()
         -- effil.setmetatable
         if typename ~= "table" and typename ~= "effil.table" then
             test.type_mismatch.input_types_mismatch_p(1, "table", "setmetatable", type_instance, 44)
-            test.type_mismatch.input_types_mismatch_p(2, "table", "setmetatable", {}, type_instance)
+            test.type_mismatch.input_types_mismatch_p(2, "table or nil", "setmetatable", {}, type_instance)
         end
 
         if typename ~= "effil.table" then

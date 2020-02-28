@@ -118,42 +118,35 @@ public:
     }
 };
 
-// This class is used as a storage for visited sol::tables
-// TODO: try to use map or unordered map instead of linear search in vector
-// TODO: Trick is - sol::object has only operator==:/
-typedef std::vector<std::pair<sol::object, GCHandle>> SolTableToShared;
+void dumpTable(SharedTable& target, const sol::table& luaTable, SolTableToShared& visited);
 
-void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited);
-
-StoredObject makeStoredObject(sol::object luaObject, SolTableToShared& visited) {
+StoredObject makeStoredObject(const sol::object& luaObject, SolTableToShared& visited) {
     if (luaObject.get_type() == sol::type::table) {
         sol::table luaTable = luaObject;
-        auto comparator = [&luaTable](const std::pair<sol::table, GCHandle>& element) {
-            return element.first == luaTable;
-        };
-        auto st = std::find_if(visited.begin(), visited.end(), comparator);
-
-        if (st == std::end(visited)) {
+        auto st = std::find_if(visited.begin(), visited.end(), [&](const auto& pair) {
+            return pair.first == luaObject;
+        });
+        if (st == visited.end()) {
             SharedTable table = GC::instance().create<SharedTable>();
-            visited.emplace_back(std::make_pair(luaTable, table.handle()));
-            dumpTable(&table, luaTable, visited);
+            visited.push_back({luaTable, table.handle()});
+            dumpTable(table, luaTable, visited);
             return std::make_unique<SharedTableHolder>(table.handle());
         } else {
             return std::make_unique<SharedTableHolder>(st->second);
         }
     } else {
-        return createStoredObject(luaObject);
+        return createStoredObject(luaObject, visited);
     }
 }
 
-void dumpTable(SharedTable* target, sol::table luaTable, SolTableToShared& visited) {
+void dumpTable(SharedTable& target, const sol::table& luaTable, SolTableToShared& visited) {
     for (auto& row : luaTable) {
-        target->set(makeStoredObject(row.first, visited), makeStoredObject(row.second, visited));
+        target.set(makeStoredObject(row.first, visited), makeStoredObject(row.second, visited));
     }
 }
 
 template <typename SolObject>
-StoredObject fromSolObject(const SolObject& luaObject) {
+StoredObject fromSolObject(const SolObject& luaObject, SolTableToShared& visited) {
     switch (luaObject.get_type()) {
         case sol::type::nil:
             return std::make_unique<NilHolder>();
@@ -190,20 +183,34 @@ StoredObject fromSolObject(const SolObject& luaObject) {
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
-            Function func = GC::instance().create<Function>(luaObject);
+            Function func = GC::instance().create<Function>(luaObject, visited);
             return std::make_unique<FunctionHolder>(func.handle());
         }
         case sol::type::table: {
             sol::table luaTable = luaObject;
+
+            const auto iter = std::find_if(visited.begin(), visited.end(), [&](const auto& pair) {
+                return pair.first == luaTable;
+            });
+            if (iter != visited.end()) {
+                return std::make_unique<SharedTableHolder>(iter->second);
+            }
             // Tables pool is used to store tables.
             // Right now not defiantly clear how ownership between states works.
             SharedTable table = GC::instance().create<SharedTable>();
-            SolTableToShared visited{{luaTable, table.handle()}};
+            visited.push_back({luaTable, table.handle()});
 
             // Let's dump table and all subtables
             // SolTableToShared is used to prevent from infinity recursion
             // in recursive tables
-            dumpTable(&table, luaTable, visited);
+            dumpTable(table, luaTable, visited);
+
+            const sol::table luaMetatable = luaTable[sol::metatable_key];
+            if (luaMetatable.valid()) {
+                SharedTable metaTable = GC::instance().create<SharedTable>();
+                dumpTable(metaTable, luaMetatable, visited);
+                table.setMetatable(metaTable);
+            }
             return std::make_unique<SharedTableHolder>(table.handle());
         }
         default:
@@ -228,9 +235,23 @@ StoredObject createStoredObject(const char* value) {
     return std::make_unique<PrimitiveHolder<std::string>>(value);
 }
 
-StoredObject createStoredObject(const sol::object& object) { return fromSolObject(object); }
+StoredObject createStoredObject(const sol::object& object) {
+    SolTableToShared visited;
+    return fromSolObject(object, visited);
+}
 
-StoredObject createStoredObject(const sol::stack_object& object) { return fromSolObject(object); }
+StoredObject createStoredObject(const sol::stack_object& object) {
+    SolTableToShared visited;
+    return fromSolObject(object, visited);
+}
+
+StoredObject createStoredObject(const sol::object& obj, SolTableToShared& visited) {
+    return fromSolObject(obj, visited);
+}
+
+StoredObject createStoredObject(const sol::stack_object& obj, SolTableToShared& visited) {
+    return fromSolObject(obj, visited);
+}
 
 template <typename DataType>
 sol::optional<DataType> getPrimitiveHolderData(const StoredObject& sobj) {
