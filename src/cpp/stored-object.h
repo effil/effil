@@ -5,8 +5,6 @@
 
 #include <sol.hpp>
 
-#include <unordered_map>
-
 namespace effil {
 
 struct EffilApiMarker{};
@@ -54,9 +52,6 @@ StoredObject createStoredObject(const char*);
 StoredObject createStoredObject(const sol::object&);
 StoredObject createStoredObject(const sol::stack_object&);
 
-// This class is used as a storage for visited sol::tables
-// TODO: try to use map or unordered map instead of linear search in vector
-// TODO: Trick is - sol::object has only operator==:/
 using RegistryIndex = int;
 using SolTableToShared = std::vector<std::pair<sol::table, GCHandle>>;
 
