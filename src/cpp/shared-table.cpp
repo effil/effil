@@ -241,7 +241,7 @@ sol::object SharedTable::luaLength(sol::this_state state) {
     return sol::make_object(state, len);
 }
 
-SharedTable::PairsIterator SharedTable::getNext(const sol::object& key, sol::this_state lua) {
+SharedTable::PairsIterator SharedTable::getNext(const sol::object& key, sol::this_state lua) const {
     SharedLock g(ctx_->lock);
     if (key) {
         auto obj = createStoredObject(key);
@@ -348,6 +348,13 @@ SharedTable::PairsIterator SharedTable::globalLuaIPairs(sol::this_state state, c
     auto& tbl = obj.as<SharedTable>();
     return tbl.luaIPairs(state);
 }
+
+SharedTable::PairsIterator SharedTable::globalLuaNext(sol::this_state state, const sol::stack_object& obj, const sol::stack_object& key) {
+    REQUIRE(isSharedTable(obj)) << "bad argument #1 to 'effil.next' (effil.table expected, got " << luaTypename(obj) << ")";
+    const auto& tbl = obj.as<SharedTable>();
+    return tbl.getNext(key, state);
+}
+
 
 #undef DEFFINE_METAMETHOD_CALL_0
 #undef DEFFINE_METAMETHOD_CALL
