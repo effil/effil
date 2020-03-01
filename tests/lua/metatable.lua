@@ -200,6 +200,7 @@ test.shared_table_with_metatable.table_as_index = function()
     test.equal(tbl.a, 1)
     test.equal(tbl.b, 2)
     test.equal(tbl.c, 2)
+end
 
 test.shared_table_with_metatable.next_iterator = function()
     local visited = {a = 1, [2] = 3, [true] = "asd", [2.2] = "qwe"}
