@@ -200,4 +200,16 @@ test.shared_table_with_metatable.table_as_index = function()
     test.equal(tbl.a, 1)
     test.equal(tbl.b, 2)
     test.equal(tbl.c, 2)
+
+test.shared_table_with_metatable.next_iterator = function()
+    local visited = {a = 1, [2] = 3, [true] = "asd", [2.2] = "qwe"}
+    local share = effil.table(visited)
+
+    local key, value = effil.next(share)
+    while key do
+        test.equal(visited[key], value)
+        visited[key] = nil
+        key, value = effil.next(share, key)
+    end
+    test.is_true(next(visited) == nil) -- table is empty
 end

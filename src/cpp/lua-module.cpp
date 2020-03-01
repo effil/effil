@@ -119,6 +119,7 @@ int luaopen_effil(lua_State* L) {
             "type",         getLuaTypename,
             "pairs",        SharedTable::globalLuaPairs,
             "ipairs",       SharedTable::globalLuaIPairs,
+            "next",         SharedTable::globalLuaNext,
             "size",         luaSize,
             "dump",         luaDump,
             "hardware_threads",        std::thread::hardware_concurrency,
