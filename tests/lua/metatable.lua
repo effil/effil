@@ -226,6 +226,7 @@ test.shared_table_with_metatable.check_eq_metamethod = function()
 
     effil.setmetatable(left_table, nil)
     test.is_true(left_table == right_table)
+end
 
 test.shared_table_with_metatable.next_iterator = function()
     local visited = {a = 1, [2] = 3, [true] = "asd", [2.2] = "qwe"}
