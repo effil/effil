@@ -70,9 +70,10 @@ public:
     static size_t luaSize(const sol::stack_object& tbl);
     static PairsIterator globalLuaPairs(sol::this_state state, const sol::stack_object& obj);
     static PairsIterator globalLuaIPairs(sol::this_state state, const sol::stack_object& obj);
+    static PairsIterator globalLuaNext(sol::this_state state, const sol::stack_object& obj, const sol::stack_object& key);
 
 private:
-    PairsIterator getNext(const sol::object& key, sol::this_state lua);
+    PairsIterator getNext(const sol::object& key, sol::this_state lua) const;
 
 private:
     SharedTable() = default;

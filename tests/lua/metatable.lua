@@ -226,4 +226,16 @@ test.shared_table_with_metatable.check_eq_metamethod = function()
 
     effil.setmetatable(left_table, nil)
     test.is_true(left_table == right_table)
+
+test.shared_table_with_metatable.next_iterator = function()
+    local visited = {a = 1, [2] = 3, [true] = "asd", [2.2] = "qwe"}
+    local share = effil.table(visited)
+
+    local key, value = effil.next(share)
+    while key do
+        test.equal(visited[key], value)
+        visited[key] = nil
+        key, value = effil.next(share, key)
+    end
+    test.is_true(next(visited) == nil) -- table is empty
 end
