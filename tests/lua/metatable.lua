@@ -21,11 +21,11 @@ end
 test.metatable.index_p = function (metatable)
     local share = effil.table()
     metatable.__index = function(t, key)
-        return "mt_" .. effil.rawget(t, key)
+        return "mt_" .. effil.rawget(t, key .. "_origin")
     end
     effil.setmetatable(share, metatable)
 
-    share.table_key = "table_value"
+    share.table_key_origin = "table_value"
     test.equal(share.table_key, "mt_table_value")
 end
 
@@ -164,9 +164,9 @@ test.shared_table_with_metatable.as_shared_table = function()
 
     -- Only __index metamethod
     mt.__index = function(t, key)
-        return "mt_" .. effil.rawget(t, key)
+        return "mt_" .. effil.rawget(t, key .. "_origin")
     end
-    share.table_key = "table_value"
+    share.table_key_origin = "table_value"
     test.equal(share.table_key, "mt_table_value")
 
     -- Both __index and __newindex metamethods
@@ -174,12 +174,32 @@ test.shared_table_with_metatable.as_shared_table = function()
         effil.rawset(t, key, "mt_" .. value)
     end
     share.table_key = "table_value"
-    test.equal(share.table_key, "mt_mt_table_value")
+    test.equal(share.table_key, "mt_table_value")
 
     -- Remove __index, use only __newindex metamethods
     mt.__index = nil
     share.table_key = "table_value"
     test.equal(share.table_key, "mt_table_value")
+end
+
+test.shared_table_with_metatable.table_as_index = function()
+    local tbl = effil.table{}
+    local mt = effil.table{ a = 1 }
+    local mt2 = effil.table{ b = 2 }
+    local mt3 = effil.table{ c = 2 }
+
+    effil.setmetatable(tbl, {__index=mt})
+    test.equal(tbl.a, 1)
+    test.equal(tbl.b, nil)
+
+    effil.setmetatable(mt, {__index=mt2})
+    test.equal(tbl.a, 1)
+    test.equal(tbl.b, 2)
+
+    effil.setmetatable(mt2, {__index=mt3})
+    test.equal(tbl.a, 1)
+    test.equal(tbl.b, 2)
+    test.equal(tbl.c, 2)
 end
 
 test.shared_table_with_metatable.next_iterator = function()
