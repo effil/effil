@@ -1,4 +1,5 @@
 #include "shared-table.h"
+#include "function.h"
 
 #include "utils.h"
 
@@ -215,11 +216,34 @@ void SharedTable::luaNewIndex(const sol::stack_object& luaKey, const sol::stack_
     } RETHROW_WITH_PREFIX("effil.table");
 }
 
-sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_state state) {
-    DEFFINE_METAMETHOD_CALL("__index", *this, luaKey)
+sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_state state) const {
+    REQUIRE(luaKey.valid()) << "Indexing by nil";
     try {
-        return rawGet(luaKey, state);
+        StoredObject key = createStoredObject(luaKey);
+        if (sol::object result = get(key, state)) {
+            return result;
+        }
     } RETHROW_WITH_PREFIX("effil.table");
+
+    SharedLock lock(ctx_->lock);
+    if (ctx_->metatable != GCNull) {
+        const auto tableHolder = GC::instance().get<SharedTable>(ctx_->metatable);
+        lock.unlock();
+
+        SharedLock mt_lock(tableHolder.ctx_->lock);
+        const auto iter = tableHolder.ctx_->entries.find(createStoredObject("__index"));
+        if (iter != tableHolder.ctx_->entries.end()) {
+            if (const auto tbl = storedObjectTo<SharedTable>(iter->second)) {
+                mt_lock.unlock();
+                return tbl->luaIndex(luaKey, state);
+            }
+            else if (const auto func = storedObjectTo<Function>(iter->second)) {
+                mt_lock.unlock();
+                return func->loadFunction(state).as<sol::function>()(*this, luaKey);
+            }
+        }
+    }
+    return sol::nil;
 }
 
 StoredArray SharedTable::luaCall(sol::this_state state, const sol::variadic_args& args) {

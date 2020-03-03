@@ -62,4 +62,7 @@ sol::optional<double> storedObjectToDouble(const StoredObject&);
 sol::optional<LUA_INDEX_TYPE> storedObjectToIndexType(const StoredObject&);
 sol::optional<std::string> storedObjectToString(const StoredObject&);
 
+template<typename T>
+sol::optional<T> storedObjectTo(const StoredObject&);
+
 } // effil

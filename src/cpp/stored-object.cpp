@@ -271,4 +271,20 @@ sol::optional<std::string> storedObjectToString(const StoredObject& sobj) {
     return getPrimitiveHolderData<std::string>(sobj);
 }
 
+template<>
+sol::optional<SharedTable> storedObjectTo(const StoredObject& obj) {
+    if (const auto ptr = std::dynamic_pointer_cast<SharedTableHolder>(obj)) {
+        return GC::instance().get<SharedTable>(ptr->gcHandle());
+    }
+    return sol::nullopt;
+}
+
+template<>
+sol::optional<Function> storedObjectTo(const StoredObject& obj) {
+    if (const auto ptr = std::dynamic_pointer_cast<FunctionHolder>(obj)) {
+        return GC::instance().get<Function>(ptr->gcHandle());
+    }
+    return sol::nullopt;
+}
+
 } // effil
