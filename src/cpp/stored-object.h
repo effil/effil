@@ -52,6 +52,11 @@ StoredObject createStoredObject(const char*);
 StoredObject createStoredObject(const sol::object&);
 StoredObject createStoredObject(const sol::stack_object&);
 
+using SolTableToShared = std::vector<std::pair<sol::table, GCHandle>>;
+
+StoredObject createStoredObject(const sol::object& obj, SolTableToShared& visited);
+StoredObject createStoredObject(const sol::stack_object& obj, SolTableToShared& visited);
+
 sol::optional<bool> storedObjectToBool(const StoredObject&);
 sol::optional<double> storedObjectToDouble(const StoredObject&);
 sol::optional<LUA_INDEX_TYPE> storedObjectToIndexType(const StoredObject&);

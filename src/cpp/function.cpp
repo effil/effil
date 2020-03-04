@@ -3,6 +3,15 @@
 namespace effil {
 
 Function::Function(const sol::function& luaObject) {
+    SolTableToShared visited;
+    construct(luaObject, visited);
+}
+
+Function::Function(const sol::function& luaObject, SolTableToShared& visited) {
+    construct(luaObject, visited);
+}
+
+void Function::construct(const sol::function& luaObject, SolTableToShared& visited) {
     assert(luaObject.valid());
     assert(luaObject.get_type() == sol::type::function);
 
@@ -39,7 +48,7 @@ Function::Function(const sol::function& luaObject) {
         StoredObject storedObject;
         try {
             const auto& upvalue = sol::stack::pop<sol::object>(state);
-            storedObject = createStoredObject(upvalue);
+            storedObject = createStoredObject(upvalue, visited);
             assert(storedObject.get() != nullptr);
         }
         catch(const std::exception& err) {

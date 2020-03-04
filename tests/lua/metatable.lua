@@ -182,6 +182,52 @@ test.shared_table_with_metatable.as_shared_table = function()
     test.equal(share.table_key, "mt_table_value")
 end
 
+test.shared_table_with_metatable.metatable_serialization = function()
+    local table_with_mt = setmetatable({}, {a=1})
+    local tbl = effil.table(table_with_mt)
+
+    test.not_equal(effil.getmetatable(tbl), nil)
+    test.equal(effil.getmetatable(tbl).a, 1)
+end
+
+test.shared_table_with_metatable.metatable_with_function_with_upvalues = function()
+    local common_table = {aa=2}
+    local tbl = setmetatable({}, {
+        a = function() return common_table end,
+        b = function() return common_table end
+    })
+
+    local mt = effil.getmetatable(effil.table(tbl))
+    test.equal(
+        select(2, debug.getupvalue(mt.a, 1)),
+        select(2, debug.getupvalue(mt.b, 1))
+    )
+end
+
+test.shared_table_with_metatable.check_eq_metamethod = function()
+    local left_table = effil.table()
+    local right_table = effil.table()
+    local left_table_clone = (effil.table{ left_table }[1]) -- userdata will change
+
+    test.is_false(left_table == right_table)
+    test.is_true(left_table == left_table_clone)
+    test.is_false(left_table == effil.channel())
+
+    effil.setmetatable(left_table, { __eq = function() return false end })
+    test.is_false(left_table == left_table_clone)
+
+    effil.setmetatable(left_table, { __eq = function() return true end })
+    test.is_true(left_table == right_table)
+    test.is_false(left_table == effil.channel())
+
+    effil.setmetatable(left_table, { __eq = function() return false end })
+    effil.setmetatable(right_table, { __eq = function() return true end })
+    test.is_false(left_table == right_table)
+
+    effil.setmetatable(left_table, nil)
+    test.is_true(left_table == right_table)
+end
+
 test.shared_table_with_metatable.table_as_index = function()
     local tbl = effil.table{}
     local mt = effil.table{ a = 1 }

@@ -88,3 +88,16 @@ test.dump_table.upvalues_with_loop = function()
     result.foo()
     test.equal(result.key, "value")
 end
+
+test.dump_table.with_metatable = function()
+    local tbl = effil.setmetatable({}, effil.setmetatable({a=1}, {b = 2}))
+    local dumped = effil.dump(tbl)
+
+    local mt = getmetatable(dumped)
+    test.not_equal(mt, nil)
+    test.equal(mt.a, 1)
+
+    local mt2 = getmetatable(mt)
+    test.not_equal(mt2, nil)
+    test.equal(mt2.b, 2)
+end
