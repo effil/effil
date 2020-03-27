@@ -82,7 +82,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
 `luarocks install effil`
 
 # Quick guide
-As you may now there are not much script languages with **real** multithreading support (Lua/Python/Ruby and etc has global interpreter lock aka GIL). Effil solves this problem by running independent Lua VM instances in separate native threads and provides robust communicating primitives for creating threads and data sharing.
+As you may know there are not much script languages with **real** multithreading support (Lua/Python/Ruby and etc has global interpreter lock aka GIL). Effil solves this problem by running independent Lua VM instances in separate native threads and provides robust communicating primitives for creating threads and data sharing.
 
 Effil library provides three major abstractions:
 1. `effil.thread` - provides API for threads management.
