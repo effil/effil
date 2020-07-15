@@ -101,7 +101,7 @@ int luaopen_effil(lua_State* L) {
         else if (key == "gc")
             return gcApi;
         else if (key == "version")
-            return sol::make_object(obj.lua_state(), "0.1.0");
+            return sol::make_object(obj.lua_state(), "1.1.1");
         return sol::nil;
     };
 
