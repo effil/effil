@@ -21,9 +21,8 @@ environment:
 matrix:
   exclude:
     - platform: x86
-      environment:
-        LUA: "luajit 2.0"
-        LUA_NAME: "luajit2.0"
+      LUA: "luajit 2.0"
+      LUA_NAME: "luajit2.0"
 
 before_build:
   - git submodule update --init --recursive
