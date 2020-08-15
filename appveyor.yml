@@ -18,6 +18,12 @@ environment:
     - { LUA: "luajit 2.0", LUA_NAME: "luajit2.0" }
     # - LUA: "luajit 2.1" # currently failing
 
+matrix:
+  exclude:
+    - platform: x86
+      LUA: "luajit 2.0"
+      LUA_NAME: "luajit2.0"
+
 before_build:
   - git submodule update --init --recursive
   - pip install hererocks
