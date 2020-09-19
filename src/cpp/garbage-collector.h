@@ -26,6 +26,8 @@ public:
         objects_.emplace(object->handle(), std::move(object));
         g.unlock();
 
+        // We separate initialization out of construction cause the object under construction
+        // should be added into GC before it will try to put any other objects into it's references
         copy.initialize(std::forward<Args>(args)...);
         return copy;
     }

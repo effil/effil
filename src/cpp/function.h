@@ -24,7 +24,6 @@ public:
 private:
     using Converter = std::function<sol::object(const StoredObject&)>;
     sol::object convert(lua_State* state, const Converter& clbk) const;
-    void construct(const sol::function& luaObject, SolTableToShared& visited);
 
     Function() = default;
     void initialize(const sol::function& luaObject, SolTableToShared& visited);
