@@ -14,11 +14,13 @@ void Channel::exportAPI(sol::state_view& lua) {
     sol::stack::pop<sol::object>(lua);
 }
 
-Channel::Channel(const sol::stack_object& capacity) {
+void Channel::initialize(const sol::stack_object& capacity) {
     if (capacity.valid()) {
-        REQUIRE(capacity.get_type() == sol::type::number) << "bad argument #1 to 'effil.channel' (number expected, got "
-                                                          << luaTypename(capacity) << ")";
-        REQUIRE(capacity.as<int>() >= 0) << "effil.channel: invalid capacity value = " << capacity.as<int>();
+        REQUIRE(capacity.get_type() == sol::type::number)
+                << "bad argument #1 to 'effil.channel' (number expected, got "
+                << luaTypename(capacity) << ")";
+        REQUIRE(capacity.as<int>() >= 0)
+                << "effil.channel: invalid capacity value = " << capacity.as<int>();
         ctx_->capacity_ = capacity.as<size_t>();
     }
     else {

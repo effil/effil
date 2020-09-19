@@ -26,8 +26,9 @@ private:
     sol::object convert(lua_State* state, const Converter& clbk) const;
     void construct(const sol::function& luaObject, SolTableToShared& visited);
 
-    explicit Function(const sol::function& luaObject, SolTableToShared& visited);
-    explicit Function(const sol::function& luaObject);
+    Function() = default;
+    void initialize(const sol::function& luaObject, SolTableToShared& visited);
+    void initialize(const sol::function& luaObject);
     friend class GC;
 };
 

@@ -106,11 +106,13 @@ public:
     void resume();
 
 private:
-    Thread(const std::string& path,
-           const std::string& cpath,
-           int step,
-           const sol::function& function,
-           const sol::variadic_args& args);
+    Thread() = default;
+    void initialize(
+        const std::string& path,
+        const std::string& cpath,
+        int step,
+        const sol::function& function,
+        const sol::variadic_args& args);
     friend class GC;
 
 private:

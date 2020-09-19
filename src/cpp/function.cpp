@@ -2,12 +2,12 @@
 
 namespace effil {
 
-Function::Function(const sol::function& luaObject) {
+void Function::initialize(const sol::function& luaObject) {
     SolTableToShared visited;
     construct(luaObject, visited);
 }
 
-Function::Function(const sol::function& luaObject, SolTableToShared& visited) {
+void Function::initialize(const sol::function& luaObject, SolTableToShared& visited) {
     construct(luaObject, visited);
 }
 

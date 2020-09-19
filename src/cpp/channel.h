@@ -27,11 +27,9 @@ public:
 
     size_t size();
 
-public:
-    Channel() = delete;
-
 private:
-    explicit Channel(const sol::stack_object& capacity);
+    Channel() = default;
+    void initialize(const sol::stack_object& capacity);
     friend class GC;
 };
 
