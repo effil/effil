@@ -35,3 +35,21 @@ test.gc_stress.create_and_collect_in_parallel = function ()
         test.equal(threads[i]:wait(), "completed")
     end
 end
+
+test.gc_stress.regress_for_concurent_thread_creation = function ()
+    local a = function() end
+    local b = function() end
+
+    for i = 1, 2000 do
+        effil.thread(function(a, b) a() b() end)(a, b)
+    end
+end
+
+test.gc_stress.regress_for_concurent_function_creation = function ()
+    local a = function() end
+    local b = function() end
+
+    for i = 1, 2000 do
+        effil.thread(function() a() b() end)()
+    end
+end

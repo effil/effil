@@ -77,6 +77,7 @@ private:
 
 private:
     SharedTable() = default;
+    void initialize() {}
     friend class GC;
 };
 

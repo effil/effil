@@ -179,12 +179,13 @@ void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {
     }
 }
 
-Thread::Thread(const std::string& path,
-       const std::string& cpath,
-       int step,
-       const sol::function& function,
-       const sol::variadic_args& variadicArgs) {
-
+void Thread::initialize(
+    const std::string& path,
+    const std::string& cpath,
+    int step,
+    const sol::function& function,
+    const sol::variadic_args& variadicArgs)
+{
     sol::optional<Function> functionObj;
     try {
         functionObj = GC::instance().create<Function>(function);

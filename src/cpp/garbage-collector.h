@@ -20,11 +20,15 @@ public:
         if (enabled_ && count() >= step_ * lastCleanup_)
             collect();
 
-        std::unique_ptr<ViewType> object(new ViewType(std::forward<Args>(args)...));
+        std::unique_lock<std::mutex> g(lock_);
+        std::unique_ptr<ViewType> object(new ViewType);
         auto copy = *object;
-
-        std::lock_guard<std::mutex> g(lock_);
         objects_.emplace(object->handle(), std::move(object));
+        g.unlock();
+
+        // We separate initialization out of construction cause the object under construction
+        // should be added into GC before it will try to put any other objects into it's references
+        copy.initialize(std::forward<Args>(args)...);
         return copy;
     }
 
