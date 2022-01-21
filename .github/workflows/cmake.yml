@@ -18,6 +18,8 @@ jobs:
         lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.0"]
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: recursive
     - name: Setup env
       run: |
         sudo apt-get -y install python3-pip
