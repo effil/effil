@@ -25,7 +25,6 @@ jobs:
         sudo apt-get -y install python3-pip
         sudo pip install hererocks
         hererocks lua-pkg --${{ matrix.lua }} -rlatest
-        source lua-pkg/bin/activate
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -37,4 +36,6 @@ jobs:
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: lua ../tests/lua/run_tests
+      run: |
+        source ${{github.workspace}}/lua-pkg/bin/activate
+        STRESS=1 lua ../tests/lua/run_tests
