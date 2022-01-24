@@ -12,11 +12,11 @@ jobs:
       fail-fast: false
       matrix:
         build-type: [Release] # Debug
-        lua: ["luajit 2.0"] # "lua 5.1", "lua 5.2", "lua 5.3", ]
-        os: ["macos-latest"] # ""ubuntu-latest", windows-latest"
+        lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.0"]
+        os: ["macos-latest", "ubuntu-latest"] # "windows-latest"
         include:
           - os: macos-latest
-            mac_flag: 10.0
+            macos_build_target: 10.0
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
         python-version: '3.8'
     - name: Setup env
       env:
-        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.mac_flag }}
+        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_build_target }}
       run: |
         pip install hererocks
         hererocks lua-pkg --${{ matrix.lua }} -rlatest
