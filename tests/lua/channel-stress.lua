@@ -48,7 +48,7 @@ test.channel_stress.with_multiple_threads = function ()
 end
 
 -- TODO: fix it for Windows
-if not os.getenv("APPVEYOR") then
+if not os.getenv("Win32") then
     test.channel_stress.timed_read = function ()
         local chan = effil.channel()
         local delayed_writer = function(channel, delay)
