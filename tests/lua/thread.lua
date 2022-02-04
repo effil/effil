@@ -8,6 +8,28 @@ test.thread.hardware_threads = function()
     test.is_true(effil.hardware_threads() >= 0)
 end
 
+test.thread.runner_is_serializible = function ()
+    local table = effil.table()
+    local runner = effil.thread(function(n) return n * 2 end)
+
+    table["runner"] = runner
+    test.equal(table["runner"](123):get(), 246)
+end
+
+test.thread.runner_path_check = function (config_key, pkg)
+    local table = effil.table()
+    local runner = effil.thread(function()
+        require(pkg)
+    end)
+    test.equal(runner():wait(), "completed")
+
+    runner[config_key] = ""
+    test.equal(runner():wait(), "failed")
+end
+
+test.thread.runner_path_check("path", "size")
+test.thread.runner_path_check("cpath", "effil")
+
 test.thread.wait = function ()
     local thread = effil.thread(function()
         print 'Effil is not that tower'

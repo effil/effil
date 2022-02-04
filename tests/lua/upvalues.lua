@@ -40,7 +40,7 @@ test.upvalues.check_single_upvalue_p(function() return effil.thread(foo)() end,
 test.upvalues.check_invalid_coroutine = function()
     local obj = coroutine.create(foo)
     local thread_worker = function() return tostring(obj) end
-    local ret, err = pcall(effil.thread(thread_worker))
+    local ret, err = pcall(effil.thread, thread_worker)
     if ret then
         ret:wait()
     end

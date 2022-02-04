@@ -193,7 +193,10 @@ void Thread::initialize(
 
     ctx_->lua()["package"]["path"] = path;
     ctx_->lua()["package"]["cpath"] = cpath;
-    ctx_->lua().script("require 'effil'");
+    try {
+        luaopen_effil(ctx_->lua());
+        sol::stack::pop<sol::object>(ctx_->lua());
+    } RETHROW_WITH_PREFIX("effil.thread");
 
     if (step != 0)
         lua_sethook(ctx_->lua(), luaHook, LUA_MASKCOUNT, step);

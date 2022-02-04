@@ -2,6 +2,7 @@
 #include "shared-table.h"
 #include "garbage-collector.h"
 #include "channel.h"
+#include "thread_runner.h"
 
 #include <lua.hpp>
 
@@ -52,30 +53,18 @@ sol::object luaDump(sol::this_state lua, const sol::stack_object& obj) {
                              << luaTypename(obj) << ")";
 }
 
-sol::table luaThreadConfig(sol::this_state state, const sol::stack_object& obj) {
+sol::table createThreadRunner(sol::this_state state, const sol::stack_object& obj) {
     REQUIRE(obj.valid() && obj.get_type() == sol::type::function)
             << "bad argument #1 to 'effil.thread' (function expected, got "
             << luaTypename(obj) << ")";
 
     auto lua = sol::state_view(state);
-    const sol::function func = obj.as<sol::function>();
-
-    auto config = lua.create_table_with(
-        "path",  lua["package"]["path"],
-        "cpath", lua["package"]["cpath"],
-        "step",  200
-    );
-
-    auto meta = lua.create_table_with();
-    meta[sol::meta_function::call] = [func](sol::this_state lua,
-                const sol::stack_table& self, const sol::variadic_args& args)
-    {
-        return sol::make_object(lua, GC::instance().create<Thread>(
-                self["path"], self["cpath"], self["step"], func, args));
-    };
-
-    config[sol::metatable_key] = meta;
-    return config;
+    return sol::make_object(lua, GC::instance().create<ThreadRunner>(
+        lua["package"]["path"],
+        lua["package"]["cpath"],
+        200,
+        obj.as<sol::function>()
+    ));
 }
 
 } // namespace
@@ -89,6 +78,7 @@ int luaopen_effil(lua_State* L) {
     Thread::exportAPI(lua);
     SharedTable::exportAPI(lua);
     Channel::exportAPI(lua);
+    ThreadRunner::exportAPI(lua);
 
     const sol::table  gcApi     = GC::exportAPI(lua);
     const sol::object gLuaTable = sol::make_object(lua, globalTable);
@@ -106,7 +96,7 @@ int luaopen_effil(lua_State* L) {
     };
 
     sol::usertype<EffilApiMarker> type("new", sol::no_constructor,
-            "thread",       luaThreadConfig,
+            "thread",       createThreadRunner,
             "thread_id",    threadId,
             "sleep",        sleep,
             "yield",        yield,
@@ -122,7 +112,7 @@ int luaopen_effil(lua_State* L) {
             "next",         SharedTable::globalLuaNext,
             "size",         luaSize,
             "dump",         luaDump,
-            "hardware_threads",        std::thread::hardware_concurrency,
+            "hardware_threads", std::thread::hardware_concurrency,
             sol::meta_function::index, luaIndex
     );
 
