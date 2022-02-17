@@ -123,9 +123,13 @@ void Thread::runThread(Thread thread,
             });
             sol::protected_function userFuncObj = function.loadFunction(thread.ctx_->lua());
 
+            #if LUA_VERSION_NUM > 501
+
             sol::stack::push(thread.ctx_->lua(), luaErrorHandlerPtr);
             userFuncObj.error_handler = sol::reference(thread.ctx_->lua());
             sol::stack::pop_n(thread.ctx_->lua(), 1);
+
+            #endif // LUA_VERSION NUM > 501
 
             sol::protected_function_result result = userFuncObj(std::move(arguments));
             if (!result.valid()) {

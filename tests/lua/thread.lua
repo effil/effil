@@ -399,6 +399,8 @@ test.this_thread.pause_on_finished_thread = function ()
     test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
 end
 
+if LUA_VERSION > 51 then
+
 test.thread.traceback = function()
     local curr_file = debug.getinfo(1,'S').short_src
 
@@ -430,3 +432,5 @@ test.thread.traceback = function()
         ):format(curr_file, curr_file, curr_file, curr_file)
     ))
 end
+
+end -- LUA_VERSION > 51
