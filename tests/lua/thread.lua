@@ -16,7 +16,7 @@ test.thread.runner_is_serializible = function ()
     test.equal(table["runner"](123):get(), 246)
 end
 
-test.thread.runner_path_check = function (config_key, pkg)
+test.thread.runner_path_check_p = function (config_key, pkg)
     local table = effil.table()
     local runner = effil.thread(function()
         require(pkg)
@@ -27,8 +27,8 @@ test.thread.runner_path_check = function (config_key, pkg)
     test.equal(runner():wait(), "failed")
 end
 
-test.thread.runner_path_check("path", "size")
-test.thread.runner_path_check("cpath", "effil")
+test.thread.runner_path_check_p("path", "size") -- some testing Lua file to import
+test.thread.runner_path_check_p("cpath", "effil")
 
 test.thread.wait = function ()
     local thread = effil.thread(function()
@@ -399,8 +399,6 @@ test.this_thread.pause_on_finished_thread = function ()
     test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
 end
 
-if LUA_VERSION > 51 then
-
 test.thread.traceback = function()
     local curr_file = debug.getinfo(1,'S').short_src
 
@@ -417,18 +415,18 @@ test.thread.traceback = function()
     local status, err, trace = effil.thread(foo)():wait()
     print("status: ", status)
     print("error: ", err)
-    print("stacktrace: ", trace)
+    print("stacktrace:")
+    print(trace)
 
     test.equal(status, "failed")
     -- <souce file>.lua:<string number>: <error message>
     test.is_not_nil(string.find(err, curr_file .. ":%d+: err msg"))
     test.is_not_nil(string.find(trace, (
 [[stack traceback:
+%%s%%[C%%]: in function 'error'
 %%s%s:%%d+: in function 'boom'
 %%s%s:%%d+: in function 'bar'
 %%s%s:%%d+: in function <%s:%%d+>]]
         ):format(curr_file, curr_file, curr_file, curr_file)
     ))
 end
-
-end -- LUA_VERSION > 51

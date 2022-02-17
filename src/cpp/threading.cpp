@@ -45,22 +45,14 @@ std::string statusToString(Status status) {
     return "unknown";
 }
 
-#if LUA_VERSION_NUM > 501
-
 int luaErrorHandler(lua_State* state) {
     luaL_traceback(state, state, nullptr, 1);
     const auto stacktrace = sol::stack::pop<std::string>(state);
     thisThreadHandle->result().emplace_back(createStoredObject(stacktrace));
-    throw Exception() << sol::stack::pop<std::string>(state);
+    return 1;
 }
 
 const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
-
-#else
-
-const lua_CFunction luaErrorHandlerPtr = nullptr;
-
-#endif // LUA_VERSION_NUM > 501
 
 void luaHook(lua_State*, lua_Debug*) {
     assert(thisThreadHandle);
@@ -68,6 +60,7 @@ void luaHook(lua_State*, lua_Debug*) {
         case Command::Run:
             break;
         case Command::Cancel:
+            thisThreadHandle->changeStatus(Status::Canceled);
             throw LuaHookStopException();
         case Command::Pause: {
             thisThreadHandle->changeStatus(Status::Paused);
@@ -75,10 +68,12 @@ void luaHook(lua_State*, lua_Debug*) {
             do {
                 cmd = thisThreadHandle->waitForCommandChange(NO_TIMEOUT);
             } while(cmd != Command::Run && cmd != Command::Cancel);
-            if (cmd == Command::Run)
+            if (cmd == Command::Run) {
                 thisThreadHandle->changeStatus(Status::Running);
-            else
+            } else {
+                thisThreadHandle->changeStatus(Status::Canceled);
                 throw LuaHookStopException();
+            }
             break;
         }
     }
@@ -89,7 +84,7 @@ void luaHook(lua_State*, lua_Debug*) {
 ThreadHandle::ThreadHandle()
         : status_(Status::Running)
         , command_(Command::Run)
-        , lua_(std::make_unique<sol::state>(luaErrorHandlerPtr)) {
+        , lua_(std::make_unique<sol::state>()) {
     luaL_openlibs(*lua_);
 }
 
@@ -126,9 +121,22 @@ void Thread::runThread(Thread thread,
                 arguments.clear();
                 thread.ctx_->destroyLua();
             });
-            sol::function userFuncObj = function.loadFunction(thread.ctx_->lua());
-            sol::function_result results = userFuncObj(std::move(arguments));
-            (void)results; // just leave all returns on the stack
+            sol::protected_function userFuncObj = function.loadFunction(thread.ctx_->lua());
+
+            sol::stack::push(thread.ctx_->lua(), luaErrorHandlerPtr);
+            userFuncObj.error_handler = sol::reference(thread.ctx_->lua());
+            sol::stack::pop_n(thread.ctx_->lua(), 1);
+
+            sol::protected_function_result result = userFuncObj(std::move(arguments));
+            if (!result.valid()) {
+                if (thread.ctx_->status() == Status::Canceled)
+                    return;
+
+                sol::error err = result;
+                std::string what = err.what();
+                throw std::runtime_error(what);
+            }
+
             sol::variadic_args args(thread.ctx_->lua(), -lua_gettop(thread.ctx_->lua()));
             for (const auto& iter : args) {
                 StoredObject store = createStoredObject(iter.get<sol::object>());
@@ -143,7 +151,7 @@ void Thread::runThread(Thread thread,
         thread.ctx_->changeStatus(Status::Completed);
     } catch (const LuaHookStopException&) {
         thread.ctx_->changeStatus(Status::Canceled);
-    } catch (const sol::error& err) {
+    } catch (const std::exception& err) {
         DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;
         auto& returns = thread.ctx_->result();
         returns.insert(returns.begin(),
