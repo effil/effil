@@ -122,7 +122,7 @@ int luaopen_effil(lua_State* L) {
             "next",         SharedTable::globalLuaNext,
             "size",         luaSize,
             "dump",         luaDump,
-            "hardware_threads",        std::thread::hardware_concurrency,
+            "hardware_threads", std::thread::hardware_concurrency,
             sol::meta_function::index, luaIndex
     );
 

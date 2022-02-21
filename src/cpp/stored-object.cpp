@@ -107,7 +107,6 @@ class FunctionHolder : public GCObjectHolder<Function> {
 public:
     template <typename SolType>
     FunctionHolder(const SolType& luaObject) : GCObjectHolder<Function>(luaObject) {}
-    FunctionHolder(GCHandle handle) : GCObjectHolder(handle) {}
 
     sol::object unpack(sol::this_state state) const final {
         return GC::instance().get<Function>(handle_).loadFunction(state);
@@ -116,6 +115,29 @@ public:
     sol::object convertToLua(sol::this_state state, DumpCache& cache) const final {
         return GC::instance().get<Function>(handle_).convertToLua(state, cache);
     }
+};
+
+class CFunctionHolder : public BaseHolder {
+public:
+    CFunctionHolder(sol::state_view state, int stack_index)
+        : BaseHolder()
+    {
+        cfunction_ = lua_tocfunction(state, stack_index);
+        REQUIRE(cfunction_ != nullptr);
+    }
+
+    sol::object unpack(sol::this_state state) const final {
+        lua_pushcfunction(state, cfunction_);
+        return sol::stack::pop<sol::object>(state);
+    }
+
+    bool rawCompare(const BaseHolder* other) const override {
+        const auto cfh = dynamic_cast<const CFunctionHolder*>(other);
+        return cfh && cfh->cfunction_ == cfunction_;
+    }
+
+private:
+    lua_CFunction cfunction_;
 };
 
 void dumpTable(SharedTable& target, const sol::table& luaTable, SolTableToShared& visited);
@@ -183,6 +205,11 @@ StoredObject fromSolObject(const SolObject& luaObject, SolTableToShared& visited
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {
+            {
+                auto poper = sol::stack::push_pop(luaObject);
+                if (lua_iscfunction(luaObject.lua_state(), -1))
+                    return std::make_unique<CFunctionHolder>(luaObject.lua_state(), -1);
+            }
             Function func = GC::instance().create<Function>(luaObject, visited);
             return std::make_unique<FunctionHolder>(func.handle());
         }
