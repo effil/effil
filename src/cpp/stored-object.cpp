@@ -123,7 +123,7 @@ public:
         : BaseHolder()
     {
         cfunction_ = lua_tocfunction(state, stack_index);
-        REQUIRE(cfunction_ != nullptr);
+        REQUIRE(cfunction_ != nullptr) << "can't get C function pointer";
     }
 
     sol::object unpack(sol::this_state state) const final {
