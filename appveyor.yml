@@ -1,8 +1,8 @@
 image: Visual Studio 2015
 
 configuration:
-  - debug
   - release
+#  - debug
 
 platform:
   - x86
