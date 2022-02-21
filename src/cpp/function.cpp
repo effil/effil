@@ -1,5 +1,6 @@
 #include "function.h"
 
+
 namespace effil {
 
 FunctionData::FunctionData() : cFunction(nullptr), isCFunction(true)
