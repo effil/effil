@@ -4,6 +4,7 @@
 #include "shared-table.h"
 #include "function.h"
 #include "utils.h"
+#include "thread_runner.h"
 
 #include <map>
 #include <vector>
@@ -180,6 +181,8 @@ StoredObject fromSolObject(const SolObject& luaObject, SolTableToShared& visited
                 return std::make_unique<GCObjectHolder<Thread>>(luaObject);
             else if (luaObject.template is<EffilApiMarker>())
                 return std::make_unique<ApiReferenceHolder>();
+            else if (luaObject.template is<ThreadRunner>())
+                return std::make_unique<GCObjectHolder<ThreadRunner>>(luaObject);
             else
                 throw Exception() << "Unable to store userdata object";
         case sol::type::function: {

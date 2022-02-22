@@ -45,6 +45,7 @@ test.gc_stress.regress_for_concurent_thread_creation = function ()
     end
 end
 
+
 test.gc_stress.regress_for_concurent_function_creation = function ()
     local a = function() end
     local b = function() end

@@ -8,6 +8,28 @@ test.thread.hardware_threads = function()
     test.is_true(effil.hardware_threads() >= 0)
 end
 
+test.thread.runner_is_serializible = function ()
+    local table = effil.table()
+    local runner = effil.thread(function(n) return n * 2 end)
+
+    table["runner"] = runner
+    test.equal(table["runner"](123):get(), 246)
+end
+
+test.thread.runner_path_check_p = function (config_key, pkg)
+    local table = effil.table()
+    local runner = effil.thread(function()
+        require(pkg)
+    end)
+    test.equal(runner():wait(), "completed")
+
+    runner[config_key] = ""
+    test.equal(runner():wait(), "failed")
+end
+
+test.thread.runner_path_check_p("path", "size") -- some testing Lua file to import
+test.thread.runner_path_check_p("cpath", "effil")
+
 test.thread.wait = function ()
     local thread = effil.thread(function()
         print 'Effil is not that tower'
@@ -395,13 +417,15 @@ test.thread.traceback = function()
     local status, err, trace = effil.thread(foo)():wait()
     print("status: ", status)
     print("error: ", err)
-    print("stacktrace: ", trace)
+    print("stacktrace:")
+    print(trace)
 
     test.equal(status, "failed")
     -- <souce file>.lua:<string number>: <error message>
     test.is_not_nil(string.find(err, curr_file .. ":%d+: err msg"))
     test.is_not_nil(string.find(trace, (
 [[stack traceback:
+%%s%%[C%%]: in function 'error'
 %%s%s:%%d+: in function 'boom'
 %%s%s:%%d+: in function 'bar'
 %%s%s:%%d+: in function <%s:%%d+>]]
