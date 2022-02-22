@@ -210,6 +210,8 @@ Effil allows to transmit data between threads (Lua interpreter states) using `ef
  - Primitive types are transmitted 'as is' by copy: `nil`, `boolean`, `number`, `string`
  - Functions are dumped using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump). Upvalues are captured according to [the rules](#functions-upvalues).
  - **Userdata and Lua threads (coroutines)** are not supported.
+    - C functions (for which `lua_iscfunction` returns true) are transmitted just by a pointer using `lua_tocfunction` (in original lua_State) and lua_pushcfunction (in new lua_State).  
+    **caution**: in LuaJIT standard functions like tonumber are not real C function, so `lua_iscfunction` returns true but `lua_tocfunction` returns nullptr. Due to that we don't find way to transmit it between lua_States.
  - Tables are serialized to `effil.table` recursively. So, any Lua table becomes `effil.table`. Table serialization may take a lot of time for big table. Thus, it's better to put data directly to `effil.table` avoiding a table serialization. Let's consider 2 examples:
 ```Lua
 -- Example #1
