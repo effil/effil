@@ -79,9 +79,9 @@ void luaHook(lua_State*, lua_Debug*) {
                 #else
                     (void)luaErrorHandler;
                 #endif // LUA_VERSION NUM > 501
-                const auto ret = clbk();
+                auto ret = clbk();
                 if (!ret.valid()) {
-                    const sol::error err = ret;
+                    sol::error err = ret;
                     throw err;
                 }
             }
@@ -163,7 +163,7 @@ void Thread::runThread(Thread thread,
                 if (thread.ctx_->status() == Status::Canceled)
                     return;
 
-                const sol::error err = result;
+                sol::error err = result;
                 formError(err.what());
                 return;
             }
