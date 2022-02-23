@@ -1,6 +1,10 @@
 #!/usr/bin/env lua
 
-print("Using " .. _VERSION)
+if jit then
+    print("Using LuaJIT")
+else
+    print("Using " .. _VERSION)
+end
 
 local scripts_path = arg[0]:gsub("[\\/]run_tests", "")
 local src_path = scripts_path .. "/../.."
@@ -17,6 +21,7 @@ require "metatable"
 require "type_mismatch"
 require "upvalues"
 require "dump_table"
+require "function"
 
 if os.getenv("STRESS") then
     require "channel-stress"
