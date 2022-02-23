@@ -70,9 +70,20 @@ void luaHook(lua_State*, lua_Debug*) {
         case Command::Run:
             break;
         case Command::Cancel: {
-            const sol::function clbk = thisThreadHandle->getCancelCallback();
+            sol::protected_function clbk = thisThreadHandle->getCancelCallback();
             if (clbk.valid()) {
-                clbk();
+                #if LUA_VERSION_NUM > 501
+                    sol::stack::push(clbk.lua_state(), luaErrorHandler);
+                    clbk.error_handler = sol::reference(clbk.lua_state());
+                    sol::stack::pop_n(clbk.lua_state(), 1);
+                #else
+                    (void)luaErrorHandler;
+                #endif // LUA_VERSION NUM > 501
+                const auto ret = clbk();
+                if (!ret.valid()) {
+                    const sol::error err = ret;
+                    throw err;
+                }
             }
             thisThreadHandle->changeStatus(Status::Canceled);
             throw LuaHookStopException();
