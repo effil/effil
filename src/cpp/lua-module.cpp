@@ -24,6 +24,10 @@ sol::object createChannel(const sol::stack_object& capacity, sol::this_state lua
     return sol::make_object(lua, GC::instance().create<Channel>(capacity));
 }
 
+sol::object createMutex(sol::this_state lua) {
+    return sol::make_object(lua, std::make_shared<SpinMutex>());
+}
+
 SharedTable globalTable = GC::instance().create<SharedTable>();
 
 std::string getLuaTypename(const sol::stack_object& obj) {
@@ -79,6 +83,7 @@ int luaopen_effil(lua_State* L) {
     SharedTable::exportAPI(lua);
     Channel::exportAPI(lua);
     ThreadRunner::exportAPI(lua);
+    SpinMutex::exportAPI(lua);
 
     const sol::table  gcApi     = GC::exportAPI(lua);
     const sol::object gLuaTable = sol::make_object(lua, globalTable);
@@ -91,11 +96,12 @@ int luaopen_effil(lua_State* L) {
         else if (key == "gc")
             return gcApi;
         else if (key == "version")
-            return sol::make_object(obj.lua_state(), "0.1.0");
+            return sol::make_object(obj.lua_state(), "1.0.0");
         return sol::nil;
     };
 
     sol::usertype<EffilApiMarker> type("new", sol::no_constructor,
+            "mutex",        createMutex,
             "thread",       createThreadRunner,
             "thread_id",    threadId,
             "sleep",        sleep,
