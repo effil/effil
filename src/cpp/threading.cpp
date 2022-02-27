@@ -45,23 +45,42 @@ std::string statusToString(Status status) {
     return "unknown";
 }
 
+void formError(const char* msg) {
+    auto& result = thisThreadHandle->result();
+    result.insert(result.begin(), {
+        createStoredObject("failed"),
+        createStoredObject(msg)
+    });
+    thisThreadHandle->changeStatus(Status::Failed);
+}
+
 int luaErrorHandler(lua_State* state) {
+    if (isFinishStatus(thisThreadHandle->status()))
+        return 1;
+
     luaL_traceback(state, state, nullptr, 1);
     const auto stacktrace = sol::stack::pop<std::string>(state);
     thisThreadHandle->result().emplace_back(createStoredObject(stacktrace));
     return 1;
 }
 
-const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
-
 void luaHook(lua_State*, lua_Debug*) {
     assert(thisThreadHandle);
     switch (thisThreadHandle->command()) {
         case Command::Run:
             break;
-        case Command::Cancel:
+        case Command::Cancel: {
+            sol::function clbk = thisThreadHandle->getCancelCallback();
+            if (clbk.valid()) {
+                auto ret = clbk();
+                if (!ret.valid()) {
+                    sol::error err = ret;
+                    throw err;
+                }
+            }
             thisThreadHandle->changeStatus(Status::Canceled);
             throw LuaHookStopException();
+        }
         case Command::Pause: {
             thisThreadHandle->changeStatus(Status::Paused);
             Command cmd;
@@ -121,14 +140,15 @@ void Thread::runThread(Thread thread,
                 arguments.clear();
                 thread.ctx_->destroyLua();
             });
-            sol::protected_function userFuncObj = function.loadFunction(thread.ctx_->lua());
+            lua_State* state = thread.ctx_->lua();
+            sol::protected_function userFuncObj = function.loadFunction(state);
 
             #if LUA_VERSION_NUM > 501
-
-            sol::stack::push(thread.ctx_->lua(), luaErrorHandlerPtr);
-            userFuncObj.error_handler = sol::reference(thread.ctx_->lua());
-            sol::stack::pop_n(thread.ctx_->lua(), 1);
-
+                sol::stack::push(state, luaErrorHandler);
+                userFuncObj.error_handler = sol::reference(state);
+                sol::stack::pop_n(state, 1);
+            #else
+                (void)luaErrorHandler;
             #endif // LUA_VERSION NUM > 501
 
             sol::protected_function_result result = userFuncObj(std::move(arguments));
@@ -137,11 +157,11 @@ void Thread::runThread(Thread thread,
                     return;
 
                 sol::error err = result;
-                std::string what = err.what();
-                throw std::runtime_error(what);
+                formError(err.what());
+                return;
             }
 
-            sol::variadic_args args(thread.ctx_->lua(), -lua_gettop(thread.ctx_->lua()));
+            sol::variadic_args args(state, -lua_gettop(state));
             for (const auto& iter : args) {
                 StoredObject store = createStoredObject(iter.get<sol::object>());
                 if (store->gcHandle() != nullptr)
@@ -153,15 +173,9 @@ void Thread::runThread(Thread thread,
             }
         }
         thread.ctx_->changeStatus(Status::Completed);
-    } catch (const LuaHookStopException&) {
-        thread.ctx_->changeStatus(Status::Canceled);
     } catch (const std::exception& err) {
-        DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;
-        auto& returns = thread.ctx_->result();
-        returns.insert(returns.begin(),
-                { createStoredObject("failed"),
-                  createStoredObject(err.what()) });
-        thread.ctx_->changeStatus(Status::Failed);
+        DEBUG("thread") << "Unprocessed exception with msg: " << err.what() << std::endl;
+        formError(err.what());
     }
 }
 
@@ -189,6 +203,17 @@ void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {
     else {
         yield();
     }
+}
+
+void setCancelCallback(const sol::stack_function& func) {
+    if (thisThreadHandle)
+        thisThreadHandle->setCancelCallback(func.valid() ? func : sol::function());
+}
+
+sol::object getCancelCallback() {
+    if (thisThreadHandle)
+        return thisThreadHandle->getCancelCallback();
+    return sol::nil;
 }
 
 void Thread::initialize(

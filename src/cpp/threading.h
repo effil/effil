@@ -12,6 +12,8 @@ namespace effil {
 std::string threadId();
 void yield();
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
+void setCancelCallback(const sol::stack_function& func);
+sol::object getCancelCallback();
 
 class ThreadHandle : public GCData {
 public:
@@ -69,11 +71,17 @@ public:
         return  *lua_;
     }
 
-    void destroyLua() { lua_.reset(); }
+    void destroyLua() {
+        cancelCallback_ = sol::protected_function();
+        lua_.reset();
+    }
 
     Status status() { return status_; }
 
     StoredArray& result() { return result_; }
+
+    sol::function getCancelCallback() const { return cancelCallback_; }
+    void setCancelCallback(const sol::function& f) { cancelCallback_ = f; }
 
 private:
     Status status_;
@@ -83,6 +91,7 @@ private:
     Notifier completionNotifier_;
     std::mutex stateLock_;
     StoredArray result_;
+    sol::function cancelCallback_;
 
     std::unique_ptr<sol::state> lua_;
 };

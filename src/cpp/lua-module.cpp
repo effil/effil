@@ -98,6 +98,7 @@ int luaopen_effil(lua_State* L) {
     sol::usertype<EffilApiMarker> type("new", sol::no_constructor,
             "thread",       createThreadRunner,
             "thread_id",    threadId,
+            "cancel_callback", sol::property(&getCancelCallback, &setCancelCallback),
             "sleep",        sleep,
             "yield",        yield,
             "table",        createTable,
