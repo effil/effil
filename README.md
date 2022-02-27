@@ -528,3 +528,4 @@ effil.type(effil.channel()) == "effil.channel"
 effil.type({}) == "table"
 effil.type(1) == "number"
 ```
+
