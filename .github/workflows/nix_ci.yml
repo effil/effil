@@ -1,4 +1,4 @@
-name: build & run tests
+name: build & run tests (NIX)
 
 on:
   push:
@@ -13,10 +13,10 @@ jobs:
       matrix:
         build-type: [Release] # Debug
         lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.0"]
-        os: ["macos-latest", "ubuntu-latest"] # "windows-latest"
+        os: ["macos-latest", "ubuntu-latest"]
         include:
-          - os: macos-latest
-            macos_build_target: 10.0
+        - os: macos-latest
+          macos_build_target: 10.0
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -31,12 +31,16 @@ jobs:
       run: |
         pip install hererocks
         hererocks lua-pkg --${{ matrix.lua }} -rlatest
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}} -DLUA_INCLUDE_DIR="${{github.workspace}}/lua-pkg/include"
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build-type}}
+        source ${{github.workspace}}/lua-pkg/bin/activate
+
+    - name: Configure CMake && build
+      run: |
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}} -DLUA_INCLUDE_DIR="${{github.workspace}}/lua-pkg/include"
+        cmake --build ${{github.workspace}}/build --config ${{matrix.build-type}}
+
     - name: Test
       working-directory: ${{github.workspace}}/build
+      env:
+        STRESS: 1
       run: |
-        source ${{github.workspace}}/lua-pkg/bin/activate
-        STRESS=1 lua ../tests/lua/run_tests
+        ${{github.workspace}}/lua-pkg/bin/lua ../tests/lua/run_tests

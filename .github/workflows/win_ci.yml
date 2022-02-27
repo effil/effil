@@ -1,0 +1,48 @@
+name: build & run tests (Win)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: [Release] # Debug
+        lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.0"]
+        os: ["windows-2016"]
+        platform: [
+          {"forLua": "vs_32", "forCMake": "Win32"},
+          {"forLua": "vs_64", "forCMake": "x64"},
+        ]
+        exclude:
+         - lua: "luajit 2.0"
+           platform: {"forLua": "vs_32", "forCMake": "Win32"}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Setup env
+      run: |
+        pip install hererocks
+        hererocks lua-pkg --${{ matrix.lua }} -rlatest --target ${{matrix.platform.forLua}}
+        cmd ${{github.workspace}}\lua-pkg\bin\activate
+
+    - name: Configure CMake & build
+      run: |
+        cmake -A ${{matrix.platform.forCMake}} -B ${{github.workspace}}\build -DLUA_INCLUDE_DIR="${{github.workspace}}/lua-pkg/include" -DLUA_LIBRARY="${{github.workspace}}/lua-pkg/lib/lua*.lib"
+        cmake --build ${{github.workspace}}/build --config ${{matrix.build-type}}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      env:
+       STRESS: 1
+      run: |
+        ${{github.workspace}}/lua-pkg/bin/lua ../tests/lua/run_tests
