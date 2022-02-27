@@ -29,9 +29,6 @@ public:
 
     void interrupt() final;
 
-public:
-    Channel() = delete;
-
 private:
     Channel() = default;
     void initialize(const sol::stack_object& capacity);

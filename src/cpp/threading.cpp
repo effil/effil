@@ -52,6 +52,8 @@ int luaErrorHandler(lua_State* state) {
     return 1;
 }
 
+const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
+
 void luaHook(lua_State*, lua_Debug*) {
     assert(thisThreadHandle);
     switch (thisThreadHandle->command()) {
@@ -96,6 +98,7 @@ ScopedSetInterruptable::~ScopedSetInterruptable() {
 void interruptionPoint() {
     if (thisThreadHandle && thisThreadHandle->command() == Command::Cancel)
     {
+        thisThreadHandle->changeStatus(Status::Canceled);
         throw LuaHookStopException();
     }
 }
@@ -222,7 +225,7 @@ void Thread::runThread(Thread thread,
     }
 }
 
-Thread::Thread(
+void Thread::initialize(
     const std::string& path,
     const std::string& cpath,
     int step,
