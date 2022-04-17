@@ -13,7 +13,7 @@ jobs:
       matrix:
         build-type: [Release] # Debug
         lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.0"]
-        os: ["windows-2016"]
+        os: ["windows-2019"]
         platform: [
           {"forLua": "vs_32", "forCMake": "Win32"},
           {"forLua": "vs_64", "forCMake": "x64"},
