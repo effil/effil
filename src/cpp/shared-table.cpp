@@ -64,7 +64,7 @@ void SharedTable::set(StoredObject&& key, StoredObject&& value) {
 
 sol::object SharedTable::get(const StoredObject& key, sol::this_state state) const {
     SharedLock g(ctx_->lock);
-    auto val = ctx_->entries.find(key);
+    const auto val = ctx_->entries.find(key);
     if (val == ctx_->entries.end()) {
         return sol::nil;
     } else {

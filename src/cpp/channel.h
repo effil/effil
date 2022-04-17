@@ -17,7 +17,7 @@ public:
     std::queue<StoredArray> channel_;
 };
 
-class Channel : public GCObject<ChannelData> {
+class Channel : public GCObject<ChannelData>, public IInterruptable {
 public:
     static void exportAPI(sol::state_view& lua);
 
@@ -26,6 +26,8 @@ public:
                     const sol::optional<std::string>& period);
 
     size_t size();
+
+    void interrupt() final;
 
 private:
     Channel() = default;

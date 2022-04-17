@@ -52,14 +52,25 @@ bool Channel::push(const sol::variadic_args& args) {
 
 StoredArray Channel::pop(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
+    this_thread::interruptionPoint();
     std::unique_lock<std::mutex> lock(ctx_->lock_);
-    while (ctx_->channel_.empty()) {
-        if (duration) {
-            if (ctx_->cv_.wait_for(lock, fromLuaTime(duration.value(), period)) == std::cv_status::timeout)
-                return StoredArray();
-        }
-        else { // No time limit
-            ctx_->cv_.wait(lock);
+    {
+        this_thread::ScopedSetInterruptable interruptable(this);
+
+        Timer timer(duration ? fromLuaTime(duration.value(), period) :
+                               std::chrono::milliseconds());
+        while (ctx_->channel_.empty()) {
+            if (duration) {
+                if (timer.isFinished() ||
+                        ctx_->cv_.wait_for(lock, timer.left()) ==
+                            std::cv_status::timeout) {
+                    return StoredArray();
+                }
+            }
+            else { // No time limit
+                ctx_->cv_.wait(lock);
+            }
+            this_thread::interruptionPoint();
         }
     }
 
@@ -76,6 +87,11 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
 size_t Channel::size() {
     std::lock_guard<std::mutex> lock(ctx_->lock_);
     return ctx_->channel_.size();
+}
+
+void Channel::interrupt()
+{
+    ctx_->cv_.notify_all();
 }
 
 } // namespace effil

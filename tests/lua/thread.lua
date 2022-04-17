@@ -244,14 +244,6 @@ test.thread.returns = function ()
     test.equal(returns[5](11, 89), 100)
 end
 
-test.thread.timed_cancel = function ()
-    local thread = effil.thread(function()
-        effil.sleep(4)
-    end)()
-    test.is_false(thread:cancel(100, "ms"))
-    thread:wait()
-end
-
 test.thread_with_table.tear_down = default_tear_down
 
 test.thread_with_table.types = function ()
@@ -320,26 +312,6 @@ test.this_thread.functions = function ()
     test.is_string(share["child.id"])
     test.is_number(tonumber(share["child.id"]))
     test.not_equal(share["child.id"], effil.thread_id())
-end
-
-test.this_thread.cancel_with_yield = function ()
-    local share = effil.table()
-    local spec = effil.thread(function (share)
-        effil.sleep(1)
-        for i=1,10000 do
-           -- Just waiting
-        end
-        share.done = true
-        effil.yield()
-        share.afet_yield = true
-    end)
-    spec.step = 0
-    local thr = spec(share)
-
-    test.is_true(thr:cancel())
-    test.equal(thr:status(), "canceled")
-    test.is_true(share.done)
-    test.is_nil(share.afet_yield)
 end
 
 test.this_thread.pause_with_yield = function ()
