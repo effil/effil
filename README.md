@@ -244,6 +244,24 @@ List of available time intervals:
 - `m` - minutes;
 - `h` - hours.
 
+All blocking operations (even in non blocking mode) are interruption points. Thread hanged in such operation can be interrupted by invoking [thread:cancel()](#threadcanceltime-metric) method.
+<details>
+   <summary><b>Example</b></summary>
+   <p>
+
+```lua
+local effil = require "effil"
+
+local worker = effil.thread(function()
+    effil.sleep(999) -- worker will hang for 999 seconds
+end)()
+
+worker:cancel(1) -- returns true, cause blocking operation was interrupted and thread was canceled
+```
+   </p>
+</details>
+
+
 ## Function's upvalues
 Working with functions Effil serializes and deserializes them using [`lua_dump`](#https://www.lua.org/manual/5.3/manual.html#lua_dump) and [`lua_load`](#https://www.lua.org/manual/5.3/manual.html#lua_load) methods. All function's upvalues are stored following the same [rules](#important-notes) as usual. If function has **upvalue of unsupported type** this function cannot be transmitted to Effil. You will get error in that case.
 
