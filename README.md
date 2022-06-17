@@ -10,7 +10,7 @@
 
 | Linux + MacOS | Windows |
 | ------------- | ------- |
-| [![build & run tests](https://github.com/effil/effil/actions/workflows/cmake.yml/badge.svg)](https://github.com/effil/effil/actions/workflows/cmake.yml) | [![Build status](https://ci.appveyor.com/api/projects/status/ji0l9lbs17djgm8w/branch/master?svg=true)](https://ci.appveyor.com/project/mihacooper/effil/branch/master) |
+| [![build & run tests](https://github.com/effil/effil/actions/workflows/nix_ci.yml/badge.svg)](https://github.com/effil/effil/actions/workflows/nix_ci.yml) | [![Build status](https://github.com/effil/effil/actions/workflows/win_ci.yml/badge.svg)](https://github.com/effil/effil/actions/workflows/win_ci.yml) |
 
 Effil is a multithreading library for Lua.
 It allows to spawn native threads and safe data exchange.
