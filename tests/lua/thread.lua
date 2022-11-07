@@ -33,7 +33,8 @@ test.thread.runner_path_check_p("cpath", "effil")
 test.thread.wait = function ()
     local thread = effil.thread(function()
         print 'Effil is not that tower'
-        return nil end)()
+        return nil end
+    )()
 
     local status = thread:wait()
     test.is_nil(thread:get())
@@ -94,8 +95,8 @@ test.thread.detached = function ()
     local st = effil.table()
 
     for i = 1, 32 do
-        effil.thread(function(st, index)
-            st[index] = index
+        effil.thread(function(_st, index)
+            _st[index] = index
         end)(st, i)
     end
 
@@ -134,6 +135,7 @@ test.thread.async_cancel = function ()
             while ( (os.time() - startTime) <= 10) do --[[ Just sleep ]] end
         end
     )
+    thread_runner.step = 1
 
     local thread = thread_runner()
     sleep(2) -- let thread starts working
@@ -144,38 +146,46 @@ test.thread.async_cancel = function ()
 end
 
 test.thread.pause_resume_cancel = function ()
-    local data = effil.table()
-    data.value = 0
-    local thread = effil.thread(
+    local test_data = effil.table()
+    test_data.value = 0
+    local thread_runner = effil.thread(
         function(data)
             while true do
                 data.value = data.value + 1
             end
         end
-    )(data)
-    test.is_true(wait(2, function() return data.value > 100 end))
+    )
+    thread_runner.step = 1
+    local thread = thread_runner(test_data)
+    test.is_true(wait(2, function() return test_data.value > 100 end))
     test.is_true(thread:pause())
     test.equal(thread:status(), "paused")
 
-    local savedValue = data.value
+    local savedValue = test_data.value
     sleep(1)
-    test.equal(data.value, savedValue)
+    test.equal(test_data.value, savedValue)
 
     thread:resume()
-    test.is_true(wait(5, function() return (data.value - savedValue) > 100 end))
+    test.is_true(wait(5, function() return (test_data.value - savedValue) > 100 end))
     test.is_true(thread:cancel())
+    test.equal(thread:status(), 'canceled')
+    test_data = nil
 end
 
 test.thread.pause_cancel = function ()
     local data = effil.table()
     data.value = 0
-    local thread = effil.thread(
+    local thread_runner = effil.thread(
         function(data)
             while true do
                 data.value = data.value + 1
             end
         end
-    )(data)
+    )
+
+    thread_runner.step = 1
+    
+    local thread = thread_runner(data)
 
     test.is_true(wait(2, function() return data.value > 100 end))
     thread:pause(0)
@@ -185,18 +195,23 @@ test.thread.pause_cancel = function ()
     test.equal(data.value, savedValue)
 
     test.is_true(thread:cancel(1))
+    test.equal(thread:status(), 'canceled')
+    data = nil
 end
 
 test.thread.async_pause_resume_cancel = function ()
     local data = effil.table()
     data.value = 0
-    local thread = effil.thread(
-        function(data)
+    local thread_runner = effil.thread(
+        function(_data)
             while true do
-                data.value = data.value + 1
+                _data.value = _data.value + 1
             end
         end
-    )(data)
+    )
+    thread_runner.step = 1
+
+    local thread = thread_runner(data)
 
     test.is_true(wait(2, function() return data.value > 100 end))
     thread:pause()
@@ -211,6 +226,8 @@ test.thread.async_pause_resume_cancel = function ()
     thread:cancel(0)
     test.is_true(wait(5, function() return thread:status() == "canceled" end))
     thread:wait()
+
+    data = nil
 end
 
 test.thread.returns = function ()
@@ -339,9 +356,8 @@ test.this_thread.pause_with_yield = function ()
 end
 
 local function worker(cmd)
-    eff = effil
     while not cmd.need_to_stop do
-        eff.yield()
+        effil.yield()
     end
     return true
 end
@@ -354,7 +370,9 @@ end
 
 -- Regress test to check hanging when invoke pause on canceled thread
 test.this_thread.pause_on_canceled_thread = function ()
-    local worker_thread = effil.thread(worker)({ need_to_stop = false})
+    local thread_runner = effil.thread(worker)
+    thread_runner.step = 0
+    local worker_thread = thread_runner({ need_to_stop = false})
     effil.sleep(1, 's')
     worker_thread:cancel()
     test.equal(worker_thread:wait(2, "s"), "canceled")
@@ -364,7 +382,9 @@ end
 -- Regress test to check hanging when invoke pause on finished thread
 test.this_thread.pause_on_finished_thread = function ()
     local cmd = effil.table({ need_to_stop = false})
-    local worker_thread = effil.thread(worker)(cmd)
+    local thread_runner = effil.thread(worker)
+    thread_runner.step = 0
+    local worker_thread = thread_runner(cmd)
     effil.sleep(1, 's')
     cmd.need_to_stop = true
     test.is_true(worker_thread:get(2, "s"))
