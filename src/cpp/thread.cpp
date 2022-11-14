@@ -1,5 +1,6 @@
-#include "threading.h"
+#include "thread.h"
 
+#include "thread-handle.h"
 #include "stored-object.h"
 #include "notifier.h"
 #include "spin-mutex.h"
@@ -15,27 +16,14 @@ using Command = ThreadHandle::Command;
 
 namespace {
 
-const sol::optional<std::chrono::milliseconds> NO_TIMEOUT;
-
-// Thread specific pointer to current thread
-static thread_local ThreadHandle* thisThreadHandle = nullptr;
-
-// Doesn't inherit std::exception
-// to prevent from catching this exception third party lua C++ libs
-class LuaHookStopException {};
-
-bool isFinishStatus(Status stat) {
-    return stat == Status::Canceled || stat == Status::Completed || stat == Status::Failed;
-}
-
 std::string statusToString(Status status) {
     switch (status) {
         case Status::Running:
             return "running";
         case Status::Paused:
             return "paused";
-        case Status::Canceled:
-            return "canceled";
+        case Status::Cancelled:
+            return "cancelled";
         case Status::Completed:
             return "completed";
         case Status::Failed:
@@ -48,131 +36,25 @@ std::string statusToString(Status status) {
 int luaErrorHandler(lua_State* state) {
     luaL_traceback(state, state, nullptr, 1);
     const auto stacktrace = sol::stack::pop<std::string>(state);
-    thisThreadHandle->result().emplace_back(createStoredObject(stacktrace));
+    ThreadHandle::getThis()->result().emplace_back(createStoredObject(stacktrace));
     return 1;
 }
 
 const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
 
 void luaHook(lua_State*, lua_Debug*) {
-    assert(thisThreadHandle);
-    switch (thisThreadHandle->command()) {
-        case Command::Run:
-            break;
-        case Command::Cancel:
-            thisThreadHandle->changeStatus(Status::Canceled);
-            throw LuaHookStopException();
-        case Command::Pause: {
-            thisThreadHandle->changeStatus(Status::Paused);
-            Command cmd;
-            do {
-                cmd = thisThreadHandle->waitForCommandChange(NO_TIMEOUT);
-            } while(cmd != Command::Run && cmd != Command::Cancel);
-            if (cmd == Command::Run) {
-                thisThreadHandle->changeStatus(Status::Running);
-            } else {
-                thisThreadHandle->changeStatus(Status::Canceled);
-                throw LuaHookStopException();
-            }
-            break;
-        }
-    }
+    if (const auto thisThread = ThreadHandle::getThis())
+        ThreadHandle::getThis()->performInterruptionPoint();
 }
 
 } // namespace
 
-namespace this_thread {
-
-ScopedSetInterruptable::ScopedSetInterruptable(IInterruptable* notifier) {
-    if (thisThreadHandle) {
-        thisThreadHandle->setNotifier(notifier);
-    }
-}
-
-ScopedSetInterruptable::~ScopedSetInterruptable() {
-    if (thisThreadHandle) {
-        thisThreadHandle->setNotifier(nullptr);
-    }
-}
-
-void interruptionPoint() {
-    if (thisThreadHandle && thisThreadHandle->command() == Command::Cancel)
-    {
-        thisThreadHandle->changeStatus(Status::Canceled);
-        throw LuaHookStopException();
-    }
-}
-
-std::string threadId() {
-    std::stringstream ss;
-    ss << std::this_thread::get_id();
-    return ss.str();
-}
-
-void yield() {
-    luaHook(nullptr, nullptr);
-    std::this_thread::yield();
-}
-
-void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {
-    if (duration.valid()) {
-        REQUIRE(duration.get_type() == sol::type::number)
-                << "bad argument #1 to 'effil.sleep' (number expected, got "
-                << luaTypename(duration) << ")";
-
-        if (metric.valid())
-        {
-            REQUIRE(metric.get_type() == sol::type::string)
-                    << "bad argument #2 to 'effil.sleep' (string expected, got "
-                    << luaTypename(metric) << ")";
-        }
-        try {
-            Notifier notifier;
-            notifier.waitFor(fromLuaTime(duration.as<int>(),
-                                         metric.as<sol::optional<std::string>>()));
-        } RETHROW_WITH_PREFIX("effil.sleep");
-    }
-    else {
-        yield();
-    }
-}
-
-} // namespace this_thread
-
-ThreadHandle::ThreadHandle()
-        : status_(Status::Running)
-        , command_(Command::Run)
-        , currNotifier_(nullptr)
-        , lua_(std::make_unique<sol::state>())
+void Thread::runThread(
+    Thread thread,
+    Function function,
+    effil::StoredArray arguments)
 {
-    luaL_openlibs(*lua_);
-}
-
-void ThreadHandle::putCommand(Command cmd) {
-    std::unique_lock<std::mutex> lock(stateLock_);
-    if (isFinishStatus(status_))
-        return;
-
-    command_ = cmd;
-    statusNotifier_.reset();
-    commandNotifier_.notify();
-}
-
-void ThreadHandle::changeStatus(Status stat) {
-    std::unique_lock<std::mutex> lock(stateLock_);
-    status_ = stat;
-    commandNotifier_.reset();
-    statusNotifier_.notify();
-    if (isFinishStatus(stat))
-        completionNotifier_.notify();
-}
-
-void Thread::runThread(Thread thread,
-               Function function,
-               effil::StoredArray arguments) {
-    thisThreadHandle = thread.ctx_.get();
-    assert(thisThreadHandle != nullptr);
-
+    ThreadHandle::setThis(thread.ctx_.get());
     try {
         {
             ScopeGuard reportComplete([thread, &arguments](){
@@ -193,7 +75,7 @@ void Thread::runThread(Thread thread,
 
             sol::protected_function_result result = userFuncObj(std::move(arguments));
             if (!result.valid()) {
-                if (thread.ctx_->status() == Status::Canceled)
+                if (thread.ctx_->status() == Status::Cancelled)
                     return;
 
                 sol::error err = result;
@@ -213,15 +95,18 @@ void Thread::runThread(Thread thread,
             }
         }
         thread.ctx_->changeStatus(Status::Completed);
-    } catch (const LuaHookStopException&) {
-        thread.ctx_->changeStatus(Status::Canceled);
     } catch (const std::exception& err) {
-        DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;
-        auto& returns = thread.ctx_->result();
-        returns.insert(returns.begin(),
-                { createStoredObject("failed"),
-                  createStoredObject(err.what()) });
-        thread.ctx_->changeStatus(Status::Failed);
+        if (thread.ctx_->command() == Command::Cancel) {
+            thread.ctx_->changeStatus(Status::Cancelled);
+        } else {
+            DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;
+            auto& returns = thread.ctx_->result();
+            returns.insert(returns.begin(), {
+                createStoredObject("failed"),
+                createStoredObject(err.what())
+            });
+            thread.ctx_->changeStatus(Status::Failed);
+        }
     }
 }
 
@@ -319,7 +204,7 @@ bool Thread::cancel(const sol::this_state&,
     ctx_->putCommand(Command::Cancel);
     ctx_->interrupt();
     Status status = ctx_->waitForStatusChange(toOptionalTime(duration, period));
-    return isFinishStatus(status);
+    return ThreadHandle::isFinishStatus(status);
 }
 
 bool Thread::pause(const sol::this_state&,

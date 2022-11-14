@@ -256,7 +256,7 @@ local worker = effil.thread(function()
     effil.sleep(999) -- worker will hang for 999 seconds
 end)()
 
-worker:cancel(1) -- returns true, cause blocking operation was interrupted and thread was canceled
+worker:cancel(1) -- returns true, cause blocking operation was interrupted and thread was cancelled
 ```
    </p>
 </details>
@@ -272,7 +272,7 @@ Working with function Effil can store function environment (`_ENV`) as well. Con
 # API Reference
 
 ## Thread
-`effil.thread` is the way to create a thread. Threads can be stopped, paused, resumed and canceled.
+`effil.thread` is the way to create a thread. Threads can be stopped, paused, resumed and cancelled.
 All operation with threads can be synchronous (with optional timeout) or asynchronous.
 Each thread runs with its own lua state.
 
@@ -309,7 +309,7 @@ Thread handle provides API for interaction with thread.
 Returns thread status.
 
 **output**:
-- `status` - string values describes status of thread. Possible values are: `"running", "paused", "canceled", "completed" and "failed"`.
+- `status` - string values describes status of thread. Possible values are: `"running", "paused", "cancelled", "completed" and "failed"`.
 - `err` - error message, if any. This value is specified only if thread status == `"failed"`.
 - `stacktrace` - stacktrace of failed thread. This value is specified only if thread status == `"failed"`.
 

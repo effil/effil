@@ -124,7 +124,7 @@ test.thread.cancel = function ()
     )()
 
     test.is_true(thread:cancel())
-    test.equal(thread:status(), "canceled")
+    test.equal(thread:status(), "cancelled")
 end
 
 test.thread.async_cancel = function ()
@@ -140,7 +140,7 @@ test.thread.async_cancel = function ()
     thread:cancel(0)
 
     test.is_true(wait(2, function() return thread:status() ~= 'running' end))
-    test.equal(thread:status(), 'canceled')
+    test.equal(thread:status(), 'cancelled')
 end
 
 test.thread.pause_resume_cancel = function ()
@@ -156,7 +156,7 @@ test.thread.pause_resume_cancel = function ()
     test.is_true(wait(2, function() return data.value > 100 end))
     test.is_true(thread:pause())
     test.equal(thread:status(), "paused")
-
+    
     local savedValue = data.value
     sleep(1)
     test.equal(data.value, savedValue)
@@ -209,7 +209,7 @@ test.thread.async_pause_resume_cancel = function ()
     test.is_true(wait(5, function() return (data.value - savedValue) > 100 end))
 
     thread:cancel(0)
-    test.is_true(wait(5, function() return thread:status() == "canceled" end))
+    test.is_true(wait(5, function() return thread:status() == "cancelled" end))
     thread:wait()
 end
 
@@ -314,6 +314,30 @@ test.this_thread.functions = function ()
     test.not_equal(share["child.id"], effil.thread_id())
 end
 
+test.this_thread.cancel_with_yield = function ()
+    local ctx = effil.table()
+    local spec = effil.thread(function()
+        while not ctx.stop do
+           -- Just waiting
+        end
+        ctx.done = true
+        while true do
+            effil.yield()
+        end
+        ctx.after_yield = true
+    end)
+    spec.step = 0
+    local thr = spec()
+
+    test.is_false(thr:cancel(1))
+    ctx.stop = true
+
+    test.is_true(thr:cancel())
+    test.equal(thr:status(), "cancelled")
+    test.is_true(ctx.done)
+    test.is_nil(ctx.after_yield)
+end
+
 test.this_thread.pause_with_yield = function ()
     local share = effil.table({stop = false})
     local spec = effil.thread(function (share)
@@ -352,12 +376,12 @@ local function call_pause(thr)
     return true
 end
 
--- Regress test to check hanging when invoke pause on canceled thread
-test.this_thread.pause_on_canceled_thread = function ()
+-- Regress test to check hanging when invoke pause on cancelled thread
+test.this_thread.pause_on_cancelled_thread = function ()
     local worker_thread = effil.thread(worker)({ need_to_stop = false})
     effil.sleep(1, 's')
     worker_thread:cancel()
-    test.equal(worker_thread:wait(2, "s"), "canceled")
+    test.equal(worker_thread:wait(2, "s"), "cancelled")
     test.is_true(effil.thread(call_pause)(worker_thread):get(5, "s"))
 end
 
@@ -406,3 +430,90 @@ test.thread.traceback = function()
 end
 
 end -- LUA_VERSION > 51
+
+test.thread.cancel_thread_with_pcall = function()
+    local steps = effil.table{step1 = false, step2 = false}
+    local pcall_results = effil.table{}
+
+    local thr = effil.thread(
+        function()
+            pcall_results.ret, pcall_results.msg = pcall(function()
+                while true do
+                    effil.yield()
+                end
+            end)
+
+            steps.step1 = true
+            effil.yield()
+            steps.step2 = true -- should never reach
+        end
+    )()
+
+    test.is_true(thr:cancel())
+    test.equal(thr:wait(), "cancelled")
+    test.is_true(steps.step1)
+    test.is_false(steps.step2)
+    test.is_false(pcall_results.ret)
+    test.equal(pcall_results.msg, "Effil: thread is cancelled")
+end
+
+test.thread.cancel_thread_with_pcall_not_cancelled = function()
+    local thr = effil.thread(
+        function()
+            pcall(function()
+                while true do
+                    effil.yield()
+                end
+            end)
+        end
+    )()
+    test.is_true(thr:cancel())
+    test.equal(thr:wait(), "completed")
+end
+
+if not jit then
+
+test.thread.cancel_thread_with_pcall_without_yield = function()
+    local thr = effil.thread(
+        function()
+            while true do
+                -- pass
+            end
+        end
+    )
+    thr = thr()
+    test.is_true(thr:cancel())
+    test.equal(thr:wait(), "cancelled")
+end
+
+end
+
+test.thread.check_effil_pcall_success = function()
+    local inp1, inp2, inp3 = 1, "str", {}
+    local res, ret1, ret2, ret3 = effil.pcall(function(...) return ... end, inp1, inp2, inp3)
+    test.is_true(res)
+    test.equal(ret1, inp1)
+    test.equal(ret2, inp2)
+    test.equal(ret3, inp3)
+end
+
+test.thread.check_effil_pcall_fail = function()
+    local err = "some text"
+    local res, msg = effil.pcall(function(err) error(err) end, err)
+    test.is_false(res)
+    test.is_not_nil(string.find(msg, ".+: " .. err))
+end
+
+test.thread.check_effil_pcall_with_cancel_thread = function()
+    local thr = effil.thread(
+        function()
+            effil.pcall(function()
+                while true do
+                    effil.yield()
+                end
+            end)
+        end
+    )()
+    test.is_true(thr:cancel())
+    test.equal(thr:wait(), "cancelled")
+end

@@ -1,10 +1,10 @@
 #include "stored-object.h"
 #include "channel.h"
-#include "threading.h"
+#include "thread.h"
 #include "shared-table.h"
 #include "function.h"
 #include "utils.h"
-#include "thread_runner.h"
+#include "thread-runner.h"
 
 #include <map>
 #include <vector>
