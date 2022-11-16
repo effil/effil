@@ -471,6 +471,24 @@ test.thread.cancel_thread_with_pcall_not_cancelled = function()
     test.equal(thr:wait(), "completed")
 end
 
+test.thread.cancel_thread_with_pcall_and_another_error = function()
+    local msg = 'some text'
+    local thr = effil.thread(
+        function()
+            pcall(function()
+                while true do
+                    effil.yield()
+                end
+            end)
+            error(msg)
+        end
+    )()
+    test.is_true(thr:cancel())
+    local status, message = thr:wait()
+    test.equal(status, "failed")
+    test.is_not_nil(string.find(message, ".+: " .. msg))
+end
+
 if not jit then
 
 test.thread.cancel_thread_with_pcall_without_yield = function()

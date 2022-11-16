@@ -96,7 +96,7 @@ void Thread::runThread(
         }
         thread.ctx_->changeStatus(Status::Completed);
     } catch (const std::exception& err) {
-        if (thread.ctx_->command() == Command::Cancel) {
+        if (thread.ctx_->command() == Command::Cancel && strcmp(err.what(), LuaHookStopException::message) == 0) {
             thread.ctx_->changeStatus(Status::Cancelled);
         } else {
             DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;

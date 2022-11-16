@@ -25,6 +25,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
 * [Important notes](#important-notes)
 * [Blocking and nonblocking operations](#blocking-and-nonblocking-operations)
 * [Function's upvalues](#functions-upvalues)
+* [Thread cancellation and pausing](#thread-cancellation-and-pausing)
 * [API Reference](#api-reference)
    * [Thread](#thread)
       * [effil.thread()](#runner--effilthreadfunc)
@@ -45,6 +46,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [effil.yield()](#effilyield)
       * [effil.sleep()](#effilsleeptime-metric)
       * [effil.hardware_threads()](#effilhardware_threads)
+      * [effil.pcall()](#status---effilpcallfunc)
     * [Table](#table)
       * [effil.table()](#table--effiltabletbl)
       * [__newindex: table[key] = value](#tablekey--value)
@@ -70,6 +72,7 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
     * [Other methods](#othermethods)
       * [effil.size()](#size--effilsizeobj)
       * [effil.type()](#effiltype)
+
 
 # How to install
 ### Build from src on Linux and Mac
@@ -269,6 +272,67 @@ Working with function Effil can store function environment (`_ENV`) as well. Con
  * *Lua = 5.1*: function environment is not stored at all (due to limitations of lua_setfenv we cannot use userdata)
  * *Lua > 5.1*: Effil serialize and store function environment only if it's not equal to global environment (`_ENV ~= _G`).
 
+## Thread cancellation and pausing
+The [`effil.thread`](#runner--effilthreadfunc) can be paused and cancelled using corresponding methods of thread object [`thread:cancel()`](#threadcanceltime-metric) and [`thread:pause()`](#threadpausetime-metric).  
+Thread that you try to interrupt can be interrupted in two execution points: explicit and implicit.
+  - Explicit points are [`effil.yield()`](#effilyield)
+      <details>
+      <summary>Example of explicit interruption point</summary>
+      <p>
+
+      ```lua
+      local thread = effil.thread(function()
+         while true do
+            effil.yield()
+         end
+         -- will never reach this line
+      end)()
+      thread:cancel()
+      ```
+
+      </p>
+      </details>
+  - Implicit points are lua debug hook invocation which is set using [lua_sethook](https://www.lua.org/manual/5.3/manual.html#lua_sethook) with LUA_MASKCOUNT.  
+    Implicit points are optional and enabled only if [thread_runner.step](#runnerstep) > 0.
+      <details>
+      <summary>Example of implicit interruption point</summary>
+      <p>
+
+      ```lua
+      local thread_runner = effil.thread(function()
+         while true do
+         end
+         -- will never reach this line
+      end)
+      thread_runner.step = 10
+      thread = thread_runner()
+      thread:cancel()
+      ```
+
+      </p>
+      </details>
+  - Additionally thread can be cancelled (but not paused) in any [blocking or non-blocking waiting operation](#blocking-and-nonblocking-operations).  
+      <details>
+      <summary>Example</summary>
+      <p>
+
+      ```lua
+      local channel = effil.channel()
+      local thread = effil.thread(function()
+         channel:pop() -- thread hangs waiting infinitely
+         -- will never reach this line
+      end)()
+      thread:cancel()
+      ```
+
+      </p>
+      </details>
+
+   **How does cancellation works?**  
+   When you cancel thread it generates lua [`error`](https://lua.org.ru/manual_ru.html#pdf-error) with message `"Effil: thread is cancelled"` when it reaches any interruption point. It means that you can catch this error using [`pcall`](https://lua.org.ru/manual_ru.html#pdf-pcall) but thread will generate new error on next interruption point.  
+   If you want to catch your own error but pass cancellation error you can use [effil.pcall()](#status---effilpcallfunc).  
+   Status of cancelled thread will be equal to `cancelled` only if it finished with cancellation error. It means that if you catch cancellation error thread may finished with `completed` status or `failed` status if there will be some another error.
+
 # API Reference
 
 ## Thread
@@ -360,8 +424,19 @@ Suspend current thread.
 
 ### `effil.hardware_threads()`
 Returns the number of concurrent threads supported by implementation.
-Basically forwards value from [std::thread::hardware_concurrency](https://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency).
+Basically forwards value from [std::thread::hardware_concurrency](https://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency).  
 **output**: number of concurrent hardware threads.
+
+### `status, ... = effil.pcall(func, ...)`
+Works exactly the same way as standard [pcall](https://www.lua.org/manual/5.3/manual.html#pdf-pcall) except that it will not catch thread cancellation error caused by [thread:cancel()](#threadcanceltime-metric) call.  
+
+**input:**
+  - func - function to call
+  - ... - arguments to pass to functions  
+
+**output:**
+  - status - `true` if no error occurred, `false` otherwise
+  - ... - in case of error return one additional result with message of error, otherwise return function call results
 
 ## Table
 `effil.table` is a way to exchange data between effil threads. It behaves almost like standard lua tables.
