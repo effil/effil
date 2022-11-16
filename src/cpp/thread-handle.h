@@ -8,12 +8,12 @@
 
 namespace effil {
 
-class LuaHookStopException : public std::runtime_error
+class ThreadCancelException : public std::runtime_error
 {
 public:
     static constexpr auto message = "Effil: thread is cancelled";
 
-    LuaHookStopException()
+    ThreadCancelException()
         : std::runtime_error(message)
     {}
 };

@@ -42,9 +42,15 @@ int luaErrorHandler(lua_State* state) {
 
 const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
 
-void luaHook(lua_State*, lua_Debug*) {
-    if (const auto thisThread = ThreadHandle::getThis())
-        ThreadHandle::getThis()->performInterruptionPoint();
+void luaHook(lua_State* L, lua_Debug*) {
+    if (const auto thisThread = ThreadHandle::getThis()) {
+        try {
+            ThreadHandle::getThis()->performInterruptionPoint();
+        } catch(const ThreadCancelException& err) {
+            lua_pushstring(L, err.what());
+            lua_error(L);
+        }
+    }
 }
 
 } // namespace
@@ -96,7 +102,7 @@ void Thread::runThread(
         }
         thread.ctx_->changeStatus(Status::Completed);
     } catch (const std::exception& err) {
-        if (thread.ctx_->command() == Command::Cancel && strcmp(err.what(), LuaHookStopException::message) == 0) {
+        if (thread.ctx_->command() == Command::Cancel && strcmp(err.what(), ThreadCancelException::message) == 0) {
             thread.ctx_->changeStatus(Status::Cancelled);
         } else {
             DEBUG("thread") << "Failed with msg: " << err.what() << std::endl;

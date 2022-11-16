@@ -39,7 +39,7 @@ void ThreadHandle::performInterruptionPoint() {
         case Command::Run:
             break;
         case Command::Cancel:
-            throw LuaHookStopException();
+            throw ThreadCancelException();
         case Command::Pause: {
             changeStatus(Status::Paused);
             Command cmd;
@@ -49,7 +49,7 @@ void ThreadHandle::performInterruptionPoint() {
             if (cmd == Command::Run) {
                 changeStatus(Status::Running);
             } else {
-                throw LuaHookStopException();
+                throw ThreadCancelException();
             }
             break;
         }

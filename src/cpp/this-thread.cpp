@@ -22,7 +22,7 @@ void cancellationPoint() {
     const auto thisThread = ThreadHandle::getThis();
     if (thisThread && thisThread->command() == ThreadHandle::Command::Cancel) {
         thisThread->changeStatus(ThreadHandle::Status::Cancelled);
-        throw LuaHookStopException();
+        throw ThreadCancelException();
     }
 }
 
@@ -70,7 +70,7 @@ int pcall(lua_State* L)
 
     const auto thisThread = ThreadHandle::getThis();
     if (thisThread && thisThread->command() == ThreadHandle::Command::Cancel) {
-        lua_pushstring(L, LuaHookStopException::message);
+        lua_pushstring(L, ThreadCancelException::message);
         lua_error(L);
     }
 
