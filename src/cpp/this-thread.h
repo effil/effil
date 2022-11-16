@@ -15,7 +15,7 @@ public:
     ~ScopedSetInterruptable();
 };
 
-void interruptionPoint();
+void cancellationPoint();
 std::string threadId();
 void yield();
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric);

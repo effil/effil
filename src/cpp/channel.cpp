@@ -52,7 +52,7 @@ bool Channel::push(const sol::variadic_args& args) {
 
 StoredArray Channel::pop(const sol::optional<int>& duration,
                           const sol::optional<std::string>& period) {
-    this_thread::interruptionPoint();
+    this_thread::cancellationPoint();
     std::unique_lock<std::mutex> lock(ctx_->lock_);
     {
         this_thread::ScopedSetInterruptable interruptable(this);
@@ -70,7 +70,7 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
             else { // No time limit
                 ctx_->cv_.wait(lock);
             }
-            this_thread::interruptionPoint();
+            this_thread::cancellationPoint();
         }
     }
 

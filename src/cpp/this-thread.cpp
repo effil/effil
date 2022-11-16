@@ -18,7 +18,7 @@ ScopedSetInterruptable::~ScopedSetInterruptable() {
     }
 }
 
-void interruptionPoint() {
+void cancellationPoint() {
     const auto thisThread = ThreadHandle::getThis();
     if (thisThread && thisThread->command() == ThreadHandle::Command::Cancel) {
         thisThread->changeStatus(ThreadHandle::Status::Cancelled);
