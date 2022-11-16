@@ -1,9 +1,6 @@
 [submodule "libs/sol"]
 	path = libs/sol
 	url = https://github.com/ThePhD/sol2.git
-[submodule "libs/gtest"]
-	path = libs/gtest
-	url = https://github.com/google/googletest.git
 [submodule "libs/u-test"]
 	path = libs/u-test
 	url = https://github.com/IUdalov/u-test.git
