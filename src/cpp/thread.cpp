@@ -44,12 +44,13 @@ const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
 
 void luaHook(lua_State* L, lua_Debug*) {
     if (const auto thisThread = ThreadHandle::getThis()) {
-        try {
-            ThreadHandle::getThis()->performInterruptionPoint();
-        } catch(const ThreadCancelException& err) {
-            lua_pushstring(L, err.what());
-            lua_error(L);
-        }
+        ThreadHandle::getThis()->performInterruptionPoint();
+        // try {
+        //     ThreadHandle::getThis()->performInterruptionPoint();
+        // } catch(const ThreadCancelException& err) {
+        //     lua_pushstring(L, err.what());
+        //     lua_error(L);
+        // }
     }
 }
 
