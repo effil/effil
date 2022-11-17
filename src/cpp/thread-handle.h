@@ -41,7 +41,8 @@ public:
     Command command() const { return command_; }
     void putCommand(Command cmd);
     void changeStatus(Status stat);
-    void performInterruptionPoint();
+    void performInterruptionPoint(lua_State* L);
+    void performInterruptionPointThrow();
 
     static ThreadHandle* getThis();
 
@@ -109,6 +110,8 @@ private:
     StoredArray result_;
     IInterruptable* currNotifier_;
     std::unique_ptr<sol::state> lua_;
+
+    void performInterruptionPointImpl(const std::function<void(void)>& cancelClbk);
 
     static void setThis(ThreadHandle* handle);
     friend class Thread;

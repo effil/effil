@@ -34,7 +34,7 @@ std::string threadId() {
 
 void yield() {
     if (const auto thisThread = ThreadHandle::getThis()) {
-        thisThread->performInterruptionPoint();
+        thisThread->performInterruptionPointThrow();
     }
     std::this_thread::yield();
 }

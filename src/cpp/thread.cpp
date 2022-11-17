@@ -44,28 +44,7 @@ const lua_CFunction luaErrorHandlerPtr = luaErrorHandler;
 
 void luaHook(lua_State* L, lua_Debug*) {
     if (const auto thisThread = ThreadHandle::getThis()) {
-        switch (thisThread->command()) {
-            case Command::Run:
-                break;
-            case Command::Pause: {
-                thisThread->changeStatus(Status::Paused);
-                Command cmd;
-                do {
-                    cmd = thisThread->waitForCommandChange(sol::optional<std::chrono::milliseconds>());
-                } while(cmd != Command::Run && cmd != Command::Cancel);
-                if (cmd == Command::Run) {
-                    thisThread->changeStatus(Status::Running);
-                } else {
-                    lua_pushstring(L, ThreadCancelException::message);
-                    lua_error(L);
-                }
-                break;
-            }
-            case Command::Cancel:
-                lua_pushstring(L, ThreadCancelException::message);
-                lua_error(L);
-                break;
-        }
+        thisThread->performInterruptionPoint(L);
     }
 }
 
