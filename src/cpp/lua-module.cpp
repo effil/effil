@@ -1,8 +1,9 @@
-#include "threading.h"
+#include "thread.h"
+#include "this-thread.h"
+#include "thread-runner.h"
 #include "shared-table.h"
 #include "garbage-collector.h"
 #include "channel.h"
-#include "thread_runner.h"
 
 #include <lua.hpp>
 
@@ -100,6 +101,7 @@ int luaopen_effil(lua_State* L) {
         "thread_id",    this_thread::threadId,
         "sleep",        this_thread::sleep,
         "yield",        this_thread::yield,
+        "pcall",        this_thread::pcall,
         "table",        createTable,
         "rawset",       SharedTable::luaRawSet,
         "rawget",       SharedTable::luaRawGet,
@@ -115,7 +117,6 @@ int luaopen_effil(lua_State* L) {
         "hardware_threads", std::thread::hardware_concurrency,
         sol::meta_function::index, luaIndex
     );
-
     sol::stack::push(lua, type);
     sol::stack::pop<sol::object>(lua);
     sol::stack::push(lua, EffilApiMarker());

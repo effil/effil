@@ -1,6 +1,6 @@
 #pragma once
 
-#include <this_thread.h>
+#include <this-thread.h>
 #include <lua-helpers.h>
 
 #include <mutex>
@@ -29,20 +29,20 @@ public:
     }
 
     void wait() {
-        this_thread::interruptionPoint();
+        this_thread::cancellationPoint();
 
         this_thread::ScopedSetInterruptable interruptable(this);
 
         std::unique_lock<std::mutex> lock(mutex_);
         while (!notified_) {
             cv_.wait(lock);
-            this_thread::interruptionPoint();
+            this_thread::cancellationPoint();
         }
     }
 
     template <typename T>
     bool waitFor(T period) {
-        this_thread::interruptionPoint();
+        this_thread::cancellationPoint();
 
         if (period == std::chrono::seconds(0) || notified_)
             return notified_;
@@ -54,7 +54,7 @@ public:
         while (!timer.isFinished() &&
                cv_.wait_for(lock, timer.left()) != std::cv_status::timeout &&
                !notified_) {
-            this_thread::interruptionPoint();
+            this_thread::cancellationPoint();
         }
         return notified_;
     }

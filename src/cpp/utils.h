@@ -23,10 +23,10 @@ int luaopen_effil(lua_State* L);
 
 namespace effil {
 
-class Exception : public sol::error {
+class Exception : public std::runtime_error {
 public:
     Exception() noexcept
-            : sol::error("") {}
+        : std::runtime_error("") {}
 
     template <typename T>
     Exception& operator<<(const T& value) {

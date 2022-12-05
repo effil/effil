@@ -1,4 +1,4 @@
-#include "threading.h"
+#include "thread.h"
 #include "gc-data.h"
 #include "gc-object.h"
 

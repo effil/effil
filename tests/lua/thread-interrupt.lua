@@ -16,7 +16,7 @@ local function interruption_test(worker)
     local start_time = os.time()
     thr:cancel(1)
 
-    test.equal(thr:status(), "canceled")
+    test.equal(thr:status(), "cancelled")
     test.almost_equal(os.time(), start_time, 1)
     state.stop = true
 end

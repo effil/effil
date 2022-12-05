@@ -1,19 +1,31 @@
 #pragma once
 
 #include "lua-helpers.h"
-#include "function.h"
 #include "notifier.h"
+#include "gc-data.h"
 
 #include <sol.hpp>
 
 namespace effil {
+
+class ThreadCancelException : public std::runtime_error
+{
+public:
+    static constexpr auto message = "Effil: thread is cancelled";
+
+    ThreadCancelException()
+        : std::runtime_error(message)
+    {}
+};
+
+class Thread;
 
 class ThreadHandle : public GCData {
 public:
     enum class Status {
         Running,
         Paused,
-        Canceled,
+        Cancelled,
         Completed,
         Failed
     };
@@ -29,6 +41,14 @@ public:
     Command command() const { return command_; }
     void putCommand(Command cmd);
     void changeStatus(Status stat);
+    void performInterruptionPoint(lua_State* L);
+    void performInterruptionPointThrow();
+
+    static ThreadHandle* getThis();
+
+    static bool isFinishStatus(Status stat) {
+        return stat == Status::Cancelled || stat == Status::Completed || stat == Status::Failed;
+    }
 
     template <typename T>
     Status waitForStatusChange(const sol::optional<T>& time) {
@@ -90,38 +110,11 @@ private:
     StoredArray result_;
     IInterruptable* currNotifier_;
     std::unique_ptr<sol::state> lua_;
+
+    void performInterruptionPointImpl(const std::function<void(void)>& cancelClbk);
+
+    static void setThis(ThreadHandle* handle);
+    friend class Thread;
 };
 
-class Thread : public GCObject<ThreadHandle> {
-public:
-    static void exportAPI(sol::state_view& lua);
-
-    StoredArray status(const sol::this_state& state);
-    StoredArray wait(const sol::this_state& state,
-                     const sol::optional<int>& duration,
-                     const sol::optional<std::string>& period);
-    StoredArray get(const sol::optional<int>& duration,
-                   const sol::optional<std::string>& period);
-    bool cancel(const sol::this_state& state,
-                const sol::optional<int>& duration,
-                const sol::optional<std::string>& period);
-    bool pause(const sol::this_state&,
-               const sol::optional<int>& duration,
-               const sol::optional<std::string>& period);
-    void resume();
-
-private:
-    Thread() = default;
-    void initialize(
-        const std::string& path,
-        const std::string& cpath,
-        int step,
-        const sol::function& function,
-        const sol::variadic_args& args);
-    friend class GC;
-
-private:
-    static void runThread(Thread, Function, effil::StoredArray);
-};
-
-} // effil
+} // namespace effil
