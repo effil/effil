@@ -24,16 +24,29 @@ sol::object ThreadRunner::call(sol::this_state lua, const sol::variadic_args& ar
         ctx_->path_, ctx_->cpath_, ctx_->step_, ctx_->function_->unpack(lua), args));
 }
 
-void ThreadRunner::exportAPI(sol::state_view& lua) {
+sol::usertype<ThreadRunner> ThreadRunner::exportAPI(sol::state_view& lua) {
+    auto type = lua.new_usertype<ThreadRunner>(sol::no_constructor);
 
-    sol::usertype<ThreadRunner> type("new", sol::no_constructor,
-        sol::meta_function::call,  &ThreadRunner::call,
-        "path", sol::property(&ThreadRunner::getPath, &ThreadRunner::setPath),
-        "cpath", sol::property(&ThreadRunner::getCPath, &ThreadRunner::setCPath),
-        "step", sol::property(&ThreadRunner::getStep, &ThreadRunner::setStep)
+    type[sol::call_constructor] = sol::factories(
+        [](sol::this_state state, const sol::stack_object& obj) {
+            REQUIRE(obj.valid() && obj.get_type() == sol::type::function)
+                    << "bad argument #1 to 'effil.thread' (function expected, got "
+                    << luaTypename(obj) << ")";
+
+            auto lua = sol::state_view(state);
+            return sol::make_object(lua, GC::instance().create<ThreadRunner>(
+                lua["package"]["path"],
+                lua["package"]["cpath"],
+                200,
+                obj.as<sol::function>()
+            ));
+        }
     );
-    sol::stack::push(lua, type);
-    sol::stack::pop<sol::object>(lua);
+    type[sol::meta_function::call] = &ThreadRunner::call;
+    type["path"] = sol::property(&ThreadRunner::getPath, &ThreadRunner::setPath);
+    type["cpath"] = sol::property(&ThreadRunner::getCPath, &ThreadRunner::setCPath);
+    type["step"] = sol::property(&ThreadRunner::getStep, &ThreadRunner::setStep);
+    return type;
 }
 
 } // namespace effil

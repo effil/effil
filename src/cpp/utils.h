@@ -3,7 +3,7 @@
 #include "logger.h"
 
 #include <sstream>
-#include <sol.hpp>
+#include <sol/sol.hpp>
 
 #if LUA_VERSION_NUM < 501 || LUA_VERSION_NUM > 503
 #   error Unsupported Lua version

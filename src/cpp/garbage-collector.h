@@ -1,10 +1,11 @@
 #pragma once
 
 #include "gc-object.h"
-#include <sol.hpp>
+#include <sol/sol.hpp>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <atomic>
 
 namespace effil {
 

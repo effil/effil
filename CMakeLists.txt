@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.22)
 project(effil)
 
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -30,6 +30,10 @@ if(APPLE)
     set(CMAKE_MACOSX_RPATH 1)
 endif()
 
+add_subdirectory(libs/sol)
+
+target_compile_definitions(sol2 INTERFACE SOL_PRINT_ERRORS=0)
+
 # libeffil not directly linked with liblua
 if (APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
@@ -42,19 +46,18 @@ FILE(GLOB LUA_SOURCES src/lua/*.lua)
 
 add_library(effil SHARED ${SOURCES})
 if (WIN32 OR WIN64)
-    target_link_libraries(effil ${LUA_LIBRARY})
+    target_link_libraries(effil ${LUA_LIBRARY} sol2)
     set_target_properties(effil PROPERTIES
-        PREFIX ""
-        SUFFIX .dll)
+    PREFIX ""
+    SUFFIX .dll)
 else()
-    target_link_libraries(effil -lpthread -ldl)
+    target_link_libraries(effil -lpthread -ldl sol2)
     set_target_properties(effil PROPERTIES
         PREFIX ""
         SUFFIX .so)
 endif()
 
-set(GENERAL "-DSOL_EXCEPTIONS_SAFE_PROPAGATION")
-set(CMAKE_CXX_FLAGS "${EXTRA_FLAGS} ${CMAKE_CXX_FLAGS} ${GENERAL}")
+set(CMAKE_CXX_FLAGS "${EXTRA_FLAGS} ${CMAKE_CXX_FLAGS} ${GENERAL} -Wno-unused-function")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -UNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 if(NOT MSVC)

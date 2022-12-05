@@ -232,7 +232,6 @@ void Thread::initialize(
     const sol::function& function,
     const sol::variadic_args& variadicArgs)
 {
-
     sol::optional<Function> functionObj;
     try {
         functionObj = GC::instance().create<Function>(function);
@@ -266,17 +265,14 @@ void Thread::initialize(
 }
 
 void Thread::exportAPI(sol::state_view& lua) {
-    sol::usertype<Thread> type(
-            "new", sol::no_constructor,
-            "get", &Thread::get,
-            "wait", &Thread::wait,
-            "cancel", &Thread::cancel,
-            "pause", &Thread::pause,
-            "resume", &Thread::resume,
-            "status", &Thread::status);
+    auto type = lua.new_usertype<Thread>(sol::no_constructor);
 
-    sol::stack::push(lua, type);
-    sol::stack::pop<sol::object>(lua);
+    type["get"] = &Thread::get;
+    type["wait"] = &Thread::wait;
+    type["cancel"] = &Thread::cancel;
+    type["pause"] = &Thread::pause;
+    type["resume"] = &Thread::resume;
+    type["status"] = &Thread::status;
 }
 
 StoredArray Thread::status(const sol::this_state& lua) {

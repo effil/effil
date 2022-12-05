@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "garbage-collector.h"
 
-#include <sol.hpp>
+#include <sol/sol.hpp>
 
 namespace effil {
 

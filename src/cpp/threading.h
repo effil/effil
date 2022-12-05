@@ -4,7 +4,7 @@
 #include "function.h"
 #include "notifier.h"
 
-#include <sol.hpp>
+#include <sol/sol.hpp>
 
 namespace effil {
 

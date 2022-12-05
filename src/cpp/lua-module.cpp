@@ -10,24 +10,11 @@ using namespace effil;
 
 namespace {
 
-sol::object createTable(sol::this_state lua, const sol::optional<sol::object>& tbl) {
-    if (tbl)
-    {
-        REQUIRE(tbl->get_type() == sol::type::table) << "Unexpected type for effil.table, table expected got: "
-                                                     << lua_typename(lua, (int)tbl->get_type());
-        return createStoredObject(*tbl)->unpack(lua);
-    }
-    return sol::make_object(lua, GC::instance().create<SharedTable>());
-}
-
-sol::object createChannel(const sol::stack_object& capacity, sol::this_state lua) {
-    return sol::make_object(lua, GC::instance().create<Channel>(capacity));
-}
 
 SharedTable globalTable = GC::instance().create<SharedTable>();
 
 std::string getLuaTypename(const sol::stack_object& obj) {
-    return luaTypename<>(obj);
+    return luaTypename(obj);
 }
 
 size_t luaSize(const sol::stack_object& obj) {
@@ -53,20 +40,6 @@ sol::object luaDump(sol::this_state lua, const sol::stack_object& obj) {
                              << luaTypename(obj) << ")";
 }
 
-sol::table createThreadRunner(sol::this_state state, const sol::stack_object& obj) {
-    REQUIRE(obj.valid() && obj.get_type() == sol::type::function)
-            << "bad argument #1 to 'effil.thread' (function expected, got "
-            << luaTypename(obj) << ")";
-
-    auto lua = sol::state_view(state);
-    return sol::make_object(lua, GC::instance().create<ThreadRunner>(
-        lua["package"]["path"],
-        lua["package"]["cpath"],
-        200,
-        obj.as<sol::function>()
-    ));
-}
-
 } // namespace
 
 extern "C"
@@ -75,49 +48,50 @@ extern "C"
 #endif
 int luaopen_effil(lua_State* L) {
     sol::state_view lua(L);
+
+    static char uniqueRegistryKeyValue = 'a';
+    char* uniqueRegistryKey = &uniqueRegistryKeyValue;
+    const auto registryKey = sol::make_light(uniqueRegistryKey);
+
+    if (lua.registry()[registryKey] == 1) {
+        sol::stack::push(lua, EffilApiMarker());
+        return 1;
+    }
+
     Thread::exportAPI(lua);
-    SharedTable::exportAPI(lua);
-    Channel::exportAPI(lua);
-    ThreadRunner::exportAPI(lua);
 
-    const sol::table  gcApi     = GC::exportAPI(lua);
-    const sol::object gLuaTable = sol::make_object(lua, globalTable);
+    // const auto topBefore = lua_gettop(L);
 
-    const auto luaIndex = [gcApi, gLuaTable](
-            const sol::stack_object& obj, const std::string& key) -> sol::object
-    {
-        if (key == "G")
-            return gLuaTable;
-        else if (key == "gc")
-            return gcApi;
-        else if (key == "version")
-            return sol::make_object(obj.lua_state(), "0.1.0");
-        return sol::nil;
-    };
+    auto type = lua.new_usertype<EffilApiMarker>(sol::no_constructor);
 
-    sol::usertype<EffilApiMarker> type("new", sol::no_constructor,
-        "thread",       createThreadRunner,
-        "thread_id",    this_thread::threadId,
-        "sleep",        this_thread::sleep,
-        "yield",        this_thread::yield,
-        "table",        createTable,
-        "rawset",       SharedTable::luaRawSet,
-        "rawget",       SharedTable::luaRawGet,
-        "setmetatable", SharedTable::luaSetMetatable,
-        "getmetatable", SharedTable::luaGetMetatable,
-        "channel",      createChannel,
-        "type",         getLuaTypename,
-        "pairs",        SharedTable::globalLuaPairs,
-        "ipairs",       SharedTable::globalLuaIPairs,
-        "next",         SharedTable::globalLuaNext,
-        "size",         luaSize,
-        "dump",         luaDump,
-        "hardware_threads", std::thread::hardware_concurrency,
-        sol::meta_function::index, luaIndex
-    );
+    type["version"] = sol::make_object(lua, "1.0.0");
+    type["G"] = sol::make_object(lua, globalTable);
 
-    sol::stack::push(lua, type);
-    sol::stack::pop<sol::object>(lua);
+    type["channel"] = Channel::exportAPI(lua);
+    type["table"] = SharedTable::exportAPI(lua);
+    type["thread"] = ThreadRunner::exportAPI(lua);
+    type["gc"] = GC::exportAPI(lua);
+
+    type["thread_id"] = this_thread::threadId,
+    type["sleep"] = this_thread::sleep;
+    type["yield"] = this_thread::yield;
+    type["rawset"] = SharedTable::luaRawSet;
+    type["rawget"] = SharedTable::luaRawGet;
+    type["setmetatable"] = SharedTable::luaSetMetatable;
+    type["getmetatable"] = SharedTable::luaGetMetatable;
+    type["type"] = getLuaTypename;
+    type["pairs"] = SharedTable::globalLuaPairs;
+    type["ipairs"] = SharedTable::globalLuaIPairs;
+    type["next"] = SharedTable::globalLuaNext;
+    type["size"] = luaSize;
+    type["dump"] = luaDump;
+    type["hardware_threads"] = std::thread::hardware_concurrency;
+
+    // if (topBefore != lua_gettop(L))
+    //     sol::stack::pop_n(L, lua_gettop(L) - topBefore);
+
+    lua.registry()[registryKey] = 1;
+
     sol::stack::push(lua, EffilApiMarker());
     return 1;
 }

@@ -27,8 +27,8 @@ test.thread.runner_path_check_p = function (config_key, pkg)
     test.equal(runner():wait(), "failed")
 end
 
-test.thread.runner_path_check_p("path", "size") -- some testing Lua file to import
-test.thread.runner_path_check_p("cpath", "effil")
+-- test.thread.runner_path_check_p("path", "size") -- some testing Lua file to import
+-- test.thread.runner_path_check_p("cpath", "effil")
 
 test.thread.wait = function ()
     local thread = effil.thread(function()
@@ -52,7 +52,8 @@ test.thread.multiple_wait_get = function ()
     test.equal(value, "test value")
 end
 
-test.thread.timed_get = function ()
+test.thread.timed_get_1 = function ()
+    local effil = require "effil"
     local thread = effil.thread(function()
         effil.sleep(2)
         return "-_-"
@@ -61,7 +62,7 @@ test.thread.timed_get = function ()
     test.equal(thread:get(2), "-_-")
 end
 
-test.thread.timed_get = function ()
+test.thread.timed_get_2 = function ()
     local thread = effil.thread(function()
         effil.sleep(2)
         return 8

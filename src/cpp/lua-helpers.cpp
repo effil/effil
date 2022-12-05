@@ -1,5 +1,10 @@
 #include "lua-helpers.h"
 
+#include "threading.h"
+#include "thread_runner.h"
+#include "channel.h"
+#include "shared-table.h"
+
 namespace effil {
 
 namespace {
@@ -32,11 +37,7 @@ std::string dumpFunction(const sol::function& f) {
     sol::state_view lua(f.lua_state());
     sol::stack::push(lua, f);
     std::string result;
-#if LUA_VERSION_NUM == 503
     int ret = lua_dump(lua, dumpMemoryWriter, &result, 0 /* not strip debug info*/);
-#else
-    int ret = lua_dump(lua, dumpMemoryWriter, &result);
-#endif
     REQUIRE(ret == LUA_OK) << "Unable to dump Lua function: " << luaError(ret);
     sol::stack::remove(lua, -1, 1);
     return result;
@@ -59,6 +60,33 @@ std::chrono::milliseconds fromLuaTime(int duration, const sol::optional<std::str
     else if (metric == "s") return seconds(duration);
     else if (metric == "m") return minutes(duration);
     else throw sol::error("invalid time metric: " + metric);
+}
+
+template <typename SolObject>
+std::string luaTypenameImpl(const SolObject& obj) {
+    if (obj.get_type() == sol::type::userdata) {
+        if (obj.template is<SharedTable>())
+            return "effil.table";
+        else if (obj.template is<Channel>())
+            return "effil.channel";
+        else if (obj.template is<Thread>())
+            return "effil.thread";
+        else if (obj.template is<ThreadRunner>())
+            return "effil.thread_runner";
+        else
+            return "userdata";
+    }
+    else {
+        return lua_typename(obj.lua_state(), (int)obj.get_type());
+    }
+}
+
+std::string luaTypename(const sol::stack_object& obj) {
+    return luaTypenameImpl(obj);
+}
+
+std::string luaTypename(const sol::object& obj) {
+    return luaTypenameImpl(obj);
 }
 
 using namespace std::chrono;

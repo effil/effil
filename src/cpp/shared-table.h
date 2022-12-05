@@ -7,7 +7,7 @@
 #include "lua-helpers.h"
 #include "gc-object.h"
 
-#include <sol.hpp>
+#include <sol/sol.hpp>
 
 #include <map>
 #include <memory>
@@ -29,7 +29,7 @@ private:
     typedef std::pair<sol::object, sol::object> PairsIterator;
 
 public:
-    static void exportAPI(sol::state_view& lua);
+    static sol::usertype<SharedTable> exportAPI(sol::state_view& lua);
 
     void set(StoredObject&&, StoredObject&&);
     void rawSet(const sol::stack_object& luaKey, const sol::stack_object& luaValue);

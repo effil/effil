@@ -1,7 +1,6 @@
 #pragma once
 
 #include "notifier.h"
-#include "lua-helpers.h"
 #include "gc-data.h"
 #include "gc-object.h"
 
@@ -19,7 +18,7 @@ public:
 
 class Channel : public GCObject<ChannelData>, public IInterruptable {
 public:
-    static void exportAPI(sol::state_view& lua);
+    static sol::usertype<Channel> exportAPI(sol::state_view& lua);
 
     bool push(const sol::variadic_args& args);
     StoredArray pop(const sol::optional<int>& duration,
@@ -31,7 +30,7 @@ public:
 
 private:
     Channel() = default;
-    void initialize(const sol::stack_object& capacity);
+    void initialize(const sol::object& capacity = {});
     friend class GC;
 };
 

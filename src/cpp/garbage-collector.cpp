@@ -1,6 +1,7 @@
 #include "garbage-collector.h"
 
 #include "utils.h"
+
 #include "lua-helpers.h"
 
 #include <cassert>

@@ -1,20 +1,30 @@
 #include "channel.h"
 
-#include "sol.hpp"
+#include "lua-helpers.h"
+
+#include <sol/sol.hpp>
 
 namespace effil {
 
-void Channel::exportAPI(sol::state_view& lua) {
-    sol::usertype<Channel> type("new", sol::no_constructor,
-        "push",  &Channel::push,
-        "pop",  &Channel::pop,
-        "size", &Channel::size
+sol::usertype<Channel> Channel::exportAPI(sol::state_view& lua) {
+    auto type = lua.new_usertype<Channel>(
+        sol::no_constructor,
+        sol::call_constructor, sol::factories(
+            [](sol::this_state lua, const sol::object& capacity){
+                return sol::make_object(lua, GC::instance().create<Channel>(capacity));
+            },
+            [](sol::this_state lua){
+                return sol::make_object(lua, GC::instance().create<Channel>());
+            }
+        )
     );
-    sol::stack::push(lua, type);
-    sol::stack::pop<sol::object>(lua);
+    type["push"] = &Channel::push;
+    type["pop"] = &Channel::pop;
+    type["size"] = &Channel::size;
+    return type;
 }
 
-void Channel::initialize(const sol::stack_object& capacity) {
+void Channel::initialize(const sol::object& capacity) {
     if (capacity.valid()) {
         REQUIRE(capacity.get_type() == sol::type::number)
                 << "bad argument #1 to 'effil.channel' (number expected, got "

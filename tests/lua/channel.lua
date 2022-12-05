@@ -39,16 +39,15 @@ end
 
 test.channel.with_threads = function ()
     local chan = effil.channel()
-    local thread = effil.thread(function(chan)
-            chan:push("message1")
-            chan:push("message2")
-            chan:push("message3")
-            chan:push("message4")
-        end
-    )(chan)
+    local thread = effil.thread(function()
+        chan:push("message1")
+        chan:push("message2")
+        chan:push("message3")
+        chan:push("message4")
+    end)()
 
     local start_time = os.time()
-    test.equal(chan:pop(),       "message1")
+    test.equal(chan:pop(1),       "message1")
     thread:wait()
     test.equal(chan:pop(0),      "message2")
     test.equal(chan:pop(1),      "message3")

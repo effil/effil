@@ -20,8 +20,7 @@ class ApiReferenceHolder : public BaseHolder {
 public:
     bool rawCompare(const BaseHolder*) const noexcept final { return true; }
     sol::object unpack(sol::this_state lua) const final {
-        luaopen_effil(lua);
-        return sol::stack::pop<sol::object>(lua);
+        return sol::make_object(lua, EffilApiMarker());
     }
 };
 
@@ -235,8 +234,8 @@ StoredObject fromSolObject(const SolObject& luaObject, SolTableToShared& visited
             // in recursive tables
             dumpTable(table, luaTable, visited);
 
-            const sol::table luaMetatable = luaTable[sol::metatable_key];
-            if (luaMetatable.valid()) {
+            const sol::object luaMetatable = luaTable[sol::metatable_key];
+            if (luaMetatable.valid() && luaMetatable.get_type() == sol::type::table) {
                 SharedTable metaTable = GC::instance().create<SharedTable>();
                 dumpTable(metaTable, luaMetatable, visited);
                 table.setMetatable(metaTable);

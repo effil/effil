@@ -25,29 +25,56 @@ bool isAnyTable(const SolObject& obj) {
 
 } // namespace
 
-void SharedTable::exportAPI(sol::state_view& lua) {
-    sol::usertype<SharedTable> type("new", sol::no_constructor,
-        "__pairs",  &SharedTable::luaPairs,
-        "__ipairs", &SharedTable::luaIPairs,
-        sol::meta_function::new_index,              &SharedTable::luaNewIndex,
-        sol::meta_function::index,                  &SharedTable::luaIndex,
-        sol::meta_function::length,                 &SharedTable::luaLength,
-        sol::meta_function::to_string,              &SharedTable::luaToString,
-        sol::meta_function::addition,               &SharedTable::luaAdd,
-        sol::meta_function::subtraction,            &SharedTable::luaSub,
-        sol::meta_function::multiplication,         &SharedTable::luaMul,
-        sol::meta_function::division,               &SharedTable::luaDiv,
-        sol::meta_function::modulus,                &SharedTable::luaMod,
-        sol::meta_function::power_of,               &SharedTable::luaPow,
-        sol::meta_function::concatenation,          &SharedTable::luaConcat,
-        sol::meta_function::less_than,              &SharedTable::luaLt,
-        sol::meta_function::unary_minus,            &SharedTable::luaUnm,
-        sol::meta_function::call,                   &SharedTable::luaCall,
-        sol::meta_function::equal_to,               &SharedTable::luaEq,
-        sol::meta_function::less_than_or_equal_to,  &SharedTable::luaLe
+
+struct Sample {
+    sol::object index(const sol::stack_object& key) {
+        std::cout << "index called with key '" << key.as<std::string>() << std::endl;
+        return sol::object();
+    }
+    void newIndex(const sol::stack_object& key, const sol::stack_object&) {
+        std::cout << "newIndex called with key '" << key.as<std::string>() << std::endl;
+    }
+};
+sol::usertype<SharedTable> SharedTable::exportAPI(sol::state_view& lua) {
+    auto sampleType = lua.new_usertype<Sample>("sample");
+
+    sampleType[sol::meta_function::new_index] = &Sample::newIndex;
+    //sampleType[sol::meta_function::index] = &Sample::index;
+
+    auto type = lua.new_usertype<SharedTable>(sol::no_constructor);
+
+    type[sol::call_constructor] = sol::factories(
+        [](sol::this_state lua, const sol::stack_object& tbl) {
+            REQUIRE(tbl.get_type() == sol::type::table)
+                << "Unexpected type for effil.table, table expected got: "
+                << lua_typename(lua, (int)tbl.get_type());
+            return createStoredObject(tbl)->unpack(lua);
+        },
+        [](sol::this_state lua) {
+            return sol::make_object(lua, GC::instance().create<SharedTable>());
+        }
     );
-    sol::stack::push(lua, type);
-    sol::stack::pop<sol::object>(lua);
+    type[sol::meta_function::pairs] = &SharedTable::luaPairs;
+    type[sol::meta_function::ipairs] = &SharedTable::luaIPairs;
+    type[sol::meta_function::new_index] = &SharedTable::luaNewIndex;
+    type[sol::meta_function::index] = &SharedTable::luaIndex;
+    type[sol::meta_function::static_new_index] = &SharedTable::luaNewIndex;
+    type[sol::meta_function::static_index] = &SharedTable::luaIndex;
+    type[sol::meta_function::length] = &SharedTable::luaLength;
+    type[sol::meta_function::to_string] = &SharedTable::luaToString;
+    type[sol::meta_function::addition] = &SharedTable::luaAdd;
+    type[sol::meta_function::subtraction] = &SharedTable::luaSub;
+    type[sol::meta_function::multiplication] = &SharedTable::luaMul;
+    type[sol::meta_function::division] = &SharedTable::luaDiv;
+    type[sol::meta_function::modulus] = &SharedTable::luaMod;
+    type[sol::meta_function::power_of] = &SharedTable::luaPow;
+    type[sol::meta_function::concatenation] = &SharedTable::luaConcat;
+    type[sol::meta_function::less_than] = &SharedTable::luaLt;
+    type[sol::meta_function::unary_minus] = &SharedTable::luaUnm;
+    type[sol::meta_function::call] = &SharedTable::luaCall;
+    type[sol::meta_function::equal_to] = &SharedTable::luaEq;
+    type[sol::meta_function::less_than_or_equal_to] = &SharedTable::luaLe;
+    return type;
 }
 
 void SharedTable::set(StoredObject&& key, StoredObject&& value) {
@@ -130,9 +157,10 @@ sol::object SharedTable::luaDump(sol::this_state state, BaseHolder::DumpCache& c
         if (ctx_->metatable != GCNull) { \
             auto tableHolder = GC::instance().get<SharedTable>(ctx_->metatable); \
             lock.unlock(); \
-            sol::function handler = tableHolder.get(createStoredObject(methodName), state); \
-            if (handler.valid()) { \
-                return handler(__VA_ARGS__); \
+            sol::object handler = tableHolder.get(createStoredObject(methodName), state); \
+            if (handler.valid() && handler.get_type() == sol::type::function) { \
+                sol::function handlerFunc = handler; \
+                return handlerFunc(__VA_ARGS__); \
             } \
         } \
     }
@@ -199,19 +227,22 @@ sol::object SharedTable::luaUnm(sol::this_state state) {
 }
 
 void SharedTable::luaNewIndex(const sol::stack_object& luaKey, const sol::stack_object& luaValue, sol::this_state state) {
+    std::cout << "EE: " << (int)luaKey.get_type() << ", " << (int)luaValue.get_type() << std::endl;
     {
         SharedLock lock(ctx_->lock);
         if (ctx_->metatable != GCNull) {
             auto tableHolder = GC::instance().get<SharedTable>(ctx_->metatable);
             lock.unlock();
-            sol::function handler = tableHolder.get(createStoredObject("__newindex"), state);
-            if (handler.valid()) {
-                handler(*this, luaKey, luaValue);
+            sol::object handler = tableHolder.get(createStoredObject("__newindex"), state);
+            if (handler.valid() && handler.get_type() == sol::type::function) {
+                sol::function handlerFunc = handler;
+                handlerFunc(*this, luaKey, luaValue);
                 return;
             }
         }
     }
     try {
+        std::cout << (int)luaKey.get_type() << ", " << (int)luaValue.get_type() << std::endl;
         rawSet(luaKey, luaValue);
     } RETHROW_WITH_PREFIX("effil.table");
 }
@@ -232,7 +263,9 @@ sol::object SharedTable::luaIndex(const sol::stack_object& luaKey, sol::this_sta
 
         SharedLock mt_lock(tableHolder.ctx_->lock);
         const auto iter = tableHolder.ctx_->entries.find(createStoredObject("__index"));
+        std::cout << "ASD=: " << bool(iter != tableHolder.ctx_->entries.end()) << std::endl;
         if (iter != tableHolder.ctx_->entries.end()) {
+            std::cout << "ASD==: " << storedObjectTo<Function>(iter->second).has_value() << std::endl;
             if (const auto tbl = storedObjectTo<SharedTable>(iter->second)) {
                 mt_lock.unlock();
                 return tbl->luaIndex(luaKey, state);

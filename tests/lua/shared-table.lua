@@ -83,15 +83,20 @@ test.shared_table.user_data_classification = function ()
 end
 
 test.shared_table.global = function ()
+    local effil = require "effil"
+    
     test.not_equal(effil.G, nil)
     effil.G.test_key = "test_value"
+
+    print(1)
     local thr = effil.thread(function()
-        local effil = require "effil"
+        -- local effil = require "effil"
         if effil.G == nil or effil.G.test_key ~= "test_value" then
             error("Invalid value of global table: " .. tostring(effil.G and effil.G.test_key or nil))
         end
         effil.G.test_key = "checked"
     end)()
+    print(3)
     local status, err = thr:wait()
     if status == "failed" then
         print("Thread failed with message: " .. err)

@@ -13,7 +13,7 @@ public:
 };
 
 struct ThreadRunner: public GCObject<ThreadRunnerData> {
-    static void exportAPI(sol::state_view& lua);
+    static sol::usertype<ThreadRunner> exportAPI(sol::state_view& lua);
 
     std::string getPath() const { return ctx_->path_; }
     void setPath(const std::string& p) { ctx_->path_ = p; }

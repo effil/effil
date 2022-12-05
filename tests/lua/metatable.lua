@@ -24,8 +24,10 @@ test.metatable.index_p = function (metatable)
         return "mt_" .. effil.rawget(t, key .. "_origin")
     end
     effil.setmetatable(share, metatable)
-
+    
+    print(1)
     share.table_key_origin = "table_value"
+    print(2)
     test.equal(share.table_key, "mt_table_value")
 end
 
