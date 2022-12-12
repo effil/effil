@@ -34,7 +34,7 @@ void ThreadHandle::changeStatus(Status stat) {
         completionNotifier_.notify();
 }
 
-void ThreadHandle::performInterruptionPointImpl(const std::function<void(void)>& cancelClbk) {
+void ThreadHandle::performInterruptionPointImpl(const std::function<void(void)>& cancelClbk, bool withPause) {
     switch (command()) {
         case Command::Run:
             break;
@@ -42,6 +42,9 @@ void ThreadHandle::performInterruptionPointImpl(const std::function<void(void)>&
             cancelClbk();
             break;
         case Command::Pause: {
+            if (!withPause)
+                break;
+
             changeStatus(Status::Paused);
             Command cmd;
             do {
@@ -64,10 +67,10 @@ void ThreadHandle::performInterruptionPoint(lua_State* L) {
     });
 }
 
-void ThreadHandle::performInterruptionPointThrow() {
+void ThreadHandle::performInterruptionPointThrow(bool withPause) {
     performInterruptionPointImpl([](){
         throw ThreadCancelException();
-    });
+    }, withPause);
 }
 
 ThreadHandle* ThreadHandle::getThis() {

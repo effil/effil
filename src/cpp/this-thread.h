@@ -15,9 +15,9 @@ public:
     ~ScopedSetInterruptable();
 };
 
-void cancellationPoint();
 std::string threadId();
 void yield();
+void pausePoint();
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric);
 int pcall(lua_State* L);
 

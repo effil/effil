@@ -62,6 +62,12 @@ Requires C++14 compiler compliance. Tested with GCC 4.9+, clang 3.8 and Visual S
       * [channel:push()](#pushed--channelpush)
       * [channel:pop()](#--channelpoptime-metric)
       * [channel:size()](#size--channelsize)
+    * [Mutex](#mutex)
+      * [effil.mutex()](#mutex--effilmutex)
+      * [mutex:unique_lock()](#mutexunique_lockfunc)
+      * [mutex:shared_lock()](#mutexshared_lockfunc)
+      * [mutex:try_unique_lock()](#succeed--mutextry_unique_lockfunc)
+      * [mutex:try_shared_lock()](#succeed--mutextry_shared_lockfunc)
     * [Garbage collector](#garbage-collector)
       * [effil.gc.collect()](#effilgccollect)
       * [effil.gc.count()](#count--effilgccount)
@@ -175,7 +181,7 @@ pop 5
    <p>
 
 ```lua
-effil = require("effil")
+local effil = require("effil")
 
 -- effil.table transfers data between threads
 -- and behaves like regualr lua table
@@ -274,7 +280,7 @@ Working with function Effil can store function environment (`_ENV`) as well. Con
 
 ## Thread cancellation and pausing
 The [`effil.thread`](#runner--effilthreadfunc) can be paused and cancelled using corresponding methods of thread object [`thread:cancel()`](#threadcanceltime-metric) and [`thread:pause()`](#threadpausetime-metric).  
-Thread that you try to interrupt can be interrupted in two execution points: explicit and implicit.
+Thread that you try to interrupt can be interrupted in three execution points: explicit, implicit and blocking calls.
   - Explicit points are [`effil.yield()`](#effilyield)
       <details>
       <summary>Example of explicit interruption point</summary>
@@ -312,6 +318,7 @@ Thread that you try to interrupt can be interrupted in two execution points: exp
       </p>
       </details>
   - Additionally thread can be cancelled (but not paused) in any [blocking or non-blocking waiting operation](#blocking-and-nonblocking-operations).  
+    And during waiting of mutex lock, in  both `unique_lock` and `shared_lock` functions' call.  
       <details>
       <summary>Example</summary>
       <p>
@@ -554,6 +561,73 @@ Pop message from channel. Removes value(-s) from channel and returns them. If th
 Get actual amount of messages in channel.
 
 **output**: amount of messages in channel.
+
+## Mutex
+`effil.mutex` is synchronization primitive that can be used to protect shared data from being simultaneously accessed by multiple threads.  
+`effil.mutex` has two types of access policy and locks:
+  - unique lock means that only one thread can owns resource under lock, so no one can lock the same mutex simultaneously (neither unique or shared)
+  - shared lock means that any number of theads can read from resource (have shared lock) but no one can write (have unique lock)
+
+### `mutex = effil.mutex()`
+Creates new mutex object.  
+
+### `mutex:unique_lock(func)`
+Take unique (exclusive) lock on the mutex. Wait until it will become free for unique lock if needed. This is a cancellation point for thread which called this method.  
+
+**input**:  callback function to call after lock is occurred
+
+<details>
+   <summary><b>Example</b></summary>
+   <p>
+
+```lua
+local mutex = effil.mutex()
+local storage = effil.table()
+
+mutex:unique_lock(function()
+   -- safely write to storage
+   storage.some_value = 2
+end)
+```
+   </p>
+</details>
+
+### `mutex:shared_lock(func)`
+Take shared lock on the mutex. Wait until it will become free for shared lock if needed. This is a cancellation point for thread which called this method.  
+
+**input**:  callback function to call after lock is occurred
+
+<details>
+   <summary><b>Example</b></summary>
+   <p>
+
+```lua
+local mutex = effil.mutex()
+local storage = effil.table()
+
+mutex:shared_lock(function()
+   -- safely read from storage
+   print(storage.some_value)
+end)
+```
+   </p>
+</details>
+
+### `succeed = mutex:try_unique_lock(func)`
+Try to take unique (exclusive) lock on the mutex.  
+If it's free for unique lock than locks mutex, calls function and returns `true`. Otherwise just returns `false`.  
+
+**input**:  callback function to call after lock is occurred
+**output**:  
+  - `succeed` - `true` or `false` - result of try of mutex locking.  
+
+### `succeed = mutex:try_shared_lock(func)`
+Try to take shared lock on the mutex.  
+If it's free for shared lock than locks mutex, calls function and returns `true`. Otherwise just returns `false`.  
+
+**input**:  callback function to call after lock is occurred
+**output**:  
+  - `succeed` - `true` or `false` - result of try of mutex locking.  
 
 ## Garbage collector
 Effil provides custom garbage collector for `effil.table` and `effil.channel` (and functions with captured upvalues). It allows safe manage cyclic references for tables and channels in multiple threads. However it may cause extra memory usage. `effil.gc` provides a set of method configure effil garbage collector. But, usually you don't need to configure it.

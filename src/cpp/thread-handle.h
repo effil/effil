@@ -42,7 +42,7 @@ public:
     void putCommand(Command cmd);
     void changeStatus(Status stat);
     void performInterruptionPoint(lua_State* L);
-    void performInterruptionPointThrow();
+    void performInterruptionPointThrow(bool withPause = false);
 
     static ThreadHandle* getThis();
 
@@ -111,7 +111,7 @@ private:
     IInterruptable* currNotifier_;
     std::unique_ptr<sol::state> lua_;
 
-    void performInterruptionPointImpl(const std::function<void(void)>& cancelClbk);
+    void performInterruptionPointImpl(const std::function<void(void)>& cancelClbk, bool withPause = false);
 
     static void setThis(ThreadHandle* handle);
     friend class Thread;

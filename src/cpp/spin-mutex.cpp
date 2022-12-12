@@ -1,14 +1,21 @@
 #include "spin-mutex.h"
 #include "lua-helpers.h"
+#include "this-thread.h"
 
 namespace effil {
 
-void SpinMutex::lock() noexcept {
+void SpinMutex::lock(bool interruptable) {
     while (lock_.exchange(true, std::memory_order_acquire)) {
-        std::this_thread::yield();
+        if (interruptable)
+            this_thread::yield();
+        else
+            std::this_thread::yield();
     }
     while (counter_ != 0) {
-        std::this_thread::yield();
+        if (interruptable)
+            this_thread::yield();
+        else
+            std::this_thread::yield();
     }
 }
 
@@ -27,10 +34,13 @@ void SpinMutex::unlock() noexcept {
     lock_.exchange(false, std::memory_order_release);
 }
 
-void SpinMutex::lock_shared() noexcept {
+void SpinMutex::lock_shared(bool interruptable) {
     while (true) {
         while (lock_) {
-            std::this_thread::yield();
+            if (interruptable)
+                this_thread::yield();
+            else
+                std::this_thread::yield();
         }
 
         counter_.fetch_add(1, std::memory_order_acquire);
@@ -67,7 +77,7 @@ void SpinMutex::luaUniqueLock(const sol::stack_object& clbk) {
 
     const auto& func = clbk.as<sol::protected_function>();
 
-    lock();
+    lock(true);
     ScopeGuard g([this](){ unlock(); });
     const auto ret = func();
     if (!ret.valid())
@@ -81,7 +91,7 @@ void SpinMutex::luaSharedLock(const sol::stack_object& clbk) {
 
     const auto& func = clbk.as<sol::protected_function>();
 
-    lock_shared();
+    lock_shared(true);
     ScopeGuard g([this](){ unlock_shared(); });
     const auto ret = func();
     if (!ret.valid())

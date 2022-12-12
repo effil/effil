@@ -9,11 +9,11 @@ namespace effil {
 
 class SpinMutex {
 public:
-    void lock() noexcept;
+    void lock(bool interruptable = false);
     bool try_lock() noexcept;
     void unlock() noexcept;
 
-    void lock_shared() noexcept;
+    void lock_shared(bool interruptable = false);
     bool try_lock_shared() noexcept;
     void unlock_shared() noexcept;
 

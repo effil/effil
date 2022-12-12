@@ -92,12 +92,59 @@ test.mutex.try_shared_lock = function()
     l:unlock()
 end
 
-test.mutex.error_under_lock = function()
+test.mutex.error_under_lock = function(lock_type)
     local m = effil.mutex()
+    local err_msg = "wow"
 
-    local ret = pcall(m.unique_lock, m, function()
-        error('wow')
+    local ret, msg = pcall(m.unique_lock, m, function()
+        error(err_msg)
     end)
     test.is_false(ret)
+    test.is_not_nil(string.find(msg, ".+: " .. err_msg))
     test.is_true(m:try_unique_lock(function()end))
+end
+
+test.mutex.cancel_under_lock_p = function(lock_type)
+    local chan = effil.channel()
+    local m = effil.mutex()
+
+    local thr = effil.thread(function()
+        m[lock_type](m, function()
+            while true do
+                effil.yield()
+                chan:push(1)
+            end
+        end)
+    end)()
+
+    test.equal(chan:pop(1), 1) -- wait until thread is runned
+    test.is_true(thr:cancel(1))
+    test.equal(thr:status(), "cancelled")
+    test.is_true(m:try_unique_lock(function()end))
+end
+
+test.mutex.cancel_while_lock_p = function(lock_type)
+    local tbl = effil.table()
+    local m = effil.mutex()
+
+    local lock_thr = effil.thread(function() -- Lock mutex
+        m:unique_lock(function()
+            while not tbl.stop do
+            end
+        end)
+    end)()
+
+    local hang_thr = effil.thread(function() -- hanged thread
+        m[lock_type](m, function() end)
+    end)()
+
+    test.is_true(hang_thr:cancel(2))
+    test.equal(hang_thr:status(), "cancelled")
+    tbl.stop = true
+    test.is_true(lock_thr:wait() == "completed")
+end
+
+for _, lock_type in ipairs {"unique_lock", "shared_lock"} do
+    test.mutex.cancel_under_lock_p(lock_type)
+    test.mutex.cancel_while_lock_p(lock_type)
 end

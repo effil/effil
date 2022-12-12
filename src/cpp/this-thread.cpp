@@ -18,14 +18,6 @@ ScopedSetInterruptable::~ScopedSetInterruptable() {
     }
 }
 
-void cancellationPoint() {
-    const auto thisThread = ThreadHandle::getThis();
-    if (thisThread && thisThread->command() == ThreadHandle::Command::Cancel) {
-        thisThread->changeStatus(ThreadHandle::Status::Cancelled);
-        throw ThreadCancelException();
-    }
-}
-
 std::string threadId() {
     std::stringstream ss;
     ss << std::this_thread::get_id();
@@ -37,6 +29,12 @@ void yield() {
         thisThread->performInterruptionPointThrow();
     }
     std::this_thread::yield();
+}
+
+void pausePoint() {
+    if (const auto thisThread = ThreadHandle::getThis()) {
+        thisThread->performInterruptionPointThrow(true);
+    }
 }
 
 void sleep(const sol::stack_object& duration, const sol::stack_object& metric) {

@@ -108,6 +108,7 @@ int luaopen_effil(lua_State* L) {
         "sleep",        this_thread::sleep,
         "yield",        this_thread::yield,
         "pcall",        this_thread::pcall,
+        "pause_point",  this_thread::pausePoint,
         "table",        createTable,
         "rawset",       SharedTable::luaRawSet,
         "rawget",       SharedTable::luaRawGet,

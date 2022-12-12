@@ -150,6 +150,7 @@ test.thread.pause_resume_cancel = function ()
         function(data)
             while true do
                 data.value = data.value + 1
+                effil.pause_point()
             end
         end
     )(data)
@@ -173,6 +174,7 @@ test.thread.pause_cancel = function ()
         function(data)
             while true do
                 data.value = data.value + 1
+                effil.pause_point()
             end
         end
     )(data)
@@ -194,6 +196,7 @@ test.thread.async_pause_resume_cancel = function ()
         function(data)
             while true do
                 data.value = data.value + 1
+                effil.pause_point()
             end
         end
     )(data)
@@ -336,30 +339,6 @@ test.this_thread.cancel_with_yield = function ()
     test.equal(thr:status(), "cancelled")
     test.is_true(ctx.done)
     test.is_nil(ctx.after_yield)
-end
-
-test.this_thread.pause_with_yield = function ()
-    local share = effil.table({stop = false})
-    local spec = effil.thread(function (share)
-        while not share.stop do
-            effil.yield()
-        end
-        share.done = true
-        return true
-    end)
-    spec.step = 0
-    local thr = spec(share)
-
-    thr:pause()
-    test.is_nil(share.done)
-    test.equal(thr:status(), "paused")
-    share.stop = true
-    effil.sleep(100, "ms")
-    test.is_nil(share.done)
-    thr:resume()
-
-    test.is_true(thr:get())
-    test.is_true(share.done)
 end
 
 local function worker(cmd)
