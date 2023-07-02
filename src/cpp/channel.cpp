@@ -8,6 +8,7 @@ void Channel::exportAPI(sol::state_view& lua) {
     sol::usertype<Channel> type("new", sol::no_constructor,
         "push",  &Channel::push,
         "pop",  &Channel::pop,
+        "peek", &Channel::peek,
         "size", &Channel::size
     );
     sol::stack::push(lua, type);
@@ -82,6 +83,33 @@ StoredArray Channel::pop(const sol::optional<int>& duration,
 
     ctx_->channel_.pop();
     return ret;
+}
+
+StoredArray Channel::peek(const sol::optional<int>& duration,
+                          const sol::optional<std::string>& period) {
+    this_thread::cancellationPoint();
+    std::unique_lock<std::mutex> lock(ctx_->lock_);
+    {
+        this_thread::ScopedSetInterruptable interruptable(this);
+
+        Timer timer(duration ? fromLuaTime(duration.value(), period) :
+                               std::chrono::milliseconds());
+        while (ctx_->channel_.empty()) {
+            if (duration) {
+                if (timer.isFinished() ||
+                        ctx_->cv_.wait_for(lock, timer.left()) ==
+                            std::cv_status::timeout) {
+                    return StoredArray();
+                }
+            }
+            else { // No time limit
+                ctx_->cv_.wait(lock);
+            }
+            this_thread::cancellationPoint();
+        }
+    }
+
+    return ctx_->channel_.front();
 }
 
 size_t Channel::size() {
